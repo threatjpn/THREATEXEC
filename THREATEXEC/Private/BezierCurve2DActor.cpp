@@ -1,0 +1,450 @@
+#include "BezierCurve2DActor.h"
+
+#include "BezierEditSubsystem.h"
+
+#include "Components/SplineComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "ProceduralMeshComponent.h"
+#include "DeCasteljau.h"
+#include "DrawDebugHelpers.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonSerializer.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Algo/Reverse.h"
+
+static void SetInstanceColorRGB(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C)
+{
+	if (!ISM) return;
+	if (InstanceIndex < 0 || InstanceIndex >= ISM->GetInstanceCount()) return;
+
+	ISM->SetCustomDataValue(InstanceIndex, 0, C.R, false);
+	ISM->SetCustomDataValue(InstanceIndex, 1, C.G, false);
+	ISM->SetCustomDataValue(InstanceIndex, 2, C.B, true);
+}
+
+ABezierCurve2DActor::ABezierCurve2DActor()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SetRootComponent(Root);
+
+	Spline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
+	Spline->SetupAttachment(Root);
+
+	ControlPointISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("ControlPoints"));
+	ControlPointISM->SetupAttachment(Root);
+	ControlPointISM->NumCustomDataFloats = 3;
+	ControlPointISM->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ControlPointISM->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	ControlPointISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	if (CubeMesh.Succeeded()) { ControlPointISM->SetStaticMesh(CubeMesh.Object); }
+
+	StripMeshComponent = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("StripMesh"));
+	StripMeshComponent->SetupAttachment(Root);
+	StripMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	CubeStripISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("CubeStrip"));
+	CubeStripISM->SetupAttachment(Root);
+	CubeStripISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CubeMesh.Succeeded()) { CubeStripISM->SetStaticMesh(CubeMesh.Object); }
+}
+
+void ABezierCurve2DActor::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (UBezierEditSubsystem* Sub = GetWorld()->GetSubsystem<UBezierEditSubsystem>())
+	{
+		Sub->RegisterEditable(this);
+	}
+
+	EnsureSpline();
+	ReadSplineToControl();
+	InitialControl = Control;
+
+	RefreshControlPointVisuals();
+	ApplyRuntimeEditVisibility();
+}
+
+void ABezierCurve2DActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* W = GetWorld())
+	{
+		if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
+		{
+			Sub->UnregisterEditable(this);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void ABezierCurve2DActor::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	EnsureSpline();
+	if (Control.Num() == 0) { Control = { FVector2D(0,0), FVector2D(1,0) }; WriteControlToSpline(); }
+
+	RefreshControlPointVisuals();
+	ApplyRuntimeEditVisibility();
+}
+
+#if WITH_EDITOR
+bool ABezierCurve2DActor::ShouldTickIfViewportsOnly() const { return true; }
+#endif
+
+void ABezierCurve2DActor::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (bShowStripMesh)
+	{
+		UpdateStripMesh();
+	}
+
+	ApplyRuntimeEditVisibility();
+
+	if (!GetWorld()) return;
+	const FTransform Xf = GetActorTransform();
+
+	if (bShowControlPolygon && Control.Num() >= 2)
+	{
+		for (int32 i = 0; i + 1 < Control.Num(); ++i)
+		{
+			DrawDebugLine(
+				GetWorld(),
+				Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
+				Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
+				FColor::White, false, 0.f, 0, 0.5f
+			);
+		}
+	}
+}
+
+void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
+{
+	SetActorHiddenInGame(!bActorVisibleInGame);
+
+	const bool bCanShowVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing);
+
+	const bool bShowCP = bCanShowVisuals && bShowControlPoints;
+	const bool bShowStrip = bCanShowVisuals && bShowStripMesh;
+
+	if (ControlPointISM)
+	{
+		ControlPointISM->SetHiddenInGame(!bShowCP);
+		ControlPointISM->SetVisibility(bShowCP, true);
+		ControlPointISM->SetCollisionEnabled((bShowCP && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+	}
+
+	if (StripMeshComponent)
+	{
+		const bool bShowProc = bShowStrip && !bUseCubeStrip;
+		StripMeshComponent->SetHiddenInGame(!bShowProc);
+		StripMeshComponent->SetVisibility(bShowProc, true);
+	}
+
+	if (CubeStripISM)
+	{
+		const bool bShowCube = bShowStrip && bUseCubeStrip;
+		CubeStripISM->SetHiddenInGame(!bShowCube);
+		CubeStripISM->SetVisibility(bShowCube, true);
+	}
+}
+
+void ABezierCurve2DActor::UpdateControlPointInstanceColors()
+{
+	if (!ControlPointISM) return;
+
+	const int32 Count = ControlPointISM->GetInstanceCount();
+	for (int32 i = 0; i < Count; ++i)
+	{
+		FLinearColor C = ControlPointColor;
+		if (i == SelectedControlPointIndex) C = ControlPointSelectedColor;
+		else if (i == HoveredControlPointIndex) C = ControlPointHoverColor;
+
+		SetInstanceColorRGB(ControlPointISM, i, C);
+	}
+}
+
+void ABezierCurve2DActor::RefreshControlPointVisuals()
+{
+	if (!ControlPointISM) return;
+
+	if (ControlPointMaterial)
+	{
+		ControlPointISM->SetMaterial(0, ControlPointMaterial);
+	}
+
+	ControlPointISM->ClearInstances();
+	if (!bEnableRuntimeEditing) return;
+
+	for (const FVector2D& P : Control)
+	{
+		FTransform Xf;
+		Xf.SetLocation(FVector(P.X * Scale, P.Y * Scale, 0.0f));
+		Xf.SetRotation(FQuat::Identity);
+		Xf.SetScale3D(FVector(ControlPointVisualScale));
+		ControlPointISM->AddInstance(Xf);
+	}
+
+	UpdateControlPointInstanceColors();
+}
+
+void ABezierCurve2DActor::UpdateCubeStrip()
+{
+	if (!CubeStripISM) return;
+
+	CubeStripISM->ClearInstances();
+	if (StripMaterial) CubeStripISM->SetMaterial(0, StripMaterial);
+
+	if (Control.Num() < 2) return;
+
+	const int32 Segs = FMath::Clamp(StripSegments, 2, 2048);
+
+	const float CubeSizeCm = 100.0f;
+	const float WidthScale = StripWidth / CubeSizeCm;
+	const float ThickScale = FMath::Max(0.1f, StripThickness) / CubeSizeCm;
+
+	const FVector SideAxis = FVector(0, 0, 1);
+
+	for (int32 i = 0; i < Segs; ++i)
+	{
+		const double t0 = (double)i / (double)Segs;
+		const double t1 = (double)(i + 1) / (double)Segs;
+
+		const FVector2D P0_2 = Eval(t0);
+		const FVector2D P1_2 = Eval(t1);
+
+		const FVector P0(P0_2.X * Scale, P0_2.Y * Scale, 0.0f);
+		const FVector P1(P1_2.X * Scale, P1_2.Y * Scale, 0.0f);
+
+		const FVector Dir = (P1 - P0);
+		const float Len = Dir.Size();
+		if (Len < KINDA_SMALL_NUMBER) continue;
+
+		const FVector Mid = (P0 + P1) * 0.5f;
+		const FVector X = Dir / Len;
+
+		const FVector Side = FVector::CrossProduct(X, SideAxis).GetSafeNormal();
+		const FVector Up = FVector::CrossProduct(Side, X).GetSafeNormal();
+
+		FTransform Xf;
+		Xf.SetLocation(Mid);
+		Xf.SetRotation(FRotationMatrix::MakeFromXZ(X, Up).ToQuat());
+		Xf.SetScale3D(FVector(Len / CubeSizeCm, WidthScale, ThickScale));
+		CubeStripISM->AddInstance(Xf);
+	}
+}
+
+void ABezierCurve2DActor::UpdateStripMesh()
+{
+	if (!bShowStripMesh) return;
+
+	if (bUseCubeStrip)
+	{
+		UpdateCubeStrip();
+		return;
+	}
+
+	if (!StripMeshComponent || Control.Num() < 2) return;
+
+	TArray<FVector> Verts;
+	TArray<int32> Tris;
+	TArray<FVector2D> UVs;
+
+	const int32 Segs = FMath::Clamp(StripSegments, 2, 2048);
+	const FVector SideAxis = FVector(0, 0, 1);
+
+	for (int32 i = 0; i <= Segs; ++i)
+	{
+		double t = (double)i / (double)Segs;
+		FVector2D P2 = Eval(t);
+		FVector P3 = FVector(P2.X * Scale, P2.Y * Scale, 0);
+
+		FVector2D PNext2 = Eval(FMath::Min(t + 0.001, 1.0));
+		FVector Tangent = FVector(PNext2.X * Scale - P3.X, PNext2.Y * Scale - P3.Y, 0).GetSafeNormal();
+		FVector Side = FVector::CrossProduct(Tangent, SideAxis).GetSafeNormal();
+
+		Verts.Add(P3 + (Side * StripWidth * 0.5f));
+		Verts.Add(P3 - (Side * StripWidth * 0.5f));
+
+		UVs.Add(FVector2D((float)t, 0.f));
+		UVs.Add(FVector2D((float)t, 1.f));
+
+		if (i < Segs)
+		{
+			int32 B = i * 2;
+			Tris.Add(B); Tris.Add(B + 1); Tris.Add(B + 2);
+			Tris.Add(B + 2); Tris.Add(B + 1); Tris.Add(B + 3);
+		}
+	}
+
+	StripMeshComponent->CreateMeshSection_LinearColor(0, Verts, Tris, TArray<FVector>(), UVs, TArray<FLinearColor>(), TArray<FProcMeshTangent>(), false);
+	if (StripMaterial) { StripMeshComponent->SetMaterial(0, StripMaterial); }
+}
+
+// --- Newly added UI runtime edit functions ---
+void ABezierCurve2DActor::UI_SetEditMode(bool bInEditMode)
+{
+	bEditMode = bInEditMode;
+	if (!bEditMode)
+	{
+		HoveredControlPointIndex = -1;
+	}
+	ApplyRuntimeEditVisibility();
+	UpdateControlPointInstanceColors();
+}
+
+void ABezierCurve2DActor::UI_SetActorVisibleInGame(bool bInVisible)
+{
+	bActorVisibleInGame = bInVisible;
+	ApplyRuntimeEditVisibility();
+}
+
+void ABezierCurve2DActor::UI_SetShowStrip(bool bInShow)
+{
+	bShowStripMesh = bInShow;
+	UpdateStripMesh();
+	ApplyRuntimeEditVisibility();
+}
+
+void ABezierCurve2DActor::UI_SetStripSize(float InWidth, float InThickness)
+{
+	StripWidth = FMath::Max(0.1f, InWidth);
+	StripThickness = FMath::Max(0.1f, InThickness);
+	UpdateStripMesh();
+}
+
+void ABezierCurve2DActor::UI_SetShowControlPoints(bool bInShow)
+{
+	bShowControlPoints = bInShow;
+	ApplyRuntimeEditVisibility();
+}
+
+void ABezierCurve2DActor::UI_SetControlPointSize(float InVisualScale)
+{
+	ControlPointVisualScale = FMath::Max(0.001f, InVisualScale);
+	RefreshControlPointVisuals();
+}
+
+void ABezierCurve2DActor::UI_SetControlPointColors(FLinearColor InNormal, FLinearColor InHover, FLinearColor InSelected)
+{
+	ControlPointColor = InNormal;
+	ControlPointHoverColor = InHover;
+	ControlPointSelectedColor = InSelected;
+	UpdateControlPointInstanceColors();
+}
+
+void ABezierCurve2DActor::UI_SetHoveredControlPoint(int32 Index)
+{
+	if (HoveredControlPointIndex == Index) return;
+	HoveredControlPointIndex = Index;
+	UpdateControlPointInstanceColors();
+}
+
+void ABezierCurve2DActor::UI_ClearHoveredControlPoint()
+{
+	if (HoveredControlPointIndex == -1) return;
+	HoveredControlPointIndex = -1;
+	UpdateControlPointInstanceColors();
+}
+
+// --- Existing functions from your file (kept) ---
+void ABezierCurve2DActor::UI_ResetCurveState()
+{
+	Control = (InitialControl.Num() >= 2) ? InitialControl : TArray<FVector2D>{ FVector2D(0,0), FVector2D(1,0) };
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+bool ABezierCurve2DActor::UI_SelectFromHit(const FHitResult& Hit)
+{
+	if (!bEnableRuntimeEditing || !bEditMode) return false;
+	if (Hit.Component != ControlPointISM || Hit.Item == INDEX_NONE) return false;
+	SelectedControlPointIndex = Hit.Item;
+	UpdateControlPointInstanceColors();
+	return true;
+}
+
+bool ABezierCurve2DActor::UI_GetControlPointWorld(int32 Index, FVector& OutWorld) const
+{
+	if (!Control.IsValidIndex(Index)) return false;
+	OutWorld = GetActorTransform().TransformPosition(FVector(Control[Index].X * Scale, Control[Index].Y * Scale, 0));
+	return true;
+}
+
+bool ABezierCurve2DActor::UI_SetControlPointWorld(int32 Index, const FVector& WorldPos)
+{
+	if (!bEnableRuntimeEditing || !bEditMode) return false;
+	if (!Control.IsValidIndex(Index)) return false;
+
+	FVector W = WorldPos;
+
+	// 2D stays planar
+	if (bForcePlanar) W.Z = 0.0f;
+
+	if (bSnapToGrid)
+	{
+		const float G = FMath::Max(0.1f, GridSizeCm);
+		W.X = FMath::GridSnap(W.X, G);
+		W.Y = FMath::GridSnap(W.Y, G);
+		W.Z = 0.0f;
+	}
+
+	const FVector Local = GetActorTransform().InverseTransformPosition(W);
+	Control[Index] = FVector2D(Local.X / Scale, Local.Y / Scale);
+
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+	return true;
+}
+
+void ABezierCurve2DActor::UI_ClearSelectedControlPoint()
+{
+	SelectedControlPointIndex = -1;
+	UpdateControlPointInstanceColors();
+}
+
+FVector2D ABezierCurve2DActor::Eval(double T) const
+{
+	return TEBezier::DeCasteljauEval<FVector2D>(Control, T);
+}
+
+// keep your IO/spline helper implementations below as they already exist in your file
+// ...
+
+// -------- Interface forwarding --------
+FName ABezierCurve2DActor::BEZ_GetTypeName_Implementation() const { return TEXT("Bezier2D"); }
+
+void ABezierCurve2DActor::BEZ_SetEditMode_Implementation(bool bInEditMode) { UI_SetEditMode(bInEditMode); }
+bool ABezierCurve2DActor::BEZ_GetEditMode_Implementation() const { return bEditMode; }
+
+void ABezierCurve2DActor::BEZ_SetActorVisibleInGame_Implementation(bool bInVisible) { UI_SetActorVisibleInGame(bInVisible); }
+bool ABezierCurve2DActor::BEZ_GetActorVisibleInGame_Implementation() const { return bActorVisibleInGame; }
+
+void ABezierCurve2DActor::BEZ_SetShowControlPoints_Implementation(bool bInShow) { UI_SetShowControlPoints(bInShow); }
+bool ABezierCurve2DActor::BEZ_GetShowControlPoints_Implementation() const { return bShowControlPoints; }
+
+void ABezierCurve2DActor::BEZ_SetShowStrip_Implementation(bool bInShow) { UI_SetShowStrip(bInShow); }
+bool ABezierCurve2DActor::BEZ_GetShowStrip_Implementation() const { return bShowStripMesh; }
+
+void ABezierCurve2DActor::BEZ_SetControlPointSize_Implementation(float InVisualScale) { UI_SetControlPointSize(InVisualScale); }
+void ABezierCurve2DActor::BEZ_SetStripSize_Implementation(float InWidth, float InThickness) { UI_SetStripSize(InWidth, InThickness); }
+void ABezierCurve2DActor::BEZ_SetControlPointColors_Implementation(FLinearColor Normal, FLinearColor Hover, FLinearColor Selected) { UI_SetControlPointColors(Normal, Hover, Selected); }
+
+void ABezierCurve2DActor::BEZ_SetSnapToGrid_Implementation(bool bInSnap) { UI_SetSnapToGrid(bInSnap); }
+bool ABezierCurve2DActor::BEZ_GetSnapToGrid_Implementation() const { return bSnapToGrid; }
+
+void ABezierCurve2DActor::BEZ_SetGridSize_Implementation(float InGridSizeCm) { UI_SetGridSizeCm(InGridSizeCm); }
+float ABezierCurve2DActor::BEZ_GetGridSize_Implementation() const { return GridSizeCm; }
+
+void ABezierCurve2DActor::BEZ_SetForcePlanar_Implementation(bool bInForce) { UI_SetForcePlanar(bInForce); }
+void ABezierCurve2DActor::BEZ_ResetCurveState_Implementation() { UI_ResetCurveState(); }
