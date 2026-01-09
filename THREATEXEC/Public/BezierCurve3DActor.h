@@ -175,13 +175,31 @@ public:
 	void UI_SetForcePlanar(bool bInForce);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_SelectFromHit(const FHitResult& Hit);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_AddControlPoint(FVector ModelPos, int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_AddControlPointAfterSelected();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_DeleteControlPoint(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_DeleteSelectedControlPoint();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_DuplicateControlPoint(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_DuplicateSelectedControlPoint();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetSnapToGrid(bool bInSnap) { bSnapToGrid = bInSnap; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetGridSizeCm(float InGridSizeCm) { GridSizeCm = FMath::Max(0.1f, InGridSizeCm); }
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	bool UI_SelectFromHit(const FHitResult& Hit);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	bool UI_GetControlPointWorld(int32 Index, FVector& OutWorld) const;
@@ -211,11 +229,27 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	float GridSizeCm = 10.0f;
 
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
+	bool bLockToLocalXY = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
+	bool bForcePlanar = false;
+
 	UPROPERTY(VisibleAnywhere, Category = "Bezier3D|RuntimeEdit")
 	int32 SelectedControlPointIndex = -1;
 
 	UPROPERTY(VisibleAnywhere, Category = "Bezier3D|RuntimeEdit")
 	int32 HoveredControlPointIndex = -1;
+
+	// Debug
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	bool bShowControlPolygon = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	bool bShowLevelsAtT = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	double ProofT = 0.5;
 
 	// Math
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|Math")
