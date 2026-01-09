@@ -85,6 +85,9 @@ public:
 	void UI_SetShowStrip(bool bInShow);
 
 	UFUNCTION(BlueprintCallable, Category="Bezier2D|UI|RuntimeEdit")
+	void UI_SetShowCubeStrip(bool bInShow);
+
+	UFUNCTION(BlueprintCallable, Category="Bezier2D|UI|RuntimeEdit")
 	void UI_SetStripSize(float InWidth, float InThickness);
 
 	// --- Visual: Control Points ---
@@ -208,6 +211,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_ClearSelectedControlPoint();
+
+	// --------------------------------------------------------------------
+	// Core operations (used by tests and tools)
+	// --------------------------------------------------------------------
+	void SyncControlFromSpline();
+	void OverwriteSplineFromControl();
+	void ReverseControlOrder();
+	void ResampleBezierToSpline();
+
+	bool ExportControlPointsToJson() const;
+	bool ExportCurveSamplesToJson() const;
+	bool ExportDeCasteljauProofJson() const;
 
 	// Math
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|Math")

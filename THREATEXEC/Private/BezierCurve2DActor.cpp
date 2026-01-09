@@ -9,9 +9,11 @@
 #include "DrawDebugHelpers.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Dom/JsonObject.h"
+#include "Dom/JsonValue.h"
 #include "Serialization/JsonSerializer.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
 static void SetInstanceColorRGB(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C)
@@ -314,6 +316,13 @@ void ABezierCurve2DActor::UI_SetShowStrip(bool bInShow)
 	ApplyRuntimeEditVisibility();
 }
 
+void ABezierCurve2DActor::UI_SetShowCubeStrip(bool bInShow)
+{
+	bUseCubeStrip = bInShow;
+	UpdateStripMesh();
+	ApplyRuntimeEditVisibility();
+}
+
 void ABezierCurve2DActor::UI_SetStripSize(float InWidth, float InThickness)
 {
 	StripWidth = FMath::Max(0.1f, InWidth);
@@ -355,10 +364,188 @@ void ABezierCurve2DActor::UI_ClearHoveredControlPoint()
 	UpdateControlPointInstanceColors();
 }
 
+// --- Core operations / IO ---
+void ABezierCurve2DActor::SyncControlFromSpline()
+{
+	ReadSplineToControl();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve2DActor::OverwriteSplineFromControl()
+{
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve2DActor::ReverseControlOrder()
+{
+	Algo::Reverse(Control);
+	OverwriteSplineFromControl();
+}
+
+void ABezierCurve2DActor::ResampleBezierToSpline()
+{
+	if (Control.Num() < 2)
+	{
+		OverwriteSplineFromControl();
+		return;
+	}
+
+	const int32 TargetCount = FMath::Clamp(StripSegments, 3, 512);
+	TArray<FVector2D> Samples;
+	TEBezier::SampleUniform(Control, TargetCount, Samples);
+
+	if (Samples.Num() < 2)
+	{
+		OverwriteSplineFromControl();
+		return;
+	}
+
+	Control = Samples;
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+bool ABezierCurve2DActor::ExportControlPointsToJson() const
+{
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+
+	TArray<TSharedPtr<FJsonValue>> ControlValues;
+	ControlValues.Reserve(Control.Num());
+
+	for (const FVector2D& P : Control)
+	{
+		TArray<TSharedPtr<FJsonValue>> PointValues;
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
+		ControlValues.Add(MakeShared<FJsonValueArray>(PointValues));
+	}
+
+	Root->SetArrayField(TEXT("control"), ControlValues);
+
+	const FString Path = TE_PathUtils::ResolveFile(IOPathAbsolute, TEXT("control.json"), TEXT("Bezier"));
+	return TE_FileUtils::SaveJson(Path, Root);
+}
+
+bool ABezierCurve2DActor::ExportCurveSamplesToJson() const
+{
+	TArray<FVector2D> Samples;
+	const int32 SampleCount = FMath::Clamp(StripSegments, 8, 4096);
+	TEBezier::SampleUniform(Control, SampleCount, Samples);
+
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+	TArray<TSharedPtr<FJsonValue>> SampleValues;
+	SampleValues.Reserve(Samples.Num());
+
+	for (const FVector2D& P : Samples)
+	{
+		TArray<TSharedPtr<FJsonValue>> PointValues;
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
+		SampleValues.Add(MakeShared<FJsonValueArray>(PointValues));
+	}
+
+	Root->SetArrayField(TEXT("samples"), SampleValues);
+
+	const FString Path = TE_PathUtils::ResolveFile(IOPathAbsolute, TEXT("samples.json"), TEXT("Bezier"));
+	return TE_FileUtils::SaveJson(Path, Root);
+}
+
+bool ABezierCurve2DActor::ExportDeCasteljauProofJson() const
+{
+	TArray<TArray<FVector2D>> Levels;
+	TEBezier::DeCasteljauLevels(Control, ProofT, Levels);
+
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+	TArray<TSharedPtr<FJsonValue>> LevelValues;
+	LevelValues.Reserve(Levels.Num());
+
+	for (const TArray<FVector2D>& Level : Levels)
+	{
+		TArray<TSharedPtr<FJsonValue>> LevelPoints;
+		LevelPoints.Reserve(Level.Num());
+		for (const FVector2D& P : Level)
+		{
+			TArray<TSharedPtr<FJsonValue>> PointValues;
+			PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
+			PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
+			LevelPoints.Add(MakeShared<FJsonValueArray>(PointValues));
+		}
+		LevelValues.Add(MakeShared<FJsonValueArray>(LevelPoints));
+	}
+
+	Root->SetArrayField(TEXT("levels"), LevelValues);
+
+	const FString Path = TE_PathUtils::ResolveFile(IOPathAbsolute, TEXT("proof.json"), TEXT("Bezier"));
+	return TE_FileUtils::SaveJson(Path, Root);
+}
+
 // --- Existing functions from your file (kept) ---
 void ABezierCurve2DActor::UI_ResetCurveState()
 {
 	Control = (InitialControl.Num() >= 2) ? InitialControl : TArray<FVector2D>{ FVector2D(0,0), FVector2D(1,0) };
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve2DActor::UI_CenterCurve()
+{
+	if (Control.Num() == 0) return;
+	FVector2D Avg = FVector2D::ZeroVector;
+	for (const FVector2D& P : Control) Avg += P;
+	Avg /= (double)Control.Num();
+	for (FVector2D& P : Control) P -= Avg;
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve2DActor::UI_ToggleClosedLoop()
+{
+	if (!Spline) return;
+	Spline->SetClosedLoop(!Spline->IsClosedLoop());
+	Spline->UpdateSpline();
+}
+
+void ABezierCurve2DActor::UI_ReverseControlOrder()
+{
+	ReverseControlOrder();
+}
+
+void ABezierCurve2DActor::UI_ExportAllJson()
+{
+	ExportControlPointsToJson();
+	ExportCurveSamplesToJson();
+	ExportDeCasteljauProofJson();
+}
+
+void ABezierCurve2DActor::UI_ImportFromJson()
+{
+	const FString Path = TE_PathUtils::ResolveFile(IOPathAbsolute, TEXT("control.json"), TEXT("Bezier"));
+	TSharedPtr<FJsonObject> Root;
+	if (!TE_FileUtils::LoadJson(Path, Root) || !Root.IsValid()) return;
+
+	const TArray<TSharedPtr<FJsonValue>>* ControlArray = nullptr;
+	if (!Root->TryGetArrayField(TEXT("control"), ControlArray) || !ControlArray) return;
+
+	TArray<FVector2D> NewControl;
+	for (const TSharedPtr<FJsonValue>& Entry : *ControlArray)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* PointArray = nullptr;
+		if (!Entry.IsValid() || !Entry->TryGetArray(PointArray) || !PointArray || PointArray->Num() < 2) continue;
+
+		const double X = (*PointArray)[0]->AsNumber();
+		const double Y = (*PointArray)[1]->AsNumber();
+		NewControl.Add(FVector2D(X, Y));
+	}
+
+	if (NewControl.Num() < 2) return;
+	Control = NewControl;
+	InitialControl = Control;
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
 	UpdateStripMesh();
@@ -371,6 +558,58 @@ bool ABezierCurve2DActor::UI_SelectFromHit(const FHitResult& Hit)
 	SelectedControlPointIndex = Hit.Item;
 	UpdateControlPointInstanceColors();
 	return true;
+}
+
+void ABezierCurve2DActor::UI_AddControlPoint(FVector2D ModelPos, int32 Index)
+{
+	if (Index < 0 || Index > Control.Num()) Index = Control.Num();
+	Control.Insert(ModelPos, Index);
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+bool ABezierCurve2DActor::UI_AddControlPointAfterSelected()
+{
+	int32 I = SelectedControlPointIndex;
+	if (!Control.IsValidIndex(I)) { I = Control.Num() - 1; }
+	const FVector2D NewP = (I + 1 < Control.Num()) ? (Control[I] + Control[I + 1]) * 0.5 : Control[I] + FVector2D(0.5, 0);
+	Control.Insert(NewP, I + 1);
+	SelectedControlPointIndex = I + 1;
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+	return true;
+}
+
+bool ABezierCurve2DActor::UI_DeleteControlPoint(int32 Index)
+{
+	if (Control.Num() <= 2 || !Control.IsValidIndex(Index)) return false;
+	Control.RemoveAt(Index);
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+	return true;
+}
+
+bool ABezierCurve2DActor::UI_DeleteSelectedControlPoint()
+{
+	return UI_DeleteControlPoint(SelectedControlPointIndex);
+}
+
+bool ABezierCurve2DActor::UI_DuplicateControlPoint(int32 Index)
+{
+	if (!Control.IsValidIndex(Index)) return false;
+	Control.Insert(Control[Index], Index + 1);
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+	return true;
+}
+
+bool ABezierCurve2DActor::UI_DuplicateSelectedControlPoint()
+{
+	return UI_DuplicateControlPoint(SelectedControlPointIndex);
 }
 
 bool ABezierCurve2DActor::UI_GetControlPointWorld(int32 Index, FVector& OutWorld) const
@@ -418,8 +657,39 @@ FVector2D ABezierCurve2DActor::Eval(double T) const
 	return TEBezier::DeCasteljauEval<FVector2D>(Control, T);
 }
 
-// keep your IO/spline helper implementations below as they already exist in your file
-// ...
+void ABezierCurve2DActor::EnsureSpline()
+{
+	if (!Spline) return;
+	Spline->SetMobility(EComponentMobility::Movable);
+}
+
+void ABezierCurve2DActor::ReadSplineToControl()
+{
+	if (!Spline) return;
+	const int32 N = Spline->GetNumberOfSplinePoints();
+	Control.SetNum(N);
+	for (int32 i = 0; i < N; ++i)
+	{
+		const FVector P = Spline->GetLocationAtSplinePoint(i, ESplineCoordinateSpace::Local);
+		Control[i] = FVector2D(P.X / Scale, P.Y / Scale);
+	}
+}
+
+void ABezierCurve2DActor::WriteControlToSpline()
+{
+	if (!Spline) return;
+	Spline->ClearSplinePoints(false);
+	for (const FVector2D& P : Control)
+	{
+		Spline->AddSplinePoint(FVector(P.X * Scale, P.Y * Scale, 0.0f), ESplineCoordinateSpace::Local, false);
+	}
+	Spline->UpdateSpline();
+}
+
+FString ABezierCurve2DActor::MakeAbs(const FString& FileName) const
+{
+	return TE_PathUtils::ResolveFile(IOPathAbsolute, FileName, TEXT("Bezier"));
+}
 
 // -------- Interface forwarding --------
 FName ABezierCurve2DActor::BEZ_GetTypeName_Implementation() const { return TEXT("Bezier2D"); }
