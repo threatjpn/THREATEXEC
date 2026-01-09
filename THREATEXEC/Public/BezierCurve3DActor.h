@@ -88,6 +88,9 @@ public:
 	void UI_SetShowStrip(bool bInShow);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetShowCubeStrip(bool bInShow);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetStripSize(float InWidth, float InThickness);
 
 	// ---------------------------------------------------------------------

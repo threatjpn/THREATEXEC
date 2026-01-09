@@ -357,6 +357,13 @@ void ABezierCurve3DActor::UI_SetShowStrip(bool bInShow)
 	ApplyRuntimeEditVisibility();
 }
 
+void ABezierCurve3DActor::UI_SetShowCubeStrip(bool bInShow)
+{
+	bUseCubeStrip = bInShow;
+	UpdateStripMesh();
+	ApplyRuntimeEditVisibility();
+}
+
 void ABezierCurve3DActor::UI_SetStripSize(float InWidth, float InThickness)
 {
 	StripWidth = FMath::Max(0.1f, InWidth);

@@ -85,6 +85,9 @@ public:
 	void UI_SetShowStrip(bool bInShow);
 
 	UFUNCTION(BlueprintCallable, Category="Bezier2D|UI|RuntimeEdit")
+	void UI_SetShowCubeStrip(bool bInShow);
+
+	UFUNCTION(BlueprintCallable, Category="Bezier2D|UI|RuntimeEdit")
 	void UI_SetStripSize(float InWidth, float InThickness);
 
 	// --- Visual: Control Points ---
