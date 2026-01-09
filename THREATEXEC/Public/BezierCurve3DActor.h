@@ -192,6 +192,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_ClearSelectedControlPoint();
 
+	// --------------------------------------------------------------------
+	// Core operations (used by tests and tools)
+	// --------------------------------------------------------------------
+	void SyncControlFromSpline();
+	void OverwriteSplineFromControl();
+	void ReverseControlOrder();
+	void ResampleBezierToSpline();
+
+	bool ExportControlPointsToJson() const;
+	bool ExportCurveSamplesToJson() const;
+	bool ExportDeCasteljauProofJson() const;
+
 	// Grid flags (exist in your cpp usage)
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	bool bSnapToGrid = false;

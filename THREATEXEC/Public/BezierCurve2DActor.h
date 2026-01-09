@@ -209,6 +209,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_ClearSelectedControlPoint();
 
+	// --------------------------------------------------------------------
+	// Core operations (used by tests and tools)
+	// --------------------------------------------------------------------
+	void SyncControlFromSpline();
+	void OverwriteSplineFromControl();
+	void ReverseControlOrder();
+	void ResampleBezierToSpline();
+
+	bool ExportControlPointsToJson() const;
+	bool ExportCurveSamplesToJson() const;
+	bool ExportDeCasteljauProofJson() const;
+
 	// Math
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|Math")
 	FVector2D Eval(double T) const;
