@@ -9,10 +9,12 @@
 #include "DrawDebugHelpers.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Dom/JsonObject.h"
+#include "Dom/JsonValue.h"
 #include "Serialization/JsonSerializer.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "HAL/PlatformFilemanager.h"
+#include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
 static void SetInstanceColorRGB(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C)
@@ -396,11 +398,127 @@ void ABezierCurve3DActor::UI_ClearHoveredControlPoint()
 	UpdateControlPointInstanceColors();
 }
 
-// --- Existing logic (kept) ---
-void ABezierCurve3DActor::SyncControlFromSpline() { ReadSplineToControl(); RefreshControlPointVisuals(); }
-void ABezierCurve3DActor::OverwriteSplineFromControl() { WriteControlToSpline(); RefreshControlPointVisuals(); }
-void ABezierCurve3DActor::ReverseControlOrder() { Algo::Reverse(Control); WriteControlToSpline(); RefreshControlPointVisuals(); }
-void ABezierCurve3DActor::ResampleBezierToSpline() { WriteControlToSpline(); RefreshControlPointVisuals(); }
+// --- Core operations / IO ---
+void ABezierCurve3DActor::SyncControlFromSpline()
+{
+	ReadSplineToControl();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve3DActor::OverwriteSplineFromControl()
+{
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve3DActor::ReverseControlOrder()
+{
+	Algo::Reverse(Control);
+	OverwriteSplineFromControl();
+}
+
+void ABezierCurve3DActor::ResampleBezierToSpline()
+{
+	if (Control.Num() < 2)
+	{
+		OverwriteSplineFromControl();
+		return;
+	}
+
+	const int32 TargetCount = FMath::Clamp(StripSegments, 3, 512);
+	TArray<FVector> Samples;
+	TEBezier::SampleUniform(Control, TargetCount, Samples);
+
+	if (Samples.Num() < 2)
+	{
+		OverwriteSplineFromControl();
+		return;
+	}
+
+	Control = Samples;
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+bool ABezierCurve3DActor::ExportControlPointsToJson() const
+{
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+
+	TArray<TSharedPtr<FJsonValue>> ControlValues;
+	ControlValues.Reserve(Control.Num());
+
+	for (const FVector& P : Control)
+	{
+		TArray<TSharedPtr<FJsonValue>> PointValues;
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.Z));
+		ControlValues.Add(MakeShared<FJsonValueArray>(PointValues));
+	}
+
+	Root->SetArrayField(TEXT("control"), ControlValues);
+
+	const FString Path = TE_PathUtils::ResolveFile(IOPathAbsolute, TEXT("control3d.json"), TEXT("Bezier"));
+	return TE_FileUtils::SaveJson(Path, Root);
+}
+
+bool ABezierCurve3DActor::ExportCurveSamplesToJson() const
+{
+	TArray<FVector> Samples;
+	const int32 SampleCount = FMath::Clamp(StripSegments, 8, 4096);
+	TEBezier::SampleUniform(Control, SampleCount, Samples);
+
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+	TArray<TSharedPtr<FJsonValue>> SampleValues;
+	SampleValues.Reserve(Samples.Num());
+
+	for (const FVector& P : Samples)
+	{
+		TArray<TSharedPtr<FJsonValue>> PointValues;
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
+		PointValues.Add(MakeShared<FJsonValueNumber>(P.Z));
+		SampleValues.Add(MakeShared<FJsonValueArray>(PointValues));
+	}
+
+	Root->SetArrayField(TEXT("samples"), SampleValues);
+
+	const FString Path = TE_PathUtils::ResolveFile(IOPathAbsolute, TEXT("samples3d.json"), TEXT("Bezier"));
+	return TE_FileUtils::SaveJson(Path, Root);
+}
+
+bool ABezierCurve3DActor::ExportDeCasteljauProofJson() const
+{
+	TArray<TArray<FVector>> Levels;
+	TEBezier::DeCasteljauLevels(Control, 0.5, Levels);
+
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+	TArray<TSharedPtr<FJsonValue>> LevelValues;
+	LevelValues.Reserve(Levels.Num());
+
+	for (const TArray<FVector>& Level : Levels)
+	{
+		TArray<TSharedPtr<FJsonValue>> LevelPoints;
+		LevelPoints.Reserve(Level.Num());
+		for (const FVector& P : Level)
+		{
+			TArray<TSharedPtr<FJsonValue>> PointValues;
+			PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
+			PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
+			PointValues.Add(MakeShared<FJsonValueNumber>(P.Z));
+			LevelPoints.Add(MakeShared<FJsonValueArray>(PointValues));
+		}
+		LevelValues.Add(MakeShared<FJsonValueArray>(LevelPoints));
+	}
+
+	Root->SetArrayField(TEXT("levels"), LevelValues);
+
+	const FString Path = TE_PathUtils::ResolveFile(IOPathAbsolute, TEXT("proof3d.json"), TEXT("Bezier"));
+	return TE_FileUtils::SaveJson(Path, Root);
+}
 
 // --- UI Logic ---
 void ABezierCurve3DActor::UI_ResetCurveState()
@@ -436,7 +554,46 @@ void ABezierCurve3DActor::UI_ToggleClosedLoop()
 	}
 }
 
+void ABezierCurve3DActor::UI_ResampleParam()
+{
+	ResampleBezierToSpline();
+}
+
+void ABezierCurve3DActor::UI_ResampleArcLength()
+{
+	if (Control.Num() < 2)
+	{
+		OverwriteSplineFromControl();
+		return;
+	}
+
+	const int32 TargetCount = FMath::Clamp(StripSegments, 3, 512);
+	TArray<FVector> Samples;
+	TEBezier::UniformArcLengthSample(Control, TargetCount, Samples);
+
+	if (Samples.Num() < 2)
+	{
+		OverwriteSplineFromControl();
+		return;
+	}
+
+	Control = Samples;
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
 void ABezierCurve3DActor::UI_ReverseControlOrder() { ReverseControlOrder(); }
+
+void ABezierCurve3DActor::UI_SyncControlFromSpline()
+{
+	SyncControlFromSpline();
+}
+
+void ABezierCurve3DActor::UI_OverwriteSplineFromControl()
+{
+	OverwriteSplineFromControl();
+}
 
 void ABezierCurve3DActor::UI_SetForcePlanar(bool bInForce)
 {
@@ -541,15 +698,101 @@ void ABezierCurve3DActor::UI_ClearSelectedControlPoint()
 	UpdateControlPointInstanceColors();
 }
 
-// --- IO Logic (unchanged) ---
-void ABezierCurve3DActor::UI_ExportAllJson() { ExportControlPointsToJson(); ExportCurveSamplesToJson(); ExportDeCasteljauProofJson(); }
-// keep your existing export/import implementations below
-// ...
-FString ABezierCurve3DActor::MakeAbs(const FString& FileName) const { return FPaths::ProjectSavedDir() / TEXT("Bezier") / FileName; }
-void ABezierCurve3DActor::EnsureSpline() { if (!Spline) return; Spline->SetMobility(EComponentMobility::Movable); }
-void ABezierCurve3DActor::ReadSplineToControl() { if (!Spline) return; int32 N = Spline->GetNumberOfSplinePoints(); Control.SetNum(N); for (int32 i = 0; i < N; ++i) Control[i] = Spline->GetLocationAtSplinePoint(i, ESplineCoordinateSpace::Local) / Scale; }
-void ABezierCurve3DActor::WriteControlToSpline() { if (!Spline) return; Spline->ClearSplinePoints(false); for (int32 i = 0; i < Control.Num(); ++i) Spline->AddSplinePoint(Control[i] * Scale, ESplineCoordinateSpace::Local, false); Spline->UpdateSpline(); }
-FVector ABezierCurve3DActor::Eval(double T) const { return TEBezier::DeCasteljauEval<FVector>(Control, T); }
+void ABezierCurve3DActor::UI_ImportFromJson()
+{
+	const FString Path = TE_PathUtils::ResolveFile(IOPathAbsolute, TEXT("control3d.json"), TEXT("Bezier"));
+	TSharedPtr<FJsonObject> Root;
+	if (!TE_FileUtils::LoadJson(Path, Root) || !Root.IsValid()) return;
+
+	const TArray<TSharedPtr<FJsonValue>>* ControlArray = nullptr;
+	if (!Root->TryGetArrayField(TEXT("control"), ControlArray) || !ControlArray) return;
+
+	TArray<FVector> NewControl;
+	for (const TSharedPtr<FJsonValue>& Entry : *ControlArray)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* PointArray = nullptr;
+		if (!Entry.IsValid() || !Entry->TryGetArray(PointArray) || !PointArray || PointArray->Num() < 3) continue;
+
+		const double X = (*PointArray)[0]->AsNumber();
+		const double Y = (*PointArray)[1]->AsNumber();
+		const double Z = (*PointArray)[2]->AsNumber();
+		NewControl.Add(FVector(X, Y, Z));
+	}
+
+	if (NewControl.Num() < 2) return;
+	Control = NewControl;
+	InitialControl = Control;
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+// --- IO Logic ---
+void ABezierCurve3DActor::UI_ExportAllJson()
+{
+	ExportControlPointsToJson();
+	ExportCurveSamplesToJson();
+	ExportDeCasteljauProofJson();
+}
+
+bool ABezierCurve3DActor::WriteJson(const FString& AbsPath, const FString& Str) const
+{
+	IPlatformFile& PF = FPlatformFileManager::Get().GetPlatformFile();
+	const FString Dir = FPaths::GetPath(AbsPath);
+	if (!PF.DirectoryExists(*Dir))
+	{
+		PF.CreateDirectoryTree(*Dir);
+	}
+	return FFileHelper::SaveStringToFile(Str, *AbsPath);
+}
+
+bool ABezierCurve3DActor::ReadJson(const FString& AbsPath, FString& OutStr) const
+{
+	return TE_FileUtils::LoadTextFile(AbsPath, OutStr);
+}
+
+FString ABezierCurve3DActor::MakeAbs(const FString& FileName) const
+{
+	return TE_PathUtils::ResolveFile(IOPathAbsolute, FileName, TEXT("Bezier"));
+}
+
+void ABezierCurve3DActor::EnsureSpline()
+{
+	if (!Spline) return;
+	Spline->SetMobility(EComponentMobility::Movable);
+}
+
+void ABezierCurve3DActor::ReadSplineToControl()
+{
+	if (!Spline) return;
+	const int32 N = Spline->GetNumberOfSplinePoints();
+	Control.SetNum(N);
+	for (int32 i = 0; i < N; ++i)
+	{
+		Control[i] = Spline->GetLocationAtSplinePoint(i, ESplineCoordinateSpace::Local) / Scale;
+	}
+}
+
+void ABezierCurve3DActor::WriteControlToSpline()
+{
+	if (!Spline) return;
+	Spline->ClearSplinePoints(false);
+	for (int32 i = 0; i < Control.Num(); ++i)
+	{
+		Spline->AddSplinePoint(Control[i] * Scale, ESplineCoordinateSpace::Local, false);
+	}
+	Spline->UpdateSpline();
+}
+
+void ABezierCurve3DActor::UniformArcLengthSample3D(int32 TargetCount, TArray<FVector>& Out) const
+{
+	TEBezier::UniformArcLengthSample(Control, TargetCount, Out);
+}
+
+FVector ABezierCurve3DActor::Eval(double T) const
+{
+	return TEBezier::DeCasteljauEval<FVector>(Control, T);
+}
 
 // -------- Interface forwarding --------
 FName ABezierCurve3DActor::BEZ_GetTypeName_Implementation() const { return TEXT("Bezier3D"); }
