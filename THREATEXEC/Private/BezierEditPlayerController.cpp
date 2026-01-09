@@ -16,6 +16,8 @@ ABezierEditPlayerController::ABezierEditPlayerController()
 	bEnableMouseOverEvents = true;
 
 	DefaultMouseCursor = EMouseCursor::Default;
+
+	PrimaryActionNames = { "Secondary" };
 }
 
 void ABezierEditPlayerController::SetupInputComponent()
@@ -25,9 +27,19 @@ void ABezierEditPlayerController::SetupInputComponent()
 	// These action names must exist in Project Settings -> Input
 	if (InputComponent)
 	{
-		InputComponent->BindAction("Primary", IE_Pressed, this, &ABezierEditPlayerController::Input_PrimaryPressed);
-		InputComponent->BindAction("Primary", IE_Released, this, &ABezierEditPlayerController::Input_PrimaryReleased);
-		InputComponent->BindAction("Cancel", IE_Pressed, this, &ABezierEditPlayerController::Input_Cancel);
+		for (const FName& ActionName : PrimaryActionNames)
+		{
+			if (!ActionName.IsNone())
+			{
+				InputComponent->BindAction(ActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_PrimaryPressed);
+				InputComponent->BindAction(ActionName, IE_Released, this, &ABezierEditPlayerController::Input_PrimaryReleased);
+			}
+		}
+
+		if (!CancelActionName.IsNone())
+		{
+			InputComponent->BindAction(CancelActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_Cancel);
+		}
 	}
 }
 
