@@ -16,6 +16,13 @@ public:
 	virtual void SetupInputComponent() override;
 
 protected:
+	// Input mappings (edit in defaults if your camera uses primary/middle click)
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TArray<FName> PrimaryActionNames;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	FName CancelActionName = "Cancel";
+
 	// Input
 	void Input_PrimaryPressed();
 	void Input_PrimaryReleased();

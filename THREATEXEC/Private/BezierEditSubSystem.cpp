@@ -67,6 +67,12 @@ void UBezierEditSubsystem::ForFocused(TFunctionRef<void(UObject* Obj)> Fn)
 
 void UBezierEditSubsystem::ForAll(TFunctionRef<void(UObject* Obj)> Fn)
 {
+	if (bApplyAllToFocusedOnly && HasFocused())
+	{
+		ForFocused(Fn);
+		return;
+	}
+
 	CompactRegistry();
 	for (const auto& P : Editables)
 	{
@@ -286,4 +292,19 @@ void UBezierEditSubsystem::All_ToggleSnapToGrid()
 void UBezierEditSubsystem::All_SetGridSize(float InGridSizeCm)
 {
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetGridSize(Obj, InGridSizeCm); });
+}
+
+void UBezierEditSubsystem::SetApplyAllToFocusedOnly(bool bInFocusedOnly)
+{
+	bApplyAllToFocusedOnly = bInFocusedOnly;
+}
+
+void UBezierEditSubsystem::ToggleApplyAllToFocusedOnly()
+{
+	bApplyAllToFocusedOnly = !bApplyAllToFocusedOnly;
+}
+
+bool UBezierEditSubsystem::GetApplyAllToFocusedOnly() const
+{
+	return bApplyAllToFocusedOnly;
 }

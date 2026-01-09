@@ -76,9 +76,21 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetGridSize(float InGridSizeCm);
 
+	// Routing
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
+	void SetApplyAllToFocusedOnly(bool bInFocusedOnly);
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
+	void ToggleApplyAllToFocusedOnly();
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
+	bool GetApplyAllToFocusedOnly() const;
+
 private:
 	UPROPERTY(Transient) TWeakObjectPtr<AActor> FocusedActor;
 	UPROPERTY(Transient) TArray<TWeakObjectPtr<AActor>> Editables;
+	UPROPERTY(EditAnywhere, Category="Bezier|Edit")
+	bool bApplyAllToFocusedOnly = true;
 
 private:
 	bool IsEditable(AActor* Actor) const;
