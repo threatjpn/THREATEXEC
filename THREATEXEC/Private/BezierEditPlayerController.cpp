@@ -7,6 +7,7 @@
 #include "BezierCurve3DActor.h"
 
 #include "Engine/World.h"
+#include "Engine/Engine.h"
 #include "Camera/PlayerCameraManager.h"
 
 ABezierEditPlayerController::ABezierEditPlayerController()
@@ -27,6 +28,11 @@ void ABezierEditPlayerController::SetupInputComponent()
 	// These action names must exist in Project Settings -> Input
 	if (InputComponent)
 	{
+		if (PrimaryActionNames.IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: no PrimaryActionNames configured."));
+		}
+
 		for (const FName& ActionName : PrimaryActionNames)
 		{
 			if (!ActionName.IsNone())
@@ -34,11 +40,19 @@ void ABezierEditPlayerController::SetupInputComponent()
 				InputComponent->BindAction(ActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_PrimaryPressed);
 				InputComponent->BindAction(ActionName, IE_Released, this, &ABezierEditPlayerController::Input_PrimaryReleased);
 			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: PrimaryActionNames contains None."));
+			}
 		}
 
 		if (!CancelActionName.IsNone())
 		{
 			InputComponent->BindAction(CancelActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_Cancel);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
 		}
 	}
 }
@@ -75,6 +89,7 @@ void ABezierEditPlayerController::UpdateHover()
 
 	if (!bHit || !NewActor)
 	{
+		ReportDebugMessage(TEXT("Hover: none"));
 		ClearHovered();
 		return;
 	}
@@ -94,12 +109,14 @@ void ABezierEditPlayerController::UpdateHover()
 	// Hover only matters for control point instances (Hit.Item).
 	if (NewIndex == INDEX_NONE)
 	{
+		ReportDebugMessage(FString::Printf(TEXT("Hover: %s (no control point)"), *NewActor->GetName()));
 		ClearHovered();
 		return;
 	}
 
 	if (HoveredActor.Get() != NewActor || HoveredIndex != NewIndex)
 	{
+		ReportDebugMessage(FString::Printf(TEXT("Hover: %s idx %d"), *NewActor->GetName(), NewIndex));
 		ClearHovered();
 		HoveredActor = NewActor;
 		HoveredIndex = NewIndex;
@@ -137,6 +154,24 @@ void ABezierEditPlayerController::SetHoveredOnActor(AActor* Actor, int32 Control
 	{
 		A2->UI_SetHoveredControlPoint(ControlPointIndex);
 	}
+}
+
+void ABezierEditPlayerController::ReportDebugMessage(const FString& Message)
+{
+	if (!bDebugTrace || Message == DebugLastMessage)
+	{
+		return;
+	}
+
+	DebugLastMessage = Message;
+
+	if (GEngine)
+	{
+		const uint64 Key = static_cast<uint64>(reinterpret_cast<UPTRINT>(this));
+		GEngine->AddOnScreenDebugMessage(Key, 2.0f, FColor::Yellow, Message);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("%s"), *Message);
 }
 
 void ABezierEditPlayerController::Input_PrimaryPressed()
