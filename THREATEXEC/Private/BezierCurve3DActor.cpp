@@ -21,6 +21,7 @@ static void SetInstanceColorRGB(UInstancedStaticMeshComponent* ISM, int32 Instan
 {
 	if (!ISM) return;
 	if (InstanceIndex < 0 || InstanceIndex >= ISM->GetInstanceCount()) return;
+	if (ISM->NumCustomDataFloats < 3) ISM->NumCustomDataFloats = 3;
 
 	ISM->SetCustomDataValue(InstanceIndex, 0, C.R, false);
 	ISM->SetCustomDataValue(InstanceIndex, 1, C.G, false);
@@ -210,11 +211,14 @@ void ABezierCurve3DActor::UpdateControlPointInstanceColors()
 
 		SetInstanceColorRGB(ControlPointISM, i, C);
 	}
+
+	ControlPointISM->MarkRenderStateDirty();
 }
 
 void ABezierCurve3DActor::RefreshControlPointVisuals()
 {
 	if (!ControlPointISM) return;
+	if (ControlPointISM->NumCustomDataFloats < 3) ControlPointISM->NumCustomDataFloats = 3;
 
 	if (ControlPointMaterial)
 	{
@@ -252,8 +256,8 @@ void ABezierCurve3DActor::UpdateCubeStrip()
 	const int32 Segs = FMath::Clamp(StripSegments, 2, 2048);
 
 	const float CubeSizeCm = 100.0f; // UE cube is 100cm
-	const float WidthScale = StripWidth / CubeSizeCm;
-	const float ThickScale = FMath::Max(0.1f, StripThickness) / CubeSizeCm;
+	const float WidthScale = FMath::Max(0.001f, StripWidth) / CubeSizeCm;
+	const float ThickScale = FMath::Max(0.001f, StripThickness) / CubeSizeCm;
 
 	const FVector Up = GetActorUpVector();
 
@@ -366,8 +370,8 @@ void ABezierCurve3DActor::UI_SetShowCubeStrip(bool bInShow)
 
 void ABezierCurve3DActor::UI_SetStripSize(float InWidth, float InThickness)
 {
-	StripWidth = FMath::Max(0.1f, InWidth);
-	StripThickness = FMath::Max(0.1f, InThickness);
+	StripWidth = FMath::Max(0.001f, InWidth);
+	StripThickness = FMath::Max(0.001f, InThickness);
 	UpdateStripMesh();
 }
 
