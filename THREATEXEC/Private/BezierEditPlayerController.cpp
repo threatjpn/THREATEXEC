@@ -7,7 +7,6 @@
 #include "BezierCurve3DActor.h"
 
 #include "Engine/World.h"
-#include "Engine/Engine.h"
 #include "Camera/PlayerCameraManager.h"
 
 ABezierEditPlayerController::ABezierEditPlayerController()
@@ -28,11 +27,6 @@ void ABezierEditPlayerController::SetupInputComponent()
 	// These action names must exist in Project Settings -> Input
 	if (InputComponent)
 	{
-		if (PrimaryActionNames.IsEmpty())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: no PrimaryActionNames configured."));
-		}
-
 		for (const FName& ActionName : PrimaryActionNames)
 		{
 			if (!ActionName.IsNone())
@@ -40,19 +34,11 @@ void ABezierEditPlayerController::SetupInputComponent()
 				InputComponent->BindAction(ActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_PrimaryPressed);
 				InputComponent->BindAction(ActionName, IE_Released, this, &ABezierEditPlayerController::Input_PrimaryReleased);
 			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: PrimaryActionNames contains None."));
-			}
 		}
 
 		if (!CancelActionName.IsNone())
 		{
 			InputComponent->BindAction(CancelActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_Cancel);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
 		}
 	}
 }

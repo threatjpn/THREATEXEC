@@ -23,9 +23,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName CancelActionName = "Cancel";
 
-	UPROPERTY(EditDefaultsOnly, Category = "Debug")
-	bool bDebugTrace = false;
-
 	// Input
 	void Input_PrimaryPressed();
 	void Input_PrimaryReleased();

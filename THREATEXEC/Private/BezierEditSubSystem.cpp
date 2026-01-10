@@ -311,11 +311,6 @@ void UBezierEditSubsystem::All_SetGridSize(float InGridSizeCm)
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetGridSize(Obj, InGridSizeCm); });
 }
 
-void UBezierEditSubsystem::All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints, bool bShowStrip)
-{
-	ForAll([&](UObject* Obj){ ApplyEditInteraction(Obj, bEnabled, bShowControlPoints, bShowStrip); });
-}
-
 void UBezierEditSubsystem::SetApplyAllToFocusedOnly(bool bInFocusedOnly)
 {
 	bApplyAllToFocusedOnly = bInFocusedOnly;

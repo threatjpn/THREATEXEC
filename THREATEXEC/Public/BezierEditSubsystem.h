@@ -57,7 +57,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetForcePlanar(bool bInForce);
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ResetCurveState();
-	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
 
 	// All curves (UMG calls these)
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetEditMode(bool bInEditMode);
@@ -76,7 +75,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ToggleSnapToGrid();
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetGridSize(float InGridSizeCm);
-	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
 
 	// Routing
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
