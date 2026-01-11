@@ -169,6 +169,9 @@ public:
 	void UI_ResetCurveState();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
+	void UI_SetInitialControlFromCurrent();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
 	void UI_CenterCurve();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")

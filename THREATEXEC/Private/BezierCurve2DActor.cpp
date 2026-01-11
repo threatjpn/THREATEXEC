@@ -496,6 +496,11 @@ void ABezierCurve2DActor::UI_ResetCurveState()
 	UpdateStripMesh();
 }
 
+void ABezierCurve2DActor::UI_SetInitialControlFromCurrent()
+{
+	InitialControl = Control;
+}
+
 void ABezierCurve2DActor::UI_CenterCurve()
 {
 	if (Control.Num() == 0) return;

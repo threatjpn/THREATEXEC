@@ -15,6 +15,9 @@ public:
 	virtual void PlayerTick(float DeltaSeconds) override;
 	virtual void SetupInputComponent() override;
 
+	UFUNCTION(BlueprintCallable, Category = "Debug")
+	void SetDebugTrace(bool bInDebugTrace) { bDebugTrace = bInDebugTrace; }
+
 protected:
 	// Input mappings (edit in defaults if your camera uses primary/middle click)
 	UPROPERTY(EditDefaultsOnly, Category = "Input")

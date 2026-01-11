@@ -77,7 +77,7 @@ void ABezierDebugActor::ApplyControllerDebug() const
 	{
 		if (ABezierEditPlayerController* EditPC = Cast<ABezierEditPlayerController>(PC))
 		{
-			EditPC->bDebugTrace = bEnableMouseTraceDebug;
+			EditPC->SetDebugTrace(bEnableMouseTraceDebug);
 		}
 	}
 }

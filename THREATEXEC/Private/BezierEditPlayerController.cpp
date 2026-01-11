@@ -210,6 +210,24 @@ void ABezierEditPlayerController::ReportDebugMessage(const FString& Message)
 	UE_LOG(LogTemp, Log, TEXT("%s"), *Message);
 }
 
+void ABezierEditPlayerController::ReportDebugMessage(const FString& Message)
+{
+	if (!bDebugTrace || Message == DebugLastMessage)
+	{
+		return;
+	}
+
+	DebugLastMessage = Message;
+
+	if (GEngine)
+	{
+		const uint64 Key = static_cast<uint64>(reinterpret_cast<UPTRINT>(this));
+		GEngine->AddOnScreenDebugMessage(Key, 2.0f, FColor::Yellow, Message);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("%s"), *Message);
+}
+
 void ABezierEditPlayerController::Input_PrimaryPressed()
 {
 	FHitResult Hit;

@@ -168,7 +168,7 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 				const double Z = (*PointArray)[2]->AsNumber();
 				A3->Control.Add(FVector(X, Y, Z));
 			}
-			A3->InitialControl = A3->Control;
+			A3->UI_SetInitialControlFromCurrent();
 			A3->OverwriteSplineFromControl();
 			A3->UI_SetClosedLoop(bClosed);
 			Spawned.Add(A3);
@@ -188,7 +188,7 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 				const double Y = (*PointArray)[1]->AsNumber();
 				A2->Control.Add(FVector2D(X, Y));
 			}
-			A2->InitialControl = A2->Control;
+			A2->UI_SetInitialControlFromCurrent();
 			A2->OverwriteSplineFromControl();
 			A2->UI_SetClosedLoop(bClosed);
 			Spawned.Add(A2);
