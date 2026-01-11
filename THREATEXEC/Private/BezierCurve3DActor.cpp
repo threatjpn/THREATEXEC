@@ -565,6 +565,20 @@ void ABezierCurve3DActor::UI_ToggleClosedLoop()
 	}
 }
 
+void ABezierCurve3DActor::UI_SetClosedLoop(bool bInClosed)
+{
+	if (Spline)
+	{
+		Spline->SetClosedLoop(bInClosed);
+		Spline->UpdateSpline();
+	}
+}
+
+bool ABezierCurve3DActor::UI_IsClosedLoop() const
+{
+	return Spline ? Spline->IsClosedLoop() : false;
+}
+
 void ABezierCurve3DActor::UI_ResampleParam()
 {
 	ResampleBezierToSpline();

@@ -515,6 +515,18 @@ void ABezierCurve2DActor::UI_ToggleClosedLoop()
 	Spline->UpdateSpline();
 }
 
+void ABezierCurve2DActor::UI_SetClosedLoop(bool bInClosed)
+{
+	if (!Spline) return;
+	Spline->SetClosedLoop(bInClosed);
+	Spline->UpdateSpline();
+}
+
+bool ABezierCurve2DActor::UI_IsClosedLoop() const
+{
+	return Spline ? Spline->IsClosedLoop() : false;
+}
+
 void ABezierCurve2DActor::UI_ReverseControlOrder()
 {
 	ReverseControlOrder();

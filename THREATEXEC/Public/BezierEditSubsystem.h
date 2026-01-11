@@ -77,6 +77,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetGridSize(float InGridSizeCm);
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ExportCurveSetJson();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ImportCurveSetJson();
 
 	// Routing
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")

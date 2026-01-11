@@ -16,6 +16,11 @@
 
 #include "BezierCurve2DActor.h"
 #include "BezierCurve3DActor.h"
+#include "BezierCurveSetActor.h"
+#include "BezierEditSubsystem.h"
+
+#include "EngineUtils.h"
+#include "Misc/FileHelper.h"
 
 namespace
 {
@@ -199,6 +204,69 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	TestTrue(TEXT("Import restored control"), A->Control.Num() >= 2);
 
 	A->Destroy();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_CurveSet_IO,
+	"Bezier/UI/CurveSet_IO",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+
+bool FBezier_UI_CurveSet_IO::RunTest(const FString&)
+{
+	UWorld* World = GetEditorWorldChecked();
+	const FString OutDir = MakeTempDir(TEXT("BezierUICurveSet"));
+
+	const FString JsonText =
+		TEXT("{\"scale\":100.0,\"curves\":[")
+		TEXT("{\"name\":\"CurveA\",\"space\":\"3D\",\"closed\":false,\"control\":[[0,0,0],[1,0,0],[2,0,0]]}")
+		TEXT("]}");
+
+	const FString CurvesPath = OutDir / TEXT("curves.json");
+	if (!FFileHelper::SaveStringToFile(JsonText, *CurvesPath))
+	{
+		AddError(TEXT("Failed to write curves.json"));
+		return false;
+	}
+
+	FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	ABezierCurveSetActor* SetActor = World->SpawnActor<ABezierCurveSetActor>(P);
+	if (!TestNotNull(TEXT("Spawn curve set"), SetActor)) return false;
+
+	SetActor->IOPathAbsolute = OutDir;
+	SetActor->CurveSetFile = TEXT("curves.json");
+	SetActor->BackupCurveSetFile = TEXT("curves_backup.json");
+	SetActor->bWriteBackupOnExport = true;
+
+	int32 CountBefore = 0;
+	for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It) { ++CountBefore; }
+
+	SetActor->UI_ImportCurveSetJson();
+
+	int32 CountAfter = 0;
+	for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It) { ++CountAfter; }
+	TestTrue(TEXT("Import spawns 3D curve"), CountAfter > CountBefore);
+
+	SetActor->UI_ExportCurveSetJson();
+	TestTrue(TEXT("Export writes curves.json"), FPaths::FileExists(CurvesPath));
+
+	const FString BackupPath = OutDir / TEXT("curves_backup.json");
+	TestTrue(TEXT("Backup written"), FPaths::FileExists(BackupPath));
+
+	FString BackupText;
+	FFileHelper::LoadFileToString(BackupText, *BackupPath);
+	TestTrue(TEXT("Backup matches original"), BackupText == JsonText);
+
+	if (UBezierEditSubsystem* Subsystem = World->GetSubsystem<UBezierEditSubsystem>())
+	{
+		Subsystem->All_ExportCurveSetJson();
+		TestTrue(TEXT("Subsystem export writes curves.json"), FPaths::FileExists(CurvesPath));
+	}
+	else
+	{
+		AddError(TEXT("Missing BezierEditSubsystem"));
+	}
+
+	SetActor->Destroy();
 	return true;
 }
 

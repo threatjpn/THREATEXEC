@@ -138,6 +138,12 @@ public:
 	void UI_ToggleClosedLoop();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
+	void UI_SetClosedLoop(bool bInClosed);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
+	bool UI_IsClosedLoop() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
 	void UI_ResampleParam();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")

@@ -1,4 +1,9 @@
 #include "BezierEditSubsystem.h"
+#include "BezierCurveSetActor.h"
+#include "BezierEditable.h"
+
+#include "Engine/World.h"
+#include "EngineUtils.h"
 
 bool UBezierEditSubsystem::IsEditable(AActor* Actor) const
 {
@@ -329,6 +334,30 @@ void UBezierEditSubsystem::All_SetGridSize(float InGridSizeCm)
 void UBezierEditSubsystem::All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints, bool bShowStrip)
 {
 	ForAll([&](UObject* Obj){ ApplyEditInteraction(Obj, bEnabled, bShowControlPoints, bShowStrip); });
+}
+
+void UBezierEditSubsystem::All_ExportCurveSetJson()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	for (TActorIterator<ABezierCurveSetActor> It(World); It; ++It)
+	{
+		It->UI_ExportCurveSetJson();
+		break;
+	}
+}
+
+void UBezierEditSubsystem::All_ImportCurveSetJson()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	for (TActorIterator<ABezierCurveSetActor> It(World); It; ++It)
+	{
+		It->UI_ImportCurveSetJson();
+		break;
+	}
 }
 
 void UBezierEditSubsystem::SetApplyAllToFocusedOnly(bool bInFocusedOnly)
