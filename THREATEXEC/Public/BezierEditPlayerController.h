@@ -16,6 +16,16 @@ public:
 	virtual void SetupInputComponent() override;
 
 protected:
+	// Input mappings (edit in defaults if your camera uses primary/middle click)
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TArray<FName> PrimaryActionNames;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	FName CancelActionName = "Cancel";
+
+	UPROPERTY(EditDefaultsOnly, Category = "Debug")
+	bool bDebugTrace = false;
+
 	// Input
 	void Input_PrimaryPressed();
 	void Input_PrimaryReleased();
@@ -36,6 +46,8 @@ protected:
 	void ClearHovered();
 	void ClearSelectedOnActor(AActor* Actor) const;
 	void SetHoveredOnActor(AActor* Actor, int32 ControlPointIndex) const;
+
+	void ReportDebugMessage(const FString& Message);
 
 private:
 	UPROPERTY(Transient)
@@ -58,4 +70,7 @@ private:
 
 	UPROPERTY(Transient)
 	FVector DragPlaneNormal = FVector::UpVector;
+
+	UPROPERTY(Transient)
+	FString DebugLastMessage;
 };

@@ -143,6 +143,12 @@ public:
 	void UI_ToggleClosedLoop();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
+	void UI_SetClosedLoop(bool bInClosed);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
+	bool UI_IsClosedLoop() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_ReverseControlOrder();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
