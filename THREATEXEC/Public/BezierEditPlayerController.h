@@ -50,7 +50,23 @@ protected:
 	void ClearSelectedOnActor(AActor* Actor) const;
 	void SetHoveredOnActor(AActor* Actor, int32 ControlPointIndex) const;
 
-	void ReportDebugMessage(const FString& Message);
+	void ReportDebugMessage(const FString& Message)
+	{
+		if (!bDebugTrace || Message == DebugLastMessage)
+		{
+			return;
+		}
+
+		DebugLastMessage = Message;
+
+		if (GEngine)
+		{
+			const uint64 Key = static_cast<uint64>(reinterpret_cast<UPTRINT>(this));
+			GEngine->AddOnScreenDebugMessage(Key, 2.0f, FColor::Yellow, Message);
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("%s"), *Message);
+	}
 
 private:
 	UPROPERTY(Transient)
