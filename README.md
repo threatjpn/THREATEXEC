@@ -35,6 +35,10 @@ Runtime Bezier editing tools for Unreal Engine, including:
 * In-world debug toggle actor for controller trace debug, curve visuals, snapping, and IO.
 * Place in your level to quickly verify behavior without editing blueprints.
 
+### `ABezierDebugHUD`
+* Minimal in-game overlay with hotkeys to toggle edit/debug features.
+* Set your GameMode HUD class to `ABezierDebugHUD` and press **F1** to show/hide.
+
 ---
 
 ## Setup in Unreal Editor (Runtime)
@@ -106,6 +110,21 @@ Drop a `BezierDebugActor` in the level and toggle settings in Details:
 * `bEnableMouseTraceDebug` → on-screen hover/trace output.
 * Visual toggles for control points/strip, sizing, colors, snapping.
 * `ApplyDebugSettings()` to push settings.
+
+### `ABezierDebugHUD` (overlay)
+Set your GameMode’s **HUD Class** to `ABezierDebugHUD` and press **F1** in-game to toggle.
+Hotkeys (press **K** to apply after changes):
+* **E**: Edit mode
+* **C**: Control points
+* **S**: Strip
+* **G**: Show grid
+* **N**: Snap to grid
+* **H**: Cycle grid size
+* **L**: Lock to XY
+* **P**: Force planar
+* **D**: Pulse debug lines
+* **T**: Trace debug
+* **K**: Apply debug settings
 
 ---
 
