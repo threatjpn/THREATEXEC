@@ -118,6 +118,18 @@ bool FBezier_UI_2D_Core::RunTest(const FString&)
 	A->DebugPulseSpeed = 2.0f;
 	TestTrue(TEXT("Debug pulse params"), !A->bPulseDebugLines && FMath::IsNearlyEqual(A->DebugPulseMaxAlpha, 0.5f));
 
+	A->bPulseGrid = true;
+	A->GridPulseMinAlpha = 0.1f;
+	A->GridPulseMaxAlpha = 0.6f;
+	A->GridPulseSpeed = 1.5f;
+	A->GridPulseMinThickness = 0.25f;
+	A->GridPulseMaxThickness = 1.25f;
+	TestTrue(TEXT("Grid pulse params"), A->bPulseGrid && FMath::IsNearlyEqual(A->GridPulseMinAlpha, 0.1f));
+
+	A->bEnableVisualFade = true;
+	A->VisualFadeSpeed = 3.0f;
+	TestTrue(TEXT("Visual fade params"), A->bEnableVisualFade && FMath::IsNearlyEqual(A->VisualFadeSpeed, 3.0f));
+
 	A->IOPathAbsolute = OutDir;
 	A->UI_ExportAllJson();
 	TestTrue(TEXT("control.json"), FPaths::FileExists(OutDir / TEXT("control.json")));
@@ -209,6 +221,18 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	A->DebugPulseMaxAlpha = 0.5f;
 	A->DebugPulseSpeed = 2.0f;
 	TestTrue(TEXT("Debug pulse params"), !A->bPulseDebugLines && FMath::IsNearlyEqual(A->DebugPulseMaxAlpha, 0.5f));
+
+	A->bPulseGrid = true;
+	A->GridPulseMinAlpha = 0.2f;
+	A->GridPulseMaxAlpha = 0.7f;
+	A->GridPulseSpeed = 1.25f;
+	A->GridPulseMinThickness = 0.3f;
+	A->GridPulseMaxThickness = 1.3f;
+	TestTrue(TEXT("Grid pulse params"), A->bPulseGrid && FMath::IsNearlyEqual(A->GridPulseMaxAlpha, 0.7f));
+
+	A->bEnableVisualFade = true;
+	A->VisualFadeSpeed = 4.0f;
+	TestTrue(TEXT("Visual fade params"), A->bEnableVisualFade && FMath::IsNearlyEqual(A->VisualFadeSpeed, 4.0f));
 
 	A->UI_MirrorCurveX();
 	A->UI_MirrorCurveY();

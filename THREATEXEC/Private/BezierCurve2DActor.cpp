@@ -105,6 +105,9 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	UpdateVisualFadeTargets();
+	UpdateVisualFade(DeltaSeconds);
+
 	if (bShowStripMesh)
 	{
 		UpdateStripMesh();
@@ -120,6 +123,13 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		: DebugPulseMaxAlpha;
 	const uint8 DebugAlpha = static_cast<uint8>(FMath::Clamp(PulseAlpha, 0.0f, 1.0f) * 255.0f);
 	const float DebugThickness = 0.5f + (PulseAlpha * 1.0f);
+	const float GridPulseAlpha = bPulseGrid
+		? FMath::Lerp(GridPulseMinAlpha, GridPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f)
+		: GridPulseMaxAlpha;
+	const uint8 GridAlpha = static_cast<uint8>(FMath::Clamp(GridPulseAlpha, 0.0f, 1.0f) * 255.0f);
+	const float GridThickness = bPulseGrid
+		? FMath::Lerp(GridPulseMinThickness, GridPulseMaxThickness, (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f)
+		: GridPulseMaxThickness;
 
 	if (bShowControlPolygon && Control.Num() >= 2)
 	{
@@ -144,11 +154,11 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			const float Offset = i * G;
 			const FVector A = Xf.TransformPosition(FVector(-Extent, Offset, 0.0f));
 			const FVector B = Xf.TransformPosition(FVector(Extent, Offset, 0.0f));
-			DrawDebugLine(GetWorld(), A, B, FColor(0, 255, 0, DebugAlpha), false, 0.f, 0, DebugThickness);
+			DrawDebugLine(GetWorld(), A, B, FColor(0, 255, 0, GridAlpha), false, 0.f, 0, GridThickness);
 
 			const FVector C = Xf.TransformPosition(FVector(Offset, -Extent, 0.0f));
 			const FVector D = Xf.TransformPosition(FVector(Offset, Extent, 0.0f));
-			DrawDebugLine(GetWorld(), C, D, FColor(0, 255, 0, DebugAlpha), false, 0.f, 0, DebugThickness);
+			DrawDebugLine(GetWorld(), C, D, FColor(0, 255, 0, GridAlpha), false, 0.f, 0, GridThickness);
 		}
 	}
 }
@@ -161,27 +171,54 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 
 	const bool bShowCP = bCanShowVisuals && bShowControlPoints;
 	const bool bShowStrip = bCanShowVisuals && bShowStripMesh;
+	const bool bShowCPVisual = ControlPointFadeAlpha > KINDA_SMALL_NUMBER;
+	const bool bShowStripVisual = StripFadeAlpha > KINDA_SMALL_NUMBER;
 
 	if (ControlPointISM)
 	{
-		ControlPointISM->SetHiddenInGame(!bShowCP);
-		ControlPointISM->SetVisibility(bShowCP, true);
-		ControlPointISM->SetCollisionEnabled((bShowCP && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+		const bool bVisible = bShowCP && bShowCPVisual;
+		ControlPointISM->SetHiddenInGame(!bVisible);
+		ControlPointISM->SetVisibility(bVisible, true);
+		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 	}
 
 	if (StripMeshComponent)
 	{
-		const bool bShowProc = bShowStrip && !bUseCubeStrip;
+		const bool bShowProc = bShowStrip && bShowStripVisual && !bUseCubeStrip;
 		StripMeshComponent->SetHiddenInGame(!bShowProc);
 		StripMeshComponent->SetVisibility(bShowProc, true);
 	}
 
 	if (CubeStripISM)
 	{
-		const bool bShowCube = bShowStrip && bUseCubeStrip;
+		const bool bShowCube = bShowStrip && bShowStripVisual && bUseCubeStrip;
 		CubeStripISM->SetHiddenInGame(!bShowCube);
 		CubeStripISM->SetVisibility(bShowCube, true);
 	}
+}
+
+void ABezierCurve2DActor::UpdateVisualFadeTargets()
+{
+	const bool bCanShowVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing);
+	TargetControlPointFade = (bCanShowVisuals && bShowControlPoints) ? 1.0f : 0.0f;
+	TargetStripFade = (bCanShowVisuals && bShowStripMesh) ? 1.0f : 0.0f;
+
+	if (!bEnableVisualFade)
+	{
+		ControlPointFadeAlpha = TargetControlPointFade;
+		StripFadeAlpha = TargetStripFade;
+	}
+}
+
+void ABezierCurve2DActor::UpdateVisualFade(float DeltaSeconds)
+{
+	if (!bEnableVisualFade)
+	{
+		return;
+	}
+
+	ControlPointFadeAlpha = FMath::FInterpTo(ControlPointFadeAlpha, TargetControlPointFade, DeltaSeconds, VisualFadeSpeed);
+	StripFadeAlpha = FMath::FInterpTo(StripFadeAlpha, TargetStripFade, DeltaSeconds, VisualFadeSpeed);
 }
 
 void ABezierCurve2DActor::UpdateControlPointInstanceColors()
@@ -217,13 +254,14 @@ void ABezierCurve2DActor::UpdateControlPointInstanceScale(float InScale)
 
 float ABezierCurve2DActor::GetControlPointPulseScale() const
 {
+	const float FadeAlpha = bEnableVisualFade ? ControlPointFadeAlpha : 1.0f;
 	if (!bPulseControlPoints || !GetWorld())
 	{
-		return ControlPointVisualScale;
+		return ControlPointVisualScale * FadeAlpha;
 	}
 
 	const float Alpha = (FMath::Sin(GetWorld()->GetTimeSeconds() * ControlPointPulseSpeed) + 1.0f) * 0.5f;
-	return FMath::Lerp(ControlPointPulseMinScale, ControlPointPulseMaxScale, Alpha);
+	return ControlPointVisualScale * FadeAlpha * FMath::Lerp(ControlPointPulseMinScale, ControlPointPulseMaxScale, Alpha);
 }
 
 void ABezierCurve2DActor::UpdateControlPointPulse()
@@ -252,22 +290,24 @@ float ABezierCurve2DActor::GetStripPulseAlpha() const
 
 float ABezierCurve2DActor::GetStripWidthForRender() const
 {
+	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
 	if (!bPulseStrip)
 	{
-		return StripWidth;
+		return StripWidth * FadeAlpha;
 	}
 
-	return FMath::Lerp(StripPulseMinWidth, StripPulseMaxWidth, GetStripPulseAlpha());
+	return StripWidth * FadeAlpha * FMath::Lerp(StripPulseMinWidth, StripPulseMaxWidth, GetStripPulseAlpha());
 }
 
 float ABezierCurve2DActor::GetStripThicknessForRender() const
 {
+	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
 	if (!bPulseStrip)
 	{
-		return StripThickness;
+		return StripThickness * FadeAlpha;
 	}
 
-	return FMath::Lerp(StripPulseMinThickness, StripPulseMaxThickness, GetStripPulseAlpha());
+	return StripThickness * FadeAlpha * FMath::Lerp(StripPulseMinThickness, StripPulseMaxThickness, GetStripPulseAlpha());
 }
 
 void ABezierCurve2DActor::RefreshControlPointVisuals()
