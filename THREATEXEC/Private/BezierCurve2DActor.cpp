@@ -16,15 +16,16 @@
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
-static void SetInstanceColorRGB2D(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C)
+static void SetInstanceColorRGB2D(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C, float Alpha)
 {
 	if (!ISM) return;
 	if (InstanceIndex < 0 || InstanceIndex >= ISM->GetInstanceCount()) return;
-	if (ISM->NumCustomDataFloats < 3) ISM->NumCustomDataFloats = 3;
+	if (ISM->NumCustomDataFloats < 4) ISM->NumCustomDataFloats = 4;
 
 	ISM->SetCustomDataValue(InstanceIndex, 0, C.R, false);
 	ISM->SetCustomDataValue(InstanceIndex, 1, C.G, false);
-	ISM->SetCustomDataValue(InstanceIndex, 2, C.B, true);
+	ISM->SetCustomDataValue(InstanceIndex, 2, C.B, false);
+	ISM->SetCustomDataValue(InstanceIndex, 3, Alpha, true);
 }
 
 ABezierCurve2DActor::ABezierCurve2DActor()
@@ -113,6 +114,8 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		UpdateStripMesh();
 	}
 
+	UpdateStripPulseOpacity();
+
 	ApplyRuntimeEditVisibility();
 	UpdateControlPointPulse();
 
@@ -146,19 +149,20 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 
 	if (bShowGrid || bSnapToGrid)
 	{
-		const float G = FMath::Max(0.1f, GridSizeCm);
+		const float G = FMath::Max(0.01f, GridSizeCm);
 		const int32 HalfCells = 10;
 		const float Extent = G * HalfCells;
+		const FColor GridColor(160, 160, 160, GridAlpha);
 		for (int32 i = -HalfCells; i <= HalfCells; ++i)
 		{
 			const float Offset = i * G;
-			const FVector A = Xf.TransformPosition(FVector(-Extent, Offset, 0.0f));
-			const FVector B = Xf.TransformPosition(FVector(Extent, Offset, 0.0f));
-			DrawDebugLine(GetWorld(), A, B, FColor(0, 255, 0, GridAlpha), false, 0.f, 0, GridThickness);
+			const FVector A(-Extent, Offset, 0.0f);
+			const FVector B(Extent, Offset, 0.0f);
+			DrawDebugLine(GetWorld(), A, B, GridColor, false, 0.f, 0, GridThickness);
 
-			const FVector C = Xf.TransformPosition(FVector(Offset, -Extent, 0.0f));
-			const FVector D = Xf.TransformPosition(FVector(Offset, Extent, 0.0f));
-			DrawDebugLine(GetWorld(), C, D, FColor(0, 255, 0, GridAlpha), false, 0.f, 0, GridThickness);
+			const FVector C(Offset, -Extent, 0.0f);
+			const FVector D(Offset, Extent, 0.0f);
+			DrawDebugLine(GetWorld(), C, D, GridColor, false, 0.f, 0, GridThickness);
 		}
 	}
 }
@@ -225,6 +229,7 @@ void ABezierCurve2DActor::UpdateControlPointInstanceColors()
 {
 	if (!ControlPointISM) return;
 
+	const float Alpha = GetControlPointPulseOpacity();
 	const int32 Count = ControlPointISM->GetInstanceCount();
 	for (int32 i = 0; i < Count; ++i)
 	{
@@ -232,7 +237,7 @@ void ABezierCurve2DActor::UpdateControlPointInstanceColors()
 		if (i == SelectedControlPointIndex) C = ControlPointSelectedColor;
 		else if (i == HoveredControlPointIndex) C = ControlPointHoverColor;
 
-		SetInstanceColorRGB2D(ControlPointISM, i, C);
+		SetInstanceColorRGB2D(ControlPointISM, i, C, Alpha);
 	}
 
 	ControlPointISM->MarkRenderStateDirty();
@@ -255,13 +260,7 @@ void ABezierCurve2DActor::UpdateControlPointInstanceScale(float InScale)
 float ABezierCurve2DActor::GetControlPointPulseScale() const
 {
 	const float FadeAlpha = bEnableVisualFade ? ControlPointFadeAlpha : 1.0f;
-	if (!bPulseControlPoints || !GetWorld())
-	{
-		return ControlPointVisualScale * FadeAlpha;
-	}
-
-	const float Alpha = (FMath::Sin(GetWorld()->GetTimeSeconds() * ControlPointPulseSpeed) + 1.0f) * 0.5f;
-	return ControlPointVisualScale * FadeAlpha * FMath::Lerp(ControlPointPulseMinScale, ControlPointPulseMaxScale, Alpha);
+	return ControlPointVisualScale * FadeAlpha;
 }
 
 void ABezierCurve2DActor::UpdateControlPointPulse()
@@ -269,13 +268,25 @@ void ABezierCurve2DActor::UpdateControlPointPulse()
 	if (!ControlPointISM) return;
 
 	const float TargetScale = GetControlPointPulseScale();
+	const float TargetOpacity = GetControlPointPulseOpacity();
 	if (FMath::IsNearlyEqual(TargetScale, CachedControlPointScale))
 	{
-		return;
+		if (!FMath::IsNearlyEqual(TargetOpacity, CachedControlPointOpacity))
+		{
+			UpdateControlPointInstanceColors();
+			CachedControlPointOpacity = TargetOpacity;
+		}
 	}
-
-	UpdateControlPointInstanceScale(TargetScale);
-	CachedControlPointScale = TargetScale;
+	else
+	{
+		UpdateControlPointInstanceScale(TargetScale);
+		CachedControlPointScale = TargetScale;
+		if (!FMath::IsNearlyEqual(TargetOpacity, CachedControlPointOpacity))
+		{
+			UpdateControlPointInstanceColors();
+			CachedControlPointOpacity = TargetOpacity;
+		}
+	}
 }
 
 float ABezierCurve2DActor::GetStripPulseAlpha() const
@@ -288,32 +299,66 @@ float ABezierCurve2DActor::GetStripPulseAlpha() const
 	return (FMath::Sin(GetWorld()->GetTimeSeconds() * StripPulseSpeed) + 1.0f) * 0.5f;
 }
 
+float ABezierCurve2DActor::GetControlPointPulseOpacity() const
+{
+	const float FadeAlpha = bEnableVisualFade ? ControlPointFadeAlpha : 1.0f;
+	if (!bPulseControlPoints || !GetWorld())
+	{
+		return FadeAlpha;
+	}
+
+	const float Alpha = (FMath::Sin(GetWorld()->GetTimeSeconds() * ControlPointPulseSpeed) + 1.0f) * 0.5f;
+	return FadeAlpha * FMath::Lerp(ControlPointPulseMinAlpha, ControlPointPulseMaxAlpha, Alpha);
+}
+
 float ABezierCurve2DActor::GetStripWidthForRender() const
 {
 	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
-	if (!bPulseStrip)
-	{
-		return StripWidth * FadeAlpha;
-	}
-
-	return StripWidth * FadeAlpha * FMath::Lerp(StripPulseMinWidth, StripPulseMaxWidth, GetStripPulseAlpha());
+	return StripWidth * FadeAlpha;
 }
 
 float ABezierCurve2DActor::GetStripThicknessForRender() const
 {
 	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
-	if (!bPulseStrip)
+	return StripThickness * FadeAlpha;
+}
+
+float ABezierCurve2DActor::GetStripPulseOpacity() const
+{
+	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
+	if (!bPulseStrip || !GetWorld())
 	{
-		return StripThickness * FadeAlpha;
+		return FadeAlpha;
 	}
 
-	return StripThickness * FadeAlpha * FMath::Lerp(StripPulseMinThickness, StripPulseMaxThickness, GetStripPulseAlpha());
+	return FadeAlpha * FMath::Lerp(StripPulseMinAlpha, StripPulseMaxAlpha, GetStripPulseAlpha());
+}
+
+void ABezierCurve2DActor::UpdateStripPulseOpacity()
+{
+	const float TargetOpacity = GetStripPulseOpacity();
+	if (FMath::IsNearlyEqual(TargetOpacity, CachedStripOpacity))
+	{
+		return;
+	}
+
+	if (StripMeshComponent)
+	{
+		StripMeshComponent->SetCustomPrimitiveDataFloat(0, TargetOpacity);
+	}
+
+	if (CubeStripISM)
+	{
+		CubeStripISM->SetCustomPrimitiveDataFloat(0, TargetOpacity);
+	}
+
+	CachedStripOpacity = TargetOpacity;
 }
 
 void ABezierCurve2DActor::RefreshControlPointVisuals()
 {
 	if (!ControlPointISM) return;
-	if (ControlPointISM->NumCustomDataFloats < 3) ControlPointISM->NumCustomDataFloats = 3;
+	if (ControlPointISM->NumCustomDataFloats < 4) ControlPointISM->NumCustomDataFloats = 4;
 
 	if (ControlPointMaterial)
 	{
@@ -800,7 +845,7 @@ bool ABezierCurve2DActor::UI_SetControlPointWorld(int32 Index, const FVector& Wo
 
 	if (bSnapToGrid)
 	{
-		const float G = FMath::Max(0.1f, GridSizeCm);
+		const float G = FMath::Max(0.01f, GridSizeCm);
 		W.X = FMath::GridSnap(W.X, G);
 		W.Y = FMath::GridSnap(W.Y, G);
 		W.Z = 0.0f;

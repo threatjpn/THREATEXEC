@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "TimerManager.h"
+#include "BezierRuntimeTypes.h"
 #include "BezierCurveSetActor.generated.h"
 
 class ABezierCurve2DActor;
@@ -71,6 +72,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridSizeForAll(float InGridSizeCm);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_CycleGridSizeForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarForAll(bool bInForce);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetLockToLocalXYForAll(bool bInLock);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridForAll(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_ResetCurveStateForAll();

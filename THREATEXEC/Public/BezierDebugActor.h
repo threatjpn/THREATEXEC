@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "BezierRuntimeTypes.h"
 #include "BezierDebugActor.generated.h"
 
 class ABezierCurveSetActor;
@@ -59,14 +60,17 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bShowGrid = false;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.1"))
-	float GridSizeCm = 0.5f;
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.01"))
+	float GridSizeCm = 0.25f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bLockToLocalXY = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bForcePlanar = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	EBezierPlanarAxis ForcePlanarAxis = EBezierPlanarAxis::XY;
 
 	// Debug draw in curve actors
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
@@ -93,6 +97,12 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.001"))
 	float ControlPointPulseMaxScale = 1.333f;
 
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float ControlPointPulseMinAlpha = 0.4f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float ControlPointPulseMaxAlpha = 1.0f;
+
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
 	float ControlPointPulseSpeed = 1.0f;
 
@@ -111,11 +121,20 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.001"))
 	float StripPulseMaxThickness = 1.0f;
 
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float StripPulseMinAlpha = 0.4f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float StripPulseMaxAlpha = 1.0f;
+
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
 	float StripPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	bool bPulseGrid = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
+	bool bOverrideVisualSizes = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	bool bEnableVisualFade = true;
@@ -127,7 +146,7 @@ public:
 	float GridPulseMinAlpha = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.0", ClampMax="1.0"))
-	float GridPulseMaxAlpha = 0.5f;
+	float GridPulseMaxAlpha = 0.15f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
 	float GridPulseSpeed = 1.0f;

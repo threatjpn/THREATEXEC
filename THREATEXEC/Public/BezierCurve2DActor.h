@@ -81,6 +81,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.001"))
 	float StripPulseMaxThickness = 1.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.0", ClampMax = "1.0"))
+	float StripPulseMinAlpha = 0.4f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.0", ClampMax = "1.0"))
+	float StripPulseMaxAlpha = 1.0f;
+
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.01"))
 	float StripPulseSpeed = 1.0f;
 
@@ -121,6 +127,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints", meta=(ClampMin = "0.001"))
 	float ControlPointPulseMaxScale = 1.333f;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints", meta=(ClampMin = "0.0", ClampMax = "1.0"))
+	float ControlPointPulseMinAlpha = 0.4f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints", meta=(ClampMin = "0.0", ClampMax = "1.0"))
+	float ControlPointPulseMaxAlpha = 1.0f;
+
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints", meta=(ClampMin = "0.01"))
 	float ControlPointPulseSpeed = 1.0f;
 
@@ -154,7 +166,7 @@ public:
 	bool bShowGrid = false;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
-	float GridSizeCm = 0.5f;
+	float GridSizeCm = 0.25f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
 	bool bLockToLocalXY = true;
@@ -185,7 +197,7 @@ public:
 	float GridPulseMinAlpha = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float GridPulseMaxAlpha = 0.5f;
+	float GridPulseMaxAlpha = 0.15f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
 	float GridPulseSpeed = 1.0f;
@@ -235,7 +247,7 @@ public:
 	void UI_SetShowGrid(bool bInShow) { bShowGrid = bInShow; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	void UI_SetGridSizeCm(float InGridSizeCm) { GridSizeCm = FMath::Max(0.1f, InGridSizeCm); }
+	void UI_SetGridSizeCm(float InGridSizeCm) { GridSizeCm = FMath::Max(0.01f, InGridSizeCm); }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_SetLockToLocalXY(bool bInLock) { bLockToLocalXY = bInLock; }
@@ -344,11 +356,16 @@ private:
 	void UpdateControlPointPulse();
 	void UpdateControlPointInstanceScale(float InScale);
 	float GetControlPointPulseScale() const;
+	float GetControlPointPulseOpacity() const;
 	float GetStripPulseAlpha() const;
 	float GetStripWidthForRender() const;
 	float GetStripThicknessForRender() const;
+	float GetStripPulseOpacity() const;
+	void UpdateStripPulseOpacity();
 
 	float CachedControlPointScale = -1.0f;
+	float CachedControlPointOpacity = -1.0f;
+	float CachedStripOpacity = -1.0f;
 	float ControlPointFadeAlpha = 1.0f;
 	float StripFadeAlpha = 1.0f;
 	float TargetControlPointFade = 1.0f;

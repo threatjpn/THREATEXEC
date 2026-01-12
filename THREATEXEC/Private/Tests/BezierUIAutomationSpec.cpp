@@ -126,6 +126,14 @@ bool FBezier_UI_2D_Core::RunTest(const FString&)
 	A->GridPulseMaxThickness = 1.25f;
 	TestTrue(TEXT("Grid pulse params"), A->bPulseGrid && FMath::IsNearlyEqual(A->GridPulseMinAlpha, 0.1f));
 
+	A->ControlPointPulseMinAlpha = 0.35f;
+	A->ControlPointPulseMaxAlpha = 0.9f;
+	TestTrue(TEXT("Control point pulse alpha"), FMath::IsNearlyEqual(A->ControlPointPulseMinAlpha, 0.35f));
+
+	A->StripPulseMinAlpha = 0.3f;
+	A->StripPulseMaxAlpha = 0.95f;
+	TestTrue(TEXT("Strip pulse alpha"), FMath::IsNearlyEqual(A->StripPulseMaxAlpha, 0.95f));
+
 	A->bEnableVisualFade = true;
 	A->VisualFadeSpeed = 3.0f;
 	TestTrue(TEXT("Visual fade params"), A->bEnableVisualFade && FMath::IsNearlyEqual(A->VisualFadeSpeed, 3.0f));
@@ -229,6 +237,14 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	A->GridPulseMinThickness = 0.3f;
 	A->GridPulseMaxThickness = 1.3f;
 	TestTrue(TEXT("Grid pulse params"), A->bPulseGrid && FMath::IsNearlyEqual(A->GridPulseMaxAlpha, 0.7f));
+
+	A->ControlPointPulseMinAlpha = 0.25f;
+	A->ControlPointPulseMaxAlpha = 0.85f;
+	TestTrue(TEXT("Control point pulse alpha"), FMath::IsNearlyEqual(A->ControlPointPulseMaxAlpha, 0.85f));
+
+	A->StripPulseMinAlpha = 0.2f;
+	A->StripPulseMaxAlpha = 0.9f;
+	TestTrue(TEXT("Strip pulse alpha"), FMath::IsNearlyEqual(A->StripPulseMinAlpha, 0.2f));
 
 	A->bEnableVisualFade = true;
 	A->VisualFadeSpeed = 4.0f;
