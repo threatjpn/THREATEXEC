@@ -68,6 +68,24 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
 	bool bShowStripMesh = true;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
+	bool bPulseStrip = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
+	float StripPulseMinWidth = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
+	float StripPulseMaxWidth = 10.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
+	float StripPulseMinThickness = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
+	float StripPulseMaxThickness = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.01"))
+	float StripPulseSpeed = 1.0f;
+
 	// True = instanced cube strip. False = procedural ribbon.
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
 	bool bUseCubeStrip = true;
@@ -98,6 +116,18 @@ public:
 	// ---------------------------------------------------------------------
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
 	bool bShowControlPoints = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
+	bool bPulseControlPoints = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.001"))
+	float ControlPointPulseMinScale = 0.02f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.001"))
+	float ControlPointPulseMaxScale = 0.08f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.01"))
+	float ControlPointPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
 	float ControlPointVisualScale = 0.06f;
@@ -138,6 +168,12 @@ public:
 	void UI_ToggleClosedLoop();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
+	void UI_SetClosedLoop(bool bInClosed);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
+	bool UI_IsClosedLoop() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
 	void UI_ResampleParam();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
@@ -161,6 +197,9 @@ public:
 	// Control point editing
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
 	void UI_ResetCurveState();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
+	void UI_SetInitialControlFromCurrent();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
 	void UI_CenterCurve();
@@ -199,10 +238,16 @@ public:
 	bool UI_DuplicateSelectedControlPoint();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	void UI_SetSnapToGrid(bool bInSnap) { bSnapToGrid = bInSnap; }
+	void UI_SetSnapToGrid(bool bInSnap);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	void UI_SetGridSizeCm(float InGridSizeCm) { GridSizeCm = FMath::Max(0.1f, InGridSizeCm); }
+	void UI_SetShowGrid(bool bInShow);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetGridSizeCm(float InGridSizeCm);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetLockToLocalXY(bool bInLock);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	bool UI_GetControlPointWorld(int32 Index, FVector& OutWorld) const;
@@ -230,7 +275,10 @@ public:
 	bool bSnapToGrid = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
-	float GridSizeCm = 10.0f;
+	bool bShowGrid = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
+	float GridSizeCm = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	bool bLockToLocalXY = false;
@@ -247,6 +295,18 @@ public:
 	// Debug
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bShowControlPolygon = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	bool bPulseDebugLines = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DebugPulseMinAlpha = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DebugPulseMaxAlpha = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
+	float DebugPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bShowLevelsAtT = false;
@@ -291,6 +351,15 @@ protected:
 private:
 	UPROPERTY()
 	TArray<FVector> InitialControl;
+
+	void UpdateControlPointPulse();
+	void UpdateControlPointInstanceScale(float InScale);
+	float GetControlPointPulseScale() const;
+	float GetStripPulseAlpha() const;
+	float GetStripWidthForRender() const;
+	float GetStripThicknessForRender() const;
+
+	float CachedControlPointScale = -1.0f;
 
 	// ---- Interface (zero casting in UMG) ----
 public:

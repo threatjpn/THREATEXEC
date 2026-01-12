@@ -67,6 +67,24 @@ public:
 	bool bShowStripMesh = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip")
+	bool bPulseStrip = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.001"))
+	float StripPulseMinWidth = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.001"))
+	float StripPulseMaxWidth = 10.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.001"))
+	float StripPulseMinThickness = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.001"))
+	float StripPulseMaxThickness = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip", meta=(ClampMin = "0.01"))
+	float StripPulseSpeed = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip")
 	bool bUseCubeStrip = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip")
@@ -95,6 +113,18 @@ public:
 	bool bShowControlPoints = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints")
+	bool bPulseControlPoints = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints", meta=(ClampMin = "0.001"))
+	float ControlPointPulseMinScale = 0.02f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints", meta=(ClampMin = "0.001"))
+	float ControlPointPulseMaxScale = 0.08f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints", meta=(ClampMin = "0.01"))
+	float ControlPointPulseSpeed = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints")
 	float ControlPointVisualScale = 0.06f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints")
@@ -117,7 +147,7 @@ public:
 	bool bShowGrid = false;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
-	float GridSizeCm = 10.0f;
+	float GridSizeCm = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
 	bool bLockToLocalXY = true;
@@ -129,6 +159,18 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
 	bool bShowControlPolygon = true;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
+	bool bPulseDebugLines = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DebugPulseMinAlpha = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DebugPulseMaxAlpha = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
+	float DebugPulseSpeed = 1.0f;
+
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	double ProofT = 0.5;
 
@@ -137,10 +179,19 @@ public:
 	void UI_ResetCurveState();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
+	void UI_SetInitialControlFromCurrent();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_CenterCurve();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_ToggleClosedLoop();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
+	void UI_SetClosedLoop(bool bInClosed);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
+	bool UI_IsClosedLoop() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_ReverseControlOrder();
@@ -153,7 +204,7 @@ public:
 
 	// Runtime edit setters
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	void UI_SetSnapToGrid(bool bInSnap) { bSnapToGrid = bInSnap; }
+	void UI_SetSnapToGrid(bool bInSnap);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_SetShowGrid(bool bInShow) { bShowGrid = bInShow; }
@@ -262,6 +313,15 @@ public:
 private:
 	UPROPERTY()
 	TArray<FVector2D> InitialControl;
+
+	void UpdateControlPointPulse();
+	void UpdateControlPointInstanceScale(float InScale);
+	float GetControlPointPulseScale() const;
+	float GetStripPulseAlpha() const;
+	float GetStripWidthForRender() const;
+	float GetStripThicknessForRender() const;
+
+	float CachedControlPointScale = -1.0f;
 
 	// Interface
 public:
