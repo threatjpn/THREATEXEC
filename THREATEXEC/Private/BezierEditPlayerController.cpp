@@ -7,6 +7,7 @@
 #include "BezierCurve3DActor.h"
 
 #include "Engine/World.h"
+#include "Engine/Engine.h"
 #include "Camera/PlayerCameraManager.h"
 
 ABezierEditPlayerController::ABezierEditPlayerController()
@@ -16,6 +17,8 @@ ABezierEditPlayerController::ABezierEditPlayerController()
 	bEnableMouseOverEvents = true;
 
 	DefaultMouseCursor = EMouseCursor::Default;
+
+	PrimaryActionNames = { "Secondary" };
 }
 
 void ABezierEditPlayerController::SetupInputComponent()
@@ -25,9 +28,32 @@ void ABezierEditPlayerController::SetupInputComponent()
 	// These action names must exist in Project Settings -> Input
 	if (InputComponent)
 	{
-		InputComponent->BindAction("Primary", IE_Pressed, this, &ABezierEditPlayerController::Input_PrimaryPressed);
-		InputComponent->BindAction("Primary", IE_Released, this, &ABezierEditPlayerController::Input_PrimaryReleased);
-		InputComponent->BindAction("Cancel", IE_Pressed, this, &ABezierEditPlayerController::Input_Cancel);
+		if (PrimaryActionNames.IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: no PrimaryActionNames configured."));
+		}
+
+		for (const FName& ActionName : PrimaryActionNames)
+		{
+			if (!ActionName.IsNone())
+			{
+				InputComponent->BindAction(ActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_PrimaryPressed);
+				InputComponent->BindAction(ActionName, IE_Released, this, &ABezierEditPlayerController::Input_PrimaryReleased);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: PrimaryActionNames contains None."));
+			}
+		}
+
+		if (!CancelActionName.IsNone())
+		{
+			InputComponent->BindAction(CancelActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_Cancel);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
+		}
 	}
 }
 
@@ -63,6 +89,7 @@ void ABezierEditPlayerController::UpdateHover()
 
 	if (!bHit || !NewActor)
 	{
+		ReportDebugMessage(TEXT("Hover: none"));
 		ClearHovered();
 		return;
 	}
@@ -82,12 +109,14 @@ void ABezierEditPlayerController::UpdateHover()
 	// Hover only matters for control point instances (Hit.Item).
 	if (NewIndex == INDEX_NONE)
 	{
+		ReportDebugMessage(FString::Printf(TEXT("Hover: %s (no control point)"), *NewActor->GetName()));
 		ClearHovered();
 		return;
 	}
 
 	if (HoveredActor.Get() != NewActor || HoveredIndex != NewIndex)
 	{
+		ReportDebugMessage(FString::Printf(TEXT("Hover: %s idx %d"), *NewActor->GetName(), NewIndex));
 		ClearHovered();
 		HoveredActor = NewActor;
 		HoveredIndex = NewIndex;
