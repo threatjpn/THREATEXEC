@@ -132,6 +132,14 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->StripPulseMinThickness = StripPulseMinThickness;
 		It->StripPulseMaxThickness = StripPulseMaxThickness;
 		It->StripPulseSpeed = StripPulseSpeed;
+		It->bPulseGrid = bPulseGrid;
+		It->GridPulseMinAlpha = GridPulseMinAlpha;
+		It->GridPulseMaxAlpha = GridPulseMaxAlpha;
+		It->GridPulseSpeed = GridPulseSpeed;
+		It->GridPulseMinThickness = GridPulseMinThickness;
+		It->GridPulseMaxThickness = GridPulseMaxThickness;
+		It->bEnableVisualFade = bEnableVisualFade;
+		It->VisualFadeSpeed = VisualFadeSpeed;
 	}
 
 	for (TActorIterator<ABezierCurve2DActor> It(GetWorld()); It; ++It)
@@ -163,6 +171,14 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->StripPulseMinThickness = StripPulseMinThickness;
 		It->StripPulseMaxThickness = StripPulseMaxThickness;
 		It->StripPulseSpeed = StripPulseSpeed;
+		It->bPulseGrid = bPulseGrid;
+		It->GridPulseMinAlpha = GridPulseMinAlpha;
+		It->GridPulseMaxAlpha = GridPulseMaxAlpha;
+		It->GridPulseSpeed = GridPulseSpeed;
+		It->GridPulseMinThickness = GridPulseMinThickness;
+		It->GridPulseMaxThickness = GridPulseMaxThickness;
+		It->bEnableVisualFade = bEnableVisualFade;
+		It->VisualFadeSpeed = VisualFadeSpeed;
 	}
 }
 
