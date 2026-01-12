@@ -24,13 +24,13 @@
 
 namespace
 {
-	static UWorld* GetEditorWorldChecked()
+	static UWorld* GetEditorWorldChecked_UI()
 	{
 		check(GEditor);
 		return GEditor->GetEditorWorldContext().World();
 	}
 
-	static FString MakeTempDir(const FString& Name)
+	static FString MakeTempDir_UI(const FString& Name)
 	{
 		const FString Dir = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("Automation") / Name);
 		IPlatformFile& PF = FPlatformFileManager::Get().GetPlatformFile();
@@ -46,8 +46,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_2D_Core,
 
 bool FBezier_UI_2D_Core::RunTest(const FString&)
 {
-	UWorld* World = GetEditorWorldChecked();
-	const FString OutDir = MakeTempDir(TEXT("BezierUI2D"));
+	UWorld* World = GetEditorWorldChecked_UI();
+	const FString OutDir = MakeTempDir_UI(TEXT("BezierUI2D"));
 
 	FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	ABezierCurve2DActor* A = World->SpawnActor<ABezierCurve2DActor>(P);
@@ -134,8 +134,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_3D_Core,
 
 bool FBezier_UI_3D_Core::RunTest(const FString&)
 {
-	UWorld* World = GetEditorWorldChecked();
-	const FString OutDir = MakeTempDir(TEXT("BezierUI3D"));
+	UWorld* World = GetEditorWorldChecked_UI();
+	const FString OutDir = MakeTempDir_UI(TEXT("BezierUI3D"));
 
 	FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	ABezierCurve3DActor* A = World->SpawnActor<ABezierCurve3DActor>(P);
@@ -234,8 +234,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_CurveSet_IO,
 
 bool FBezier_UI_CurveSet_IO::RunTest(const FString&)
 {
-	UWorld* World = GetEditorWorldChecked();
-	const FString OutDir = MakeTempDir(TEXT("BezierUICurveSet"));
+	UWorld* World = GetEditorWorldChecked_UI();
+	const FString OutDir = MakeTempDir_UI(TEXT("BezierUICurveSet"));
 
 	const FString JsonText =
 		TEXT("{\"scale\":100.0,\"curves\":[")

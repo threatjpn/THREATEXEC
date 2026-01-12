@@ -17,7 +17,7 @@
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
-static void SetInstanceColorRGB(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C)
+static void SetInstanceColorRGB3D(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C)
 {
 	if (!ISM) return;
 	if (InstanceIndex < 0 || InstanceIndex >= ISM->GetInstanceCount()) return;
@@ -232,7 +232,7 @@ void ABezierCurve3DActor::UpdateControlPointInstanceColors()
 		if (i == SelectedControlPointIndex) C = ControlPointSelectedColor;
 		else if (i == HoveredControlPointIndex) C = ControlPointHoverColor;
 
-		SetInstanceColorRGB(ControlPointISM, i, C);
+		SetInstanceColorRGB3D(ControlPointISM, i, C);
 	}
 
 	ControlPointISM->MarkRenderStateDirty();

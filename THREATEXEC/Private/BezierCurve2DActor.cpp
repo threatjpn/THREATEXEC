@@ -16,7 +16,7 @@
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
-static void SetInstanceColorRGB(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C)
+static void SetInstanceColorRGB2D(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C)
 {
 	if (!ISM) return;
 	if (InstanceIndex < 0 || InstanceIndex >= ISM->GetInstanceCount()) return;
@@ -138,7 +138,6 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		const float G = FMath::Max(0.1f, GridSizeCm);
 		const int32 HalfCells = 10;
 		const float Extent = G * HalfCells;
-		const FTransform Xf = GetActorTransform();
 		for (int32 i = -HalfCells; i <= HalfCells; ++i)
 		{
 			const float Offset = i * G;
@@ -195,7 +194,7 @@ void ABezierCurve2DActor::UpdateControlPointInstanceColors()
 		if (i == SelectedControlPointIndex) C = ControlPointSelectedColor;
 		else if (i == HoveredControlPointIndex) C = ControlPointHoverColor;
 
-		SetInstanceColorRGB(ControlPointISM, i, C);
+		SetInstanceColorRGB2D(ControlPointISM, i, C);
 	}
 
 	ControlPointISM->MarkRenderStateDirty();
