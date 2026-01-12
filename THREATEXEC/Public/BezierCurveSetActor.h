@@ -46,6 +46,12 @@ public:
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO|AutoSave")
 	bool bAutoSaveOnlyWhenEditing = true;
 
+	UPROPERTY(EditAnywhere, Category="BezierSet|RuntimeEdit")
+	TArray<float> GridSizeCycleValues;
+
+	UPROPERTY(Transient)
+	int32 GridSizeCycleIndex = 0;
+
 	UFUNCTION(CallInEditor, Category="BezierSet|IO") void ImportCurveSetJson();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|IO") void UI_ImportCurveSetJson();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|IO") void UI_ExportCurveSetJson();
@@ -63,7 +69,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetControlPointColorsForAll(FLinearColor Normal, FLinearColor Hover, FLinearColor Selected);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetSnapToGridForAll(bool bInSnap);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridSizeForAll(float InGridSizeCm);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_CycleGridSizeForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarForAll(bool bInForce);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetLockToLocalXYForAll(bool bInLock);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridForAll(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_ResetCurveStateForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetEditInteractionEnabledForAll(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
 

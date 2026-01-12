@@ -103,11 +103,20 @@ bool FBezier_UI_2D_Core::RunTest(const FString&)
 	A->UI_SetGridSizeCm(15.0f);
 	TestTrue(TEXT("UI_SetGridSizeCm"), FMath::IsNearlyEqual(A->GridSizeCm, 15.0f));
 
+	A->UI_SetShowGrid(true);
+	TestTrue(TEXT("UI_SetShowGrid"), A->bShowGrid);
+
 	A->UI_SetLockToLocalXY(false);
 	TestTrue(TEXT("UI_SetLockToLocalXY"), !A->bLockToLocalXY);
 
 	A->UI_SetForcePlanar(false);
 	TestTrue(TEXT("UI_SetForcePlanar"), !A->bForcePlanar);
+
+	A->bPulseDebugLines = false;
+	A->DebugPulseMinAlpha = 0.0f;
+	A->DebugPulseMaxAlpha = 0.5f;
+	A->DebugPulseSpeed = 2.0f;
+	TestTrue(TEXT("Debug pulse params"), !A->bPulseDebugLines && FMath::IsNearlyEqual(A->DebugPulseMaxAlpha, 0.5f));
 
 	A->IOPathAbsolute = OutDir;
 	A->UI_ExportAllJson();
@@ -186,8 +195,20 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	A->UI_SetGridSizeCm(12.5f);
 	TestTrue(TEXT("UI_SetGridSizeCm"), FMath::IsNearlyEqual(A->GridSizeCm, 12.5f));
 
+	A->UI_SetShowGrid(true);
+	TestTrue(TEXT("UI_SetShowGrid"), A->bShowGrid);
+
+	A->UI_SetLockToLocalXY(true);
+	TestTrue(TEXT("UI_SetLockToLocalXY"), A->bLockToLocalXY);
+
 	A->UI_SetForcePlanar(true);
 	TestTrue(TEXT("UI_SetForcePlanar"), A->bForcePlanar);
+
+	A->bPulseDebugLines = false;
+	A->DebugPulseMinAlpha = 0.0f;
+	A->DebugPulseMaxAlpha = 0.5f;
+	A->DebugPulseSpeed = 2.0f;
+	TestTrue(TEXT("Debug pulse params"), !A->bPulseDebugLines && FMath::IsNearlyEqual(A->DebugPulseMaxAlpha, 0.5f));
 
 	A->UI_MirrorCurveX();
 	A->UI_MirrorCurveY();
@@ -265,6 +286,10 @@ bool FBezier_UI_CurveSet_IO::RunTest(const FString&)
 	{
 		AddError(TEXT("Missing BezierEditSubsystem"));
 	}
+
+	SetActor->GridSizeCycleValues = { 5.0f, 10.0f };
+	SetActor->UI_CycleGridSizeForAll();
+	TestTrue(TEXT("Cycle grid size"), SetActor->GridSizeCycleIndex == 1);
 
 	SetActor->Destroy();
 	return true;

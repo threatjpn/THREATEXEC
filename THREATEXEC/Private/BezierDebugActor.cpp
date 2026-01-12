@@ -94,7 +94,9 @@ void ABezierDebugActor::ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const
 	CurveSet->UI_SetStripSizeForAll(StripWidth, StripThickness);
 	CurveSet->UI_SetControlPointColorsForAll(ControlPointNormal, ControlPointHover, ControlPointSelected);
 	CurveSet->UI_SetSnapToGridForAll(bSnapToGrid);
+	CurveSet->UI_SetShowGridForAll(bShowGrid);
 	CurveSet->UI_SetGridSizeForAll(GridSizeCm);
+	CurveSet->UI_SetLockToLocalXYForAll(bLockToLocalXY);
 	CurveSet->UI_SetForcePlanarForAll(bForcePlanar);
 	CurveSet->UI_SetEditInteractionEnabledForAll(bEnableEditMode, bShowControlPoints, bShowStrip);
 }
@@ -106,11 +108,19 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 	for (TActorIterator<ABezierCurve3DActor> It(GetWorld()); It; ++It)
 	{
 		It->bShowControlPolygon = bShowControlPolygon;
+		It->bPulseDebugLines = bPulseDebugLines;
+		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
+		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
+		It->DebugPulseSpeed = DebugPulseSpeed;
 	}
 
 	for (TActorIterator<ABezierCurve2DActor> It(GetWorld()); It; ++It)
 	{
 		It->bShowControlPolygon = bShowControlPolygon;
+		It->bPulseDebugLines = bPulseDebugLines;
+		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
+		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
+		It->DebugPulseSpeed = DebugPulseSpeed;
 	}
 }
 

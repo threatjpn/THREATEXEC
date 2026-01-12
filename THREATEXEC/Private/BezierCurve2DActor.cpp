@@ -114,6 +114,11 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 
 	if (!GetWorld()) return;
 	const FTransform Xf = GetActorTransform();
+	const float PulseAlpha = bPulseDebugLines
+		? FMath::Lerp(DebugPulseMinAlpha, DebugPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
+		: DebugPulseMaxAlpha;
+	const uint8 DebugAlpha = static_cast<uint8>(FMath::Clamp(PulseAlpha, 0.0f, 1.0f) * 255.0f);
+	const float DebugThickness = 0.5f + (PulseAlpha * 1.0f);
 
 	if (bShowControlPolygon && Control.Num() >= 2)
 	{
@@ -123,8 +128,27 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
 				Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
-				FColor::White, false, 0.f, 0, 0.5f
+				FColor(255, 255, 255, DebugAlpha), false, 0.f, 0, DebugThickness
 			);
+		}
+	}
+
+	if (bShowGrid)
+	{
+		const float G = FMath::Max(0.1f, GridSizeCm);
+		const int32 HalfCells = 10;
+		const float Extent = G * HalfCells;
+		const FTransform Xf = GetActorTransform();
+		for (int32 i = -HalfCells; i <= HalfCells; ++i)
+		{
+			const float Offset = i * G;
+			const FVector A = Xf.TransformPosition(FVector(-Extent, Offset, 0.0f));
+			const FVector B = Xf.TransformPosition(FVector(Extent, Offset, 0.0f));
+			DrawDebugLine(GetWorld(), A, B, FColor(0, 255, 0, DebugAlpha), false, 0.f, 0, DebugThickness);
+
+			const FVector C = Xf.TransformPosition(FVector(Offset, -Extent, 0.0f));
+			const FVector D = Xf.TransformPosition(FVector(Offset, Extent, 0.0f));
+			DrawDebugLine(GetWorld(), C, D, FColor(0, 255, 0, DebugAlpha), false, 0.f, 0, DebugThickness);
 		}
 	}
 }
@@ -338,6 +362,15 @@ void ABezierCurve2DActor::UI_SetShowControlPoints(bool bInShow)
 {
 	bShowControlPoints = bInShow;
 	ApplyRuntimeEditVisibility();
+}
+
+void ABezierCurve2DActor::UI_SetSnapToGrid(bool bInSnap)
+{
+	bSnapToGrid = bInSnap;
+	if (bInSnap)
+	{
+		bShowGrid = true;
+	}
 }
 
 void ABezierCurve2DActor::UI_SetControlPointSize(float InVisualScale)

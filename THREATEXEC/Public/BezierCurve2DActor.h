@@ -129,6 +129,18 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
 	bool bShowControlPolygon = true;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
+	bool bPulseDebugLines = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DebugPulseMinAlpha = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DebugPulseMaxAlpha = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
+	float DebugPulseSpeed = 1.0f;
+
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	double ProofT = 0.5;
 
@@ -162,7 +174,7 @@ public:
 
 	// Runtime edit setters
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	void UI_SetSnapToGrid(bool bInSnap) { bSnapToGrid = bInSnap; }
+	void UI_SetSnapToGrid(bool bInSnap);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_SetShowGrid(bool bInShow) { bShowGrid = bInShow; }
