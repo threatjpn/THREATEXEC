@@ -1,2 +1,115 @@
 # THREATEXEC
-THREAT EXECUTIVE APPLICATION
+
+Runtime Bezier editing tools for Unreal Engine, including:
+* In-game control point editing (hover/select/drag).
+* Curve-set import/export (single JSON file).
+* Runtime batch controls (show/hide, snapping, sizes, colors).
+* Debug helpers (trace overlays, toggle settings).
+
+---
+
+## Core runtime actors and subsystems
+
+### `ABezierCurve3DActor` / `ABezierCurve2DActor`
+* Curve actors with runtime-edit APIs (show/hide control points, strip visuals, snap/grid, etc).
+* Control-point hover/selected colors are driven by **PerInstanceCustomData** (RGB indices 0..2).
+  * Your control-point material must read PerInstanceCustomData to see hover/selected color changes.
+
+### `ABezierEditPlayerController`
+* Handles hover, select, and drag for control points.
+* Uses **Visibility** traces to hit control point instanced meshes.
+* Default input binding uses action name **`Secondary`** (right-click).
+* Debug trace output can be toggled with `bDebugTrace` or `SetDebugTrace(...)`.
+
+### `UBezierEditSubsystem`
+* Focused vs. all routing for edit actions.
+* Batch runtime edit toggles (`All_*` functions).
+* Curve-set IO helpers (`All_ExportCurveSetJson`, `All_ImportCurveSetJson`).
+
+### `ABezierCurveSetActor`
+* Imports/exports a **single JSON** containing all curves.
+* Tracks spawned curve actors and provides batch runtime helpers.
+* Optional autosave support and backup writing on export.
+
+### `ABezierDebugActor`
+* In-world debug toggle actor for controller trace debug, curve visuals, snapping, and IO.
+* Place in your level to quickly verify behavior without editing blueprints.
+
+---
+
+## Setup in Unreal Editor (Runtime)
+
+### 1) Set the PlayerController
+Set your GameMode’s PlayerController to `ABezierEditPlayerController` (or a BP child).
+
+### 2) Input mapping (Legacy Input)
+Add an **Action Mapping** named `Secondary` bound to Right Mouse Button.
+* This matches the controller’s default action name for selection.
+
+### 3) Control-point material (required for hover/selected colors)
+Your control-point material must read **PerInstanceCustomData**:
+* Index 0 → R
+* Index 1 → G
+* Index 2 → B
+
+If the material doesn’t read these values, hover/selected colors won’t show even though the data updates.
+
+### 4) Enable runtime editing
+At runtime, enable edit mode and control point visibility:
+* `UBezierEditSubsystem::All_SetEditInteractionEnabled(true, true, true)`
+  * or call the equivalent `ABezierCurveSetActor::UI_SetEditInteractionEnabledForAll(...)`
+
+If you rely on focused-only calls, ensure a focused curve exists (hover/click a control point).
+
+---
+
+## Curve-set import/export (single JSON)
+
+### JSON format
+```
+{
+  "scale": 100.0,
+  "curves": [
+    {
+      "name": "CurveName",
+      "space": "3D",
+      "closed": false,
+      "control": [[x,y,z], [x,y,z], ...]
+    }
+  ]
+}
+```
+
+### Runtime usage
+Place an `ABezierCurveSetActor` in the level:
+* Set `IOPathAbsolute` and `CurveSetFile`.
+* Call:
+  * `UI_ImportCurveSetJson()` to load and spawn curves.
+  * `UI_ExportCurveSetJson()` to save all curves to one file.
+
+### Backup behavior
+* Set `bWriteBackupOnExport = true`.
+* `BackupCurveSetFile` defines the backup filename.
+* On each export, the previous file is copied to the backup before saving.
+
+### Autosave
+* Enable `bEnableAutoSave`.
+* Set `AutoSaveIntervalSeconds`.
+* Optionally require edit mode (`bAutoSaveOnlyWhenEditing`).
+
+---
+
+## Debugging tools
+
+### `ABezierDebugActor`
+Drop a `BezierDebugActor` in the level and toggle settings in Details:
+* `bEnableMouseTraceDebug` → on-screen hover/trace output.
+* Visual toggles for control points/strip, sizing, colors, snapping.
+* `ApplyDebugSettings()` to push settings.
+
+---
+
+## Common pitfalls
+* **Hover/selected colors not changing:** ensure the control-point material reads PerInstanceCustomData (RGB 0..2).
+* **No hover/selection:** make sure control points block **Visibility**, and `Secondary` action exists.
+* **UI-only input:** use Game+UI input mode to keep controller trace updates.

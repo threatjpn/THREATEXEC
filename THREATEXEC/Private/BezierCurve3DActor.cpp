@@ -21,6 +21,7 @@ static void SetInstanceColorRGB(UInstancedStaticMeshComponent* ISM, int32 Instan
 {
 	if (!ISM) return;
 	if (InstanceIndex < 0 || InstanceIndex >= ISM->GetInstanceCount()) return;
+	if (ISM->NumCustomDataFloats < 3) ISM->NumCustomDataFloats = 3;
 
 	ISM->SetCustomDataValue(InstanceIndex, 0, C.R, false);
 	ISM->SetCustomDataValue(InstanceIndex, 1, C.G, false);
@@ -128,6 +129,11 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 	if (!GetWorld()) return;
 
 	const FTransform Xf = GetActorTransform();
+	const float PulseAlpha = bPulseDebugLines
+		? FMath::Lerp(DebugPulseMinAlpha, DebugPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
+		: DebugPulseMaxAlpha;
+	const uint8 DebugAlpha = static_cast<uint8>(FMath::Clamp(PulseAlpha, 0.0f, 1.0f) * 255.0f);
+	const float DebugThickness = 0.5f + (PulseAlpha * 1.0f);
 
 	if (bShowControlPolygon && Control.Num() >= 2)
 	{
@@ -137,7 +143,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(Control[i] * Scale),
 				Xf.TransformPosition(Control[i + 1] * Scale),
-				FColor::White, false, 0.f, 0, 0.5f
+				FColor(255, 255, 255, DebugAlpha), false, 0.f, 0, DebugThickness
 			);
 		}
 	}
@@ -155,9 +161,27 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 					GetWorld(),
 					Xf.TransformPosition(Levels[L][i] * Scale),
 					Xf.TransformPosition(Levels[L][i + 1] * Scale),
-					C, false, 0.f, 0, 0.5f
+					FColor(C.R, C.G, C.B, DebugAlpha), false, 0.f, 0, DebugThickness
 				);
 			}
+		}
+	}
+
+	if (bShowGrid)
+	{
+		const float G = FMath::Max(0.1f, GridSizeCm);
+		const int32 HalfCells = 10;
+		const float Extent = G * HalfCells;
+		for (int32 i = -HalfCells; i <= HalfCells; ++i)
+		{
+			const float Offset = i * G;
+			const FVector A = Xf.TransformPosition(FVector(-Extent, Offset, 0.0f));
+			const FVector B = Xf.TransformPosition(FVector(Extent, Offset, 0.0f));
+			DrawDebugLine(GetWorld(), A, B, FColor(0, 255, 0, DebugAlpha), false, 0.f, 0, DebugThickness);
+
+			const FVector C = Xf.TransformPosition(FVector(Offset, -Extent, 0.0f));
+			const FVector D = Xf.TransformPosition(FVector(Offset, Extent, 0.0f));
+			DrawDebugLine(GetWorld(), C, D, FColor(0, 255, 0, DebugAlpha), false, 0.f, 0, DebugThickness);
 		}
 	}
 }
@@ -210,11 +234,14 @@ void ABezierCurve3DActor::UpdateControlPointInstanceColors()
 
 		SetInstanceColorRGB(ControlPointISM, i, C);
 	}
+
+	ControlPointISM->MarkRenderStateDirty();
 }
 
 void ABezierCurve3DActor::RefreshControlPointVisuals()
 {
 	if (!ControlPointISM) return;
+	if (ControlPointISM->NumCustomDataFloats < 3) ControlPointISM->NumCustomDataFloats = 3;
 
 	if (ControlPointMaterial)
 	{
@@ -252,8 +279,8 @@ void ABezierCurve3DActor::UpdateCubeStrip()
 	const int32 Segs = FMath::Clamp(StripSegments, 2, 2048);
 
 	const float CubeSizeCm = 100.0f; // UE cube is 100cm
-	const float WidthScale = StripWidth / CubeSizeCm;
-	const float ThickScale = FMath::Max(0.1f, StripThickness) / CubeSizeCm;
+	const float WidthScale = FMath::Max(0.001f, StripWidth) / CubeSizeCm;
+	const float ThickScale = FMath::Max(0.001f, StripThickness) / CubeSizeCm;
 
 	const FVector Up = GetActorUpVector();
 
@@ -366,8 +393,8 @@ void ABezierCurve3DActor::UI_SetShowCubeStrip(bool bInShow)
 
 void ABezierCurve3DActor::UI_SetStripSize(float InWidth, float InThickness)
 {
-	StripWidth = FMath::Max(0.1f, InWidth);
-	StripThickness = FMath::Max(0.1f, InThickness);
+	StripWidth = FMath::Max(0.001f, InWidth);
+	StripThickness = FMath::Max(0.001f, InThickness);
 	UpdateStripMesh();
 }
 
@@ -536,6 +563,11 @@ void ABezierCurve3DActor::UI_ResetCurveState()
 	UpdateStripMesh();
 }
 
+void ABezierCurve3DActor::UI_SetInitialControlFromCurrent()
+{
+	InitialControl = Control;
+}
+
 void ABezierCurve3DActor::UI_CenterCurve()
 {
 	if (Control.Num() == 0) return;
@@ -559,6 +591,20 @@ void ABezierCurve3DActor::UI_ToggleClosedLoop()
 		Spline->SetClosedLoop(!Spline->IsClosedLoop());
 		Spline->UpdateSpline();
 	}
+}
+
+void ABezierCurve3DActor::UI_SetClosedLoop(bool bInClosed)
+{
+	if (Spline)
+	{
+		Spline->SetClosedLoop(bInClosed);
+		Spline->UpdateSpline();
+	}
+}
+
+bool ABezierCurve3DActor::UI_IsClosedLoop() const
+{
+	return Spline ? Spline->IsClosedLoop() : false;
 }
 
 void ABezierCurve3DActor::UI_ResampleParam()
@@ -612,6 +658,30 @@ void ABezierCurve3DActor::UI_SetForcePlanar(bool bInForce)
 		RefreshControlPointVisuals();
 		UpdateStripMesh();
 	}
+}
+
+void ABezierCurve3DActor::UI_SetSnapToGrid(bool bInSnap)
+{
+	bSnapToGrid = bInSnap;
+	if (bInSnap)
+	{
+		bShowGrid = true;
+	}
+}
+
+void ABezierCurve3DActor::UI_SetShowGrid(bool bInShow)
+{
+	bShowGrid = bInShow;
+}
+
+void ABezierCurve3DActor::UI_SetGridSizeCm(float InGridSizeCm)
+{
+	GridSizeCm = FMath::Max(0.1f, InGridSizeCm);
+}
+
+void ABezierCurve3DActor::UI_SetLockToLocalXY(bool bInLock)
+{
+	bLockToLocalXY = bInLock;
 }
 
 void ABezierCurve3DActor::UI_AddControlPoint(FVector ModelPos, int32 Index)
