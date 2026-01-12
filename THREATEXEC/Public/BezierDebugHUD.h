@@ -46,9 +46,12 @@ private:
 	void ToggleLockToXY();
 	void ToggleForcePlanar();
 	void TogglePulseDebug();
+	void TogglePulseControlPoints();
+	void TogglePulseStrip();
 	void ToggleMouseTraceDebug();
 
 	void ApplyAndRefresh();
 	ABezierDebugActor* ResolveDebugActor();
 	void DrawLineText(float& Y, const FString& Text);
+	void DrawRightAlignedText(float& Y, const FString& Text);
 };

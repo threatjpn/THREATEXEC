@@ -111,6 +111,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	}
 
 	ApplyRuntimeEditVisibility();
+	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
 	const FTransform Xf = GetActorTransform();
@@ -133,7 +134,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (bShowGrid)
+	if (bShowGrid || bSnapToGrid)
 	{
 		const float G = FMath::Max(0.1f, GridSizeCm);
 		const int32 HalfCells = 10;
@@ -200,6 +201,75 @@ void ABezierCurve2DActor::UpdateControlPointInstanceColors()
 	ControlPointISM->MarkRenderStateDirty();
 }
 
+void ABezierCurve2DActor::UpdateControlPointInstanceScale(float InScale)
+{
+	if (!ControlPointISM) return;
+
+	const int32 Count = ControlPointISM->GetInstanceCount();
+	for (int32 i = 0; i < Count; ++i)
+	{
+		FTransform Xf;
+		if (!ControlPointISM->GetInstanceTransform(i, Xf, false)) continue;
+		Xf.SetScale3D(FVector(InScale));
+		ControlPointISM->UpdateInstanceTransform(i, Xf, false, i == Count - 1, true);
+	}
+}
+
+float ABezierCurve2DActor::GetControlPointPulseScale() const
+{
+	if (!bPulseControlPoints || !GetWorld())
+	{
+		return ControlPointVisualScale;
+	}
+
+	const float Alpha = (FMath::Sin(GetWorld()->GetTimeSeconds() * ControlPointPulseSpeed) + 1.0f) * 0.5f;
+	return FMath::Lerp(ControlPointPulseMinScale, ControlPointPulseMaxScale, Alpha);
+}
+
+void ABezierCurve2DActor::UpdateControlPointPulse()
+{
+	if (!ControlPointISM) return;
+
+	const float TargetScale = GetControlPointPulseScale();
+	if (FMath::IsNearlyEqual(TargetScale, CachedControlPointScale))
+	{
+		return;
+	}
+
+	UpdateControlPointInstanceScale(TargetScale);
+	CachedControlPointScale = TargetScale;
+}
+
+float ABezierCurve2DActor::GetStripPulseAlpha() const
+{
+	if (!bPulseStrip || !GetWorld())
+	{
+		return 1.0f;
+	}
+
+	return (FMath::Sin(GetWorld()->GetTimeSeconds() * StripPulseSpeed) + 1.0f) * 0.5f;
+}
+
+float ABezierCurve2DActor::GetStripWidthForRender() const
+{
+	if (!bPulseStrip)
+	{
+		return StripWidth;
+	}
+
+	return FMath::Lerp(StripPulseMinWidth, StripPulseMaxWidth, GetStripPulseAlpha());
+}
+
+float ABezierCurve2DActor::GetStripThicknessForRender() const
+{
+	if (!bPulseStrip)
+	{
+		return StripThickness;
+	}
+
+	return FMath::Lerp(StripPulseMinThickness, StripPulseMaxThickness, GetStripPulseAlpha());
+}
+
 void ABezierCurve2DActor::RefreshControlPointVisuals()
 {
 	if (!ControlPointISM) return;
@@ -211,7 +281,11 @@ void ABezierCurve2DActor::RefreshControlPointVisuals()
 	}
 
 	ControlPointISM->ClearInstances();
-	if (!bEnableRuntimeEditing) return;
+	if (!bEnableRuntimeEditing)
+	{
+		CachedControlPointScale = -1.0f;
+		return;
+	}
 
 	for (const FVector2D& P : Control)
 	{
@@ -223,6 +297,7 @@ void ABezierCurve2DActor::RefreshControlPointVisuals()
 	}
 
 	UpdateControlPointInstanceColors();
+	CachedControlPointScale = -1.0f;
 }
 
 void ABezierCurve2DActor::UpdateCubeStrip()
@@ -237,8 +312,8 @@ void ABezierCurve2DActor::UpdateCubeStrip()
 	const int32 Segs = FMath::Clamp(StripSegments, 2, 2048);
 
 	const float CubeSizeCm = 100.0f;
-	const float WidthScale = FMath::Max(0.001f, StripWidth) / CubeSizeCm;
-	const float ThickScale = FMath::Max(0.001f, StripThickness) / CubeSizeCm;
+	const float WidthScale = FMath::Max(0.001f, GetStripWidthForRender()) / CubeSizeCm;
+	const float ThickScale = FMath::Max(0.001f, GetStripThicknessForRender()) / CubeSizeCm;
 
 	const FVector SideAxis = FVector(0, 0, 1);
 
@@ -288,6 +363,7 @@ void ABezierCurve2DActor::UpdateStripMesh()
 	TArray<FVector2D> UVs;
 
 	const int32 Segs = FMath::Clamp(StripSegments, 2, 2048);
+	const float EffectiveWidth = FMath::Max(0.001f, GetStripWidthForRender());
 	const FVector SideAxis = FVector(0, 0, 1);
 
 	for (int32 i = 0; i <= Segs; ++i)
@@ -300,8 +376,8 @@ void ABezierCurve2DActor::UpdateStripMesh()
 		FVector Tangent = FVector(PNext2.X * Scale - P3.X, PNext2.Y * Scale - P3.Y, 0).GetSafeNormal();
 		FVector Side = FVector::CrossProduct(Tangent, SideAxis).GetSafeNormal();
 
-		Verts.Add(P3 + (Side * StripWidth * 0.5f));
-		Verts.Add(P3 - (Side * StripWidth * 0.5f));
+		Verts.Add(P3 + (Side * EffectiveWidth * 0.5f));
+		Verts.Add(P3 - (Side * EffectiveWidth * 0.5f));
 
 		UVs.Add(FVector2D((float)t, 0.f));
 		UVs.Add(FVector2D((float)t, 1.f));

@@ -18,6 +18,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Debug")
 	void SetDebugTrace(bool bInDebugTrace) { bDebugTrace = bInDebugTrace; }
 
+	UFUNCTION(BlueprintCallable, Category = "Debug")
+	FString GetDebugLastMessage() const { return DebugLastMessage; }
+
 protected:
 	// Input mappings (edit in defaults if your camera uses primary/middle click)
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -58,12 +61,6 @@ protected:
 		}
 
 		DebugLastMessage = Message;
-
-		if (GEngine)
-		{
-			const uint64 Key = static_cast<uint64>(reinterpret_cast<UPTRINT>(this));
-			GEngine->AddOnScreenDebugMessage(Key, 2.0f, FColor::Yellow, Message);
-		}
 
 		UE_LOG(LogTemp, Log, TEXT("%s"), *Message);
 	}

@@ -84,6 +84,36 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
 	float DebugPulseSpeed = 1.0f;
 
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
+	bool bPulseControlPoints = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.001"))
+	float ControlPointPulseMinScale = 0.02f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.001"))
+	float ControlPointPulseMaxScale = 0.08f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
+	float ControlPointPulseSpeed = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
+	bool bPulseStrip = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.001"))
+	float StripPulseMinWidth = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.001"))
+	float StripPulseMaxWidth = 10.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.001"))
+	float StripPulseMinThickness = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.001"))
+	float StripPulseMaxThickness = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
+	float StripPulseSpeed = 1.0f;
+
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Subsystem")
 	bool bApplyAllToFocusedOnly = true;
 

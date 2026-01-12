@@ -112,6 +112,16 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
 		It->DebugPulseSpeed = DebugPulseSpeed;
+		It->bPulseControlPoints = bPulseControlPoints;
+		It->ControlPointPulseMinScale = ControlPointPulseMinScale;
+		It->ControlPointPulseMaxScale = ControlPointPulseMaxScale;
+		It->ControlPointPulseSpeed = ControlPointPulseSpeed;
+		It->bPulseStrip = bPulseStrip;
+		It->StripPulseMinWidth = StripPulseMinWidth;
+		It->StripPulseMaxWidth = StripPulseMaxWidth;
+		It->StripPulseMinThickness = StripPulseMinThickness;
+		It->StripPulseMaxThickness = StripPulseMaxThickness;
+		It->StripPulseSpeed = StripPulseSpeed;
 	}
 
 	for (TActorIterator<ABezierCurve2DActor> It(GetWorld()); It; ++It)
@@ -121,6 +131,16 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
 		It->DebugPulseSpeed = DebugPulseSpeed;
+		It->bPulseControlPoints = bPulseControlPoints;
+		It->ControlPointPulseMinScale = ControlPointPulseMinScale;
+		It->ControlPointPulseMaxScale = ControlPointPulseMaxScale;
+		It->ControlPointPulseSpeed = ControlPointPulseSpeed;
+		It->bPulseStrip = bPulseStrip;
+		It->StripPulseMinWidth = StripPulseMinWidth;
+		It->StripPulseMaxWidth = StripPulseMaxWidth;
+		It->StripPulseMinThickness = StripPulseMinThickness;
+		It->StripPulseMaxThickness = StripPulseMaxThickness;
+		It->StripPulseSpeed = StripPulseSpeed;
 	}
 }
 

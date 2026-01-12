@@ -68,6 +68,24 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
 	bool bShowStripMesh = true;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
+	bool bPulseStrip = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
+	float StripPulseMinWidth = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
+	float StripPulseMaxWidth = 10.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
+	float StripPulseMinThickness = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
+	float StripPulseMaxThickness = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.01"))
+	float StripPulseSpeed = 1.0f;
+
 	// True = instanced cube strip. False = procedural ribbon.
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
 	bool bUseCubeStrip = true;
@@ -98,6 +116,18 @@ public:
 	// ---------------------------------------------------------------------
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
 	bool bShowControlPoints = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
+	bool bPulseControlPoints = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.001"))
+	float ControlPointPulseMinScale = 0.02f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.001"))
+	float ControlPointPulseMaxScale = 0.08f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.01"))
+	float ControlPointPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
 	float ControlPointVisualScale = 0.06f;
@@ -321,6 +351,15 @@ protected:
 private:
 	UPROPERTY()
 	TArray<FVector> InitialControl;
+
+	void UpdateControlPointPulse();
+	void UpdateControlPointInstanceScale(float InScale);
+	float GetControlPointPulseScale() const;
+	float GetStripPulseAlpha() const;
+	float GetStripWidthForRender() const;
+	float GetStripThicknessForRender() const;
+
+	float CachedControlPointScale = -1.0f;
 
 	// ---- Interface (zero casting in UMG) ----
 public:
