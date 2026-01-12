@@ -147,7 +147,7 @@ public:
 	bool bShowGrid = false;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
-	float GridSizeCm = 10.0f;
+	float GridSizeCm = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
 	bool bLockToLocalXY = true;

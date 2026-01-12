@@ -15,6 +15,10 @@
 ABezierCurveSetActor::ABezierCurveSetActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	if (GridSizeCycleValues.Num() == 0)
+	{
+		GridSizeCycleValues = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+	}
 }
 
 void ABezierCurveSetActor::BeginPlay()

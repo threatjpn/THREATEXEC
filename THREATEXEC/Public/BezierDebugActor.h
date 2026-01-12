@@ -60,7 +60,7 @@ public:
 	bool bShowGrid = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.1"))
-	float GridSizeCm = 10.0f;
+	float GridSizeCm = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bLockToLocalXY = false;
@@ -133,9 +133,9 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	ABezierCurveSetActor* FindCurveSetActor() const;
 	void ApplyControllerDebug() const;
 	void ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const;
+	void ApplyCurveSetDebugAll() const;
 	void ApplyCurveActorDebug() const;
 	void ApplySubsystemDebug() const;
 };

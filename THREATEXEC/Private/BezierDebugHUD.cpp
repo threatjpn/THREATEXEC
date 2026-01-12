@@ -149,7 +149,19 @@ void ABezierDebugHUD::CycleGridSize()
 {
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
-		Debug->GridSizeCm = FMath::Max(0.1f, Debug->GridSizeCm + 5.0f);
+		static const TArray<float> GridSizes = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+		int32 NextIndex = 0;
+		for (int32 i = 0; i < GridSizes.Num(); ++i)
+		{
+			if (FMath::IsNearlyEqual(Debug->GridSizeCm, GridSizes[i], 0.01f))
+			{
+				NextIndex = (i + 1) % GridSizes.Num();
+				break;
+			}
+		}
+
+		Debug->GridSizeCm = GridSizes[NextIndex];
+		Debug->bShowGrid = true;
 		ApplyAndRefresh();
 	}
 }
