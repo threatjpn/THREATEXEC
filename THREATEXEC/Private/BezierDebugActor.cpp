@@ -79,14 +79,24 @@ void ABezierDebugActor::ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const
 	CurveSet->UI_SetShowControlPointsForAll(bShowControlPoints);
 	CurveSet->UI_SetShowStripForAll(bShowStrip);
 	CurveSet->UI_SetShowCubeStripForAll(bUseCubeStrip);
-	CurveSet->UI_SetControlPointSizeForAll(ControlPointSize);
-	CurveSet->UI_SetStripSizeForAll(StripWidth, StripThickness);
+	if (bOverrideVisualSizes)
+	{
+		CurveSet->UI_SetControlPointSizeForAll(ControlPointSize);
+		CurveSet->UI_SetStripSizeForAll(StripWidth, StripThickness);
+	}
 	CurveSet->UI_SetControlPointColorsForAll(ControlPointNormal, ControlPointHover, ControlPointSelected);
 	CurveSet->UI_SetSnapToGridForAll(bSnapToGrid);
 	CurveSet->UI_SetShowGridForAll(bShowGrid);
 	CurveSet->UI_SetGridSizeForAll(GridSizeCm);
 	CurveSet->UI_SetLockToLocalXYForAll(bLockToLocalXY);
-	CurveSet->UI_SetForcePlanarForAll(bForcePlanar);
+	if (bForcePlanar)
+	{
+		CurveSet->UI_SetForcePlanarAxisForAll(ForcePlanarAxis);
+	}
+	else
+	{
+		CurveSet->UI_SetForcePlanarAxisForAll(EBezierPlanarAxis::None);
+	}
 	CurveSet->UI_SetEditInteractionEnabledForAll(bEnableEditMode, bShowControlPoints, bShowStrip);
 }
 
@@ -109,14 +119,24 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->UI_SetShowControlPoints(bShowControlPoints);
 		It->UI_SetShowStrip(bShowStrip);
 		It->UI_SetShowCubeStrip(bUseCubeStrip);
-		It->UI_SetControlPointSize(ControlPointSize);
-		It->UI_SetStripSize(StripWidth, StripThickness);
+		if (bOverrideVisualSizes)
+		{
+			It->UI_SetControlPointSize(ControlPointSize);
+			It->UI_SetStripSize(StripWidth, StripThickness);
+		}
 		It->UI_SetControlPointColors(ControlPointNormal, ControlPointHover, ControlPointSelected);
 		It->UI_SetSnapToGrid(bSnapToGrid);
 		It->UI_SetShowGrid(bShowGrid);
 		It->UI_SetGridSizeCm(GridSizeCm);
 		It->UI_SetLockToLocalXY(bLockToLocalXY);
-		It->UI_SetForcePlanar(bForcePlanar);
+		if (bForcePlanar)
+		{
+			It->UI_SetForcePlanarAxis(ForcePlanarAxis);
+		}
+		else
+		{
+			It->UI_SetForcePlanarAxis(EBezierPlanarAxis::None);
+		}
 		It->bShowControlPolygon = bShowControlPolygon;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
@@ -125,13 +145,25 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->bPulseControlPoints = bPulseControlPoints;
 		It->ControlPointPulseMinScale = ControlPointPulseMinScale;
 		It->ControlPointPulseMaxScale = ControlPointPulseMaxScale;
+		It->ControlPointPulseMinAlpha = ControlPointPulseMinAlpha;
+		It->ControlPointPulseMaxAlpha = ControlPointPulseMaxAlpha;
 		It->ControlPointPulseSpeed = ControlPointPulseSpeed;
 		It->bPulseStrip = bPulseStrip;
 		It->StripPulseMinWidth = StripPulseMinWidth;
 		It->StripPulseMaxWidth = StripPulseMaxWidth;
 		It->StripPulseMinThickness = StripPulseMinThickness;
 		It->StripPulseMaxThickness = StripPulseMaxThickness;
+		It->StripPulseMinAlpha = StripPulseMinAlpha;
+		It->StripPulseMaxAlpha = StripPulseMaxAlpha;
 		It->StripPulseSpeed = StripPulseSpeed;
+		It->bPulseGrid = bPulseGrid;
+		It->GridPulseMinAlpha = GridPulseMinAlpha;
+		It->GridPulseMaxAlpha = GridPulseMaxAlpha;
+		It->GridPulseSpeed = GridPulseSpeed;
+		It->GridPulseMinThickness = GridPulseMinThickness;
+		It->GridPulseMaxThickness = GridPulseMaxThickness;
+		It->bEnableVisualFade = bEnableVisualFade;
+		It->VisualFadeSpeed = VisualFadeSpeed;
 	}
 
 	for (TActorIterator<ABezierCurve2DActor> It(GetWorld()); It; ++It)
@@ -140,8 +172,11 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->UI_SetShowControlPoints(bShowControlPoints);
 		It->UI_SetShowStrip(bShowStrip);
 		It->UI_SetShowCubeStrip(bUseCubeStrip);
-		It->UI_SetControlPointSize(ControlPointSize);
-		It->UI_SetStripSize(StripWidth, StripThickness);
+		if (bOverrideVisualSizes)
+		{
+			It->UI_SetControlPointSize(ControlPointSize);
+			It->UI_SetStripSize(StripWidth, StripThickness);
+		}
 		It->UI_SetControlPointColors(ControlPointNormal, ControlPointHover, ControlPointSelected);
 		It->UI_SetSnapToGrid(bSnapToGrid);
 		It->UI_SetShowGrid(bShowGrid);
@@ -156,13 +191,25 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->bPulseControlPoints = bPulseControlPoints;
 		It->ControlPointPulseMinScale = ControlPointPulseMinScale;
 		It->ControlPointPulseMaxScale = ControlPointPulseMaxScale;
+		It->ControlPointPulseMinAlpha = ControlPointPulseMinAlpha;
+		It->ControlPointPulseMaxAlpha = ControlPointPulseMaxAlpha;
 		It->ControlPointPulseSpeed = ControlPointPulseSpeed;
 		It->bPulseStrip = bPulseStrip;
 		It->StripPulseMinWidth = StripPulseMinWidth;
 		It->StripPulseMaxWidth = StripPulseMaxWidth;
 		It->StripPulseMinThickness = StripPulseMinThickness;
 		It->StripPulseMaxThickness = StripPulseMaxThickness;
+		It->StripPulseMinAlpha = StripPulseMinAlpha;
+		It->StripPulseMaxAlpha = StripPulseMaxAlpha;
 		It->StripPulseSpeed = StripPulseSpeed;
+		It->bPulseGrid = bPulseGrid;
+		It->GridPulseMinAlpha = GridPulseMinAlpha;
+		It->GridPulseMaxAlpha = GridPulseMaxAlpha;
+		It->GridPulseSpeed = GridPulseSpeed;
+		It->GridPulseMinThickness = GridPulseMinThickness;
+		It->GridPulseMaxThickness = GridPulseMaxThickness;
+		It->bEnableVisualFade = bEnableVisualFade;
+		It->VisualFadeSpeed = VisualFadeSpeed;
 	}
 }
 

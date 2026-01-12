@@ -72,16 +72,22 @@ public:
 	bool bPulseStrip = false;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
-	float StripPulseMinWidth = 2.0f;
+	float StripPulseMinWidth = 0.2f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
-	float StripPulseMaxWidth = 10.0f;
+	float StripPulseMaxWidth = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
-	float StripPulseMinThickness = 1.0f;
+	float StripPulseMinThickness = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.001"))
-	float StripPulseMaxThickness = 2.0f;
+	float StripPulseMaxThickness = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float StripPulseMinAlpha = 0.4f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float StripPulseMaxAlpha = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip", meta=(ClampMin="0.01"))
 	float StripPulseSpeed = 1.0f;
@@ -121,10 +127,16 @@ public:
 	bool bPulseControlPoints = false;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.001"))
-	float ControlPointPulseMinScale = 0.02f;
+	float ControlPointPulseMinScale = 0.333f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.001"))
-	float ControlPointPulseMaxScale = 0.08f;
+	float ControlPointPulseMaxScale = 1.333f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float ControlPointPulseMinAlpha = 0.4f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float ControlPointPulseMaxAlpha = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints", meta=(ClampMin="0.01"))
 	float ControlPointPulseSpeed = 1.0f;
@@ -144,6 +156,15 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
 	FLinearColor ControlPointSelectedColor = FLinearColor(1.0f, 0.35f, 0.2f, 1.0f);
+
+	// ---------------------------------------------------------------------
+	// Visual: Fade
+	// ---------------------------------------------------------------------
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Fade")
+	bool bEnableVisualFade = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Fade", meta=(ClampMin="0.01"))
+	float VisualFadeSpeed = 6.0f;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetShowControlPoints(bool bInShow);
@@ -217,6 +238,9 @@ public:
 	void UI_SetForcePlanar(bool bInForce);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	bool UI_SelectFromHit(const FHitResult& Hit);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
@@ -278,13 +302,16 @@ public:
 	bool bShowGrid = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
-	float GridSizeCm = 1.0f;
+	float GridSizeCm = 0.25f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	bool bLockToLocalXY = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	bool bForcePlanar = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
+	EBezierPlanarAxis ForcePlanarAxis = EBezierPlanarAxis::None;
 
 	UPROPERTY(VisibleAnywhere, Category = "Bezier3D|RuntimeEdit")
 	int32 SelectedControlPointIndex = -1;
@@ -307,6 +334,24 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
 	float DebugPulseSpeed = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	bool bPulseGrid = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float GridPulseMinAlpha = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float GridPulseMaxAlpha = 0.15f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
+	float GridPulseSpeed = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
+	float GridPulseMinThickness = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
+	float GridPulseMaxThickness = 1.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bShowLevelsAtT = false;
@@ -352,14 +397,25 @@ private:
 	UPROPERTY()
 	TArray<FVector> InitialControl;
 
+	void UpdateVisualFadeTargets();
+	void UpdateVisualFade(float DeltaSeconds);
 	void UpdateControlPointPulse();
 	void UpdateControlPointInstanceScale(float InScale);
 	float GetControlPointPulseScale() const;
+	float GetControlPointPulseOpacity() const;
 	float GetStripPulseAlpha() const;
 	float GetStripWidthForRender() const;
 	float GetStripThicknessForRender() const;
+	float GetStripPulseOpacity() const;
+	void UpdateStripPulseOpacity();
 
 	float CachedControlPointScale = -1.0f;
+	float CachedControlPointOpacity = -1.0f;
+	float CachedStripOpacity = -1.0f;
+	float ControlPointFadeAlpha = 1.0f;
+	float StripFadeAlpha = 1.0f;
+	float TargetControlPointFade = 1.0f;
+	float TargetStripFade = 1.0f;
 
 	// ---- Interface (zero casting in UMG) ----
 public:

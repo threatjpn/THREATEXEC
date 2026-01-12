@@ -393,6 +393,21 @@ void ABezierCurveSetActor::UI_SetForcePlanarForAll(bool bInForce)
 	}
 }
 
+void ABezierCurveSetActor::UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			A3->UI_SetForcePlanarAxis(InAxis);
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			A2->UI_SetForcePlanar(InAxis != EBezierPlanarAxis::None);
+		}
+	}
+}
+
 void ABezierCurveSetActor::UI_SetLockToLocalXYForAll(bool bInLock)
 {
 	for (AActor* A : Spawned)
