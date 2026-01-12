@@ -57,6 +57,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetForcePlanar(bool bInForce);
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ResetCurveState();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
 
 	// All curves (UMG calls these)
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetEditMode(bool bInEditMode);
@@ -75,10 +76,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ToggleSnapToGrid();
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetGridSize(float InGridSizeCm);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ExportCurveSetJson();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ImportCurveSetJson();
+
+	// Routing
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
+	void SetApplyAllToFocusedOnly(bool bInFocusedOnly);
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
+	void ToggleApplyAllToFocusedOnly();
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
+	bool GetApplyAllToFocusedOnly() const;
 
 private:
 	UPROPERTY(Transient) TWeakObjectPtr<AActor> FocusedActor;
 	UPROPERTY(Transient) TArray<TWeakObjectPtr<AActor>> Editables;
+	UPROPERTY(EditAnywhere, Category="Bezier|Edit")
+	bool bApplyAllToFocusedOnly = true;
+	UPROPERTY(EditAnywhere, Category="Bezier|Edit")
+	bool bAutoFocusFirstEditable = true;
 
 private:
 	bool IsEditable(AActor* Actor) const;
