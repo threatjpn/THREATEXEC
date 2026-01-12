@@ -1,4 +1,9 @@
 #include "BezierEditSubsystem.h"
+#include "BezierCurveSetActor.h"
+#include "BezierEditable.h"
+
+#include "Engine/World.h"
+#include "EngineUtils.h"
 
 bool UBezierEditSubsystem::IsEditable(AActor* Actor) const
 {
@@ -61,12 +66,33 @@ bool UBezierEditSubsystem::HasFocused() const
 void UBezierEditSubsystem::ForFocused(TFunctionRef<void(UObject* Obj)> Fn)
 {
 	AActor* A = FocusedActor.Get();
+	if (!IsEditable(A) && bAutoFocusFirstEditable)
+	{
+		CompactRegistry();
+		for (const auto& P : Editables)
+		{
+			A = P.Get();
+			if (IsEditable(A))
+			{
+				FocusedActor = A;
+				OnFocusChanged.Broadcast(A);
+				break;
+			}
+		}
+	}
+
 	if (!IsEditable(A)) return;
 	Fn(A);
 }
 
 void UBezierEditSubsystem::ForAll(TFunctionRef<void(UObject* Obj)> Fn)
 {
+	if (bApplyAllToFocusedOnly && HasFocused())
+	{
+		ForFocused(Fn);
+		return;
+	}
+
 	CompactRegistry();
 	for (const auto& P : Editables)
 	{
@@ -174,6 +200,23 @@ void UBezierEditSubsystem::Focus_SetForcePlanar(bool bInForce)
 void UBezierEditSubsystem::Focus_ResetCurveState()
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_ResetCurveState(Obj); });
+}
+
+static void ApplyEditInteraction(UObject* Obj, bool bEnabled, bool bShowControlPoints, bool bShowStrip)
+{
+	if (!Obj)
+	{
+		return;
+	}
+
+	IBezierEditable::Execute_BEZ_SetEditMode(Obj, bEnabled);
+	IBezierEditable::Execute_BEZ_SetShowControlPoints(Obj, bEnabled && bShowControlPoints);
+	IBezierEditable::Execute_BEZ_SetShowStrip(Obj, bEnabled && bShowStrip);
+}
+
+void UBezierEditSubsystem::Focus_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints, bool bShowStrip)
+{
+	ForFocused([&](UObject* Obj){ ApplyEditInteraction(Obj, bEnabled, bShowControlPoints, bShowStrip); });
 }
 
 // All
@@ -286,4 +329,48 @@ void UBezierEditSubsystem::All_ToggleSnapToGrid()
 void UBezierEditSubsystem::All_SetGridSize(float InGridSizeCm)
 {
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetGridSize(Obj, InGridSizeCm); });
+}
+
+void UBezierEditSubsystem::All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints, bool bShowStrip)
+{
+	ForAll([&](UObject* Obj){ ApplyEditInteraction(Obj, bEnabled, bShowControlPoints, bShowStrip); });
+}
+
+void UBezierEditSubsystem::All_ExportCurveSetJson()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	for (TActorIterator<ABezierCurveSetActor> It(World); It; ++It)
+	{
+		It->UI_ExportCurveSetJson();
+		break;
+	}
+}
+
+void UBezierEditSubsystem::All_ImportCurveSetJson()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	for (TActorIterator<ABezierCurveSetActor> It(World); It; ++It)
+	{
+		It->UI_ImportCurveSetJson();
+		break;
+	}
+}
+
+void UBezierEditSubsystem::SetApplyAllToFocusedOnly(bool bInFocusedOnly)
+{
+	bApplyAllToFocusedOnly = bInFocusedOnly;
+}
+
+void UBezierEditSubsystem::ToggleApplyAllToFocusedOnly()
+{
+	bApplyAllToFocusedOnly = !bApplyAllToFocusedOnly;
+}
+
+bool UBezierEditSubsystem::GetApplyAllToFocusedOnly() const
+{
+	return bApplyAllToFocusedOnly;
 }
