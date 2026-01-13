@@ -198,21 +198,39 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		for (int32 i = -HalfCells; i <= HalfCells; ++i)
 		{
 			const float Offset = i * G;
-			const FVector A(-Extent, Offset, 0.0f);
-			const FVector B(Extent, Offset, 0.0f);
-			DrawDebugLine(GetWorld(), A + Origin, B + Origin, GridLineColor, false, 0.f, 0, GridThickness);
 
-			const FVector C(Offset, -Extent, 0.0f);
-			const FVector D(Offset, Extent, 0.0f);
-			DrawDebugLine(GetWorld(), C + Origin, D + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+			if (bShowGridXY)
+			{
+				const FVector A(-Extent, Offset, 0.0f);
+				const FVector B(Extent, Offset, 0.0f);
+				DrawDebugLine(GetWorld(), A + Origin, B + Origin, GridLineColor, false, 0.f, 0, GridThickness);
 
-			const FVector E(-Extent, 0.0f, Offset);
-			const FVector F(Extent, 0.0f, Offset);
-			DrawDebugLine(GetWorld(), E + Origin, F + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+				const FVector C(Offset, -Extent, 0.0f);
+				const FVector D(Offset, Extent, 0.0f);
+				DrawDebugLine(GetWorld(), C + Origin, D + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+			}
 
-			const FVector G0(Offset, 0.0f, -Extent);
-			const FVector H(Offset, 0.0f, Extent);
-			DrawDebugLine(GetWorld(), G0 + Origin, H + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+			if (bShowGridXZ)
+			{
+				const FVector E(-Extent, 0.0f, Offset);
+				const FVector F(Extent, 0.0f, Offset);
+				DrawDebugLine(GetWorld(), E + Origin, F + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+
+				const FVector G0(Offset, 0.0f, -Extent);
+				const FVector H(Offset, 0.0f, Extent);
+				DrawDebugLine(GetWorld(), G0 + Origin, H + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+			}
+
+			if (bShowGridYZ)
+			{
+				const FVector I(0.0f, -Extent, Offset);
+				const FVector J(0.0f, Extent, Offset);
+				DrawDebugLine(GetWorld(), I + Origin, J + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+
+				const FVector K(0.0f, Offset, -Extent);
+				const FVector L(0.0f, Offset, Extent);
+				DrawDebugLine(GetWorld(), K + Origin, L + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+			}
 		}
 	}
 }
@@ -905,6 +923,21 @@ void ABezierCurve3DActor::UI_SetGridColor(FLinearColor InColor)
 void ABezierCurve3DActor::UI_SetGridBaseAlpha(float InAlpha)
 {
 	GridBaseAlpha = FMath::Clamp(InAlpha, 0.0f, 1.0f);
+}
+
+void ABezierCurve3DActor::UI_SetShowGridXY(bool bInShow)
+{
+	bShowGridXY = bInShow;
+}
+
+void ABezierCurve3DActor::UI_SetShowGridXZ(bool bInShow)
+{
+	bShowGridXZ = bInShow;
+}
+
+void ABezierCurve3DActor::UI_SetShowGridYZ(bool bInShow)
+{
+	bShowGridYZ = bInShow;
 }
 
 void ABezierCurve3DActor::UI_SetLockToLocalXY(bool bInLock)

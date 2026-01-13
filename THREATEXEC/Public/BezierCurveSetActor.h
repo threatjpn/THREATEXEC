@@ -74,6 +74,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridExtentForAll(float InGridExtentCm);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridColorForAll(FLinearColor InColor);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridBaseAlphaForAll(float InAlpha);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridXYForAll(bool bInShow);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridXZForAll(bool bInShow);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridYZForAll(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_CycleGridSizeForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarForAll(bool bInForce);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis);
