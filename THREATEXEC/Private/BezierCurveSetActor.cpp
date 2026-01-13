@@ -561,6 +561,45 @@ void ABezierCurveSetActor::UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis)
 	}
 }
 
+EBezierPlanarAxis ABezierCurveSetActor::UI_CycleForcePlanarAxisForAll()
+{
+	EBezierPlanarAxis CurrentAxis = ForcePlanarAxisCycle;
+	if (CurrentAxis == EBezierPlanarAxis::None)
+	{
+		for (AActor* A : Spawned)
+		{
+			if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+			{
+				CurrentAxis = A3->bForcePlanar ? A3->ForcePlanarAxis : EBezierPlanarAxis::None;
+				break;
+			}
+		}
+	}
+
+	EBezierPlanarAxis NextAxis = EBezierPlanarAxis::None;
+	switch (CurrentAxis)
+	{
+	case EBezierPlanarAxis::None:
+		NextAxis = EBezierPlanarAxis::XY;
+		break;
+	case EBezierPlanarAxis::XY:
+		NextAxis = EBezierPlanarAxis::XZ;
+		break;
+	case EBezierPlanarAxis::XZ:
+		NextAxis = EBezierPlanarAxis::YZ;
+		break;
+	case EBezierPlanarAxis::YZ:
+		NextAxis = EBezierPlanarAxis::None;
+		break;
+	default:
+		break;
+	}
+
+	ForcePlanarAxisCycle = NextAxis;
+	UI_SetForcePlanarAxisForAll(NextAxis);
+	return NextAxis;
+}
+
 void ABezierCurveSetActor::UI_SetLockToLocalXYForAll(bool bInLock)
 {
 	for (AActor* A : Spawned)
@@ -568,6 +607,66 @@ void ABezierCurveSetActor::UI_SetLockToLocalXYForAll(bool bInLock)
 		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetLockToLocalXY(bInLock); }
 		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetLockToLocalXY(bInLock); }
 	}
+}
+
+EBezierPlanarAxis ABezierCurveSetActor::UI_CycleLockAxisForAll()
+{
+	EBezierPlanarAxis CurrentAxis = LockAxisCycle;
+	if (CurrentAxis == EBezierPlanarAxis::None)
+	{
+		for (AActor* A : Spawned)
+		{
+			if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+			{
+				if (A3->bLockToLocalXY)
+				{
+					CurrentAxis = EBezierPlanarAxis::XY;
+				}
+				else if (A3->bForcePlanar)
+				{
+					CurrentAxis = A3->ForcePlanarAxis;
+				}
+				break;
+			}
+		}
+	}
+
+	EBezierPlanarAxis NextAxis = EBezierPlanarAxis::None;
+	switch (CurrentAxis)
+	{
+	case EBezierPlanarAxis::None:
+		NextAxis = EBezierPlanarAxis::XY;
+		break;
+	case EBezierPlanarAxis::XY:
+		NextAxis = EBezierPlanarAxis::XZ;
+		break;
+	case EBezierPlanarAxis::XZ:
+		NextAxis = EBezierPlanarAxis::YZ;
+		break;
+	case EBezierPlanarAxis::YZ:
+		NextAxis = EBezierPlanarAxis::None;
+		break;
+	default:
+		break;
+	}
+
+	LockAxisCycle = NextAxis;
+
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			A3->UI_SetLockAxis(NextAxis);
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			const bool bLock2D = NextAxis != EBezierPlanarAxis::None;
+			A2->UI_SetLockToLocalXY(bLock2D);
+			A2->UI_SetForcePlanar(bLock2D);
+		}
+	}
+
+	return NextAxis;
 }
 
 void ABezierCurveSetActor::UI_SetShowGridForAll(bool bInShow)

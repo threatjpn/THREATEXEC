@@ -304,6 +304,9 @@ public:
 	void UI_SetLockToLocalXY(bool bInLock);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetLockAxis(EBezierPlanarAxis InAxis);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	bool UI_GetControlPointWorld(int32 Index, FVector& OutWorld) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")

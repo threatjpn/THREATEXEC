@@ -851,15 +851,14 @@ void ABezierCurve3DActor::UI_OverwriteSplineFromControl()
 
 void ABezierCurve3DActor::UI_SetForcePlanar(bool bInForce)
 {
-	bForcePlanar = bInForce;
-	ForcePlanarAxis = bForcePlanar ? EBezierPlanarAxis::XY : EBezierPlanarAxis::None;
 	if (bInForce)
 	{
-		for (auto& P : Control) P.Z = 0;
-		WriteControlToSpline();
-		RefreshControlPointVisuals();
-		UpdateStripMesh();
+		UI_SetForcePlanarAxis(EBezierPlanarAxis::XY);
+		return;
 	}
+
+	bForcePlanar = false;
+	ForcePlanarAxis = EBezierPlanarAxis::None;
 }
 
 void ABezierCurve3DActor::UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis)
@@ -869,22 +868,25 @@ void ABezierCurve3DActor::UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis)
 
 	if (bForcePlanar)
 	{
+		const FTransform ActorTransform = GetActorTransform();
 		for (auto& P : Control)
 		{
+			FVector WorldPos = ActorTransform.TransformPosition(P * Scale);
 			switch (ForcePlanarAxis)
 			{
 			case EBezierPlanarAxis::XY:
-				P.Z = 0;
+				WorldPos.Z = GridOriginWorld.Z;
 				break;
 			case EBezierPlanarAxis::XZ:
-				P.Y = 0;
+				WorldPos.Y = GridOriginWorld.Y;
 				break;
 			case EBezierPlanarAxis::YZ:
-				P.X = 0;
+				WorldPos.X = GridOriginWorld.X;
 				break;
 			default:
 				break;
 			}
+			P = ActorTransform.InverseTransformPosition(WorldPos) / Scale;
 		}
 		WriteControlToSpline();
 		RefreshControlPointVisuals();
@@ -986,6 +988,13 @@ void ABezierCurve3DActor::UI_SetShowGridYZ(bool bInShow)
 void ABezierCurve3DActor::UI_SetLockToLocalXY(bool bInLock)
 {
 	bLockToLocalXY = bInLock;
+}
+
+void ABezierCurve3DActor::UI_SetLockAxis(EBezierPlanarAxis InAxis)
+{
+	bLockToLocalXY = (InAxis == EBezierPlanarAxis::XY);
+	ForcePlanarAxis = InAxis;
+	bForcePlanar = InAxis != EBezierPlanarAxis::None;
 }
 
 void ABezierCurve3DActor::UI_AddControlPoint(FVector ModelPos, int32 Index)
