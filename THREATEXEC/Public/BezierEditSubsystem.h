@@ -57,6 +57,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetForcePlanar(bool bInForce);
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ResetCurveState();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_AddControlPointAfterSelected();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_DeleteSelectedControlPoint();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_DuplicateSelectedControlPoint();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
 
 	// All curves (UMG calls these)

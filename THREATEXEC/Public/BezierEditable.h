@@ -76,4 +76,14 @@ public:
 	// Reset
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Bezier|Editable")
 	void BEZ_ResetCurveState();
+
+	// Control point editing
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Bezier|Editable")
+	bool BEZ_AddControlPointAfterSelected();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Bezier|Editable")
+	bool BEZ_DeleteSelectedControlPoint();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Bezier|Editable")
+	bool BEZ_DuplicateSelectedControlPoint();
 };

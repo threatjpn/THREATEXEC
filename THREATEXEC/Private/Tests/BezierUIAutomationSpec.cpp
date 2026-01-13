@@ -304,6 +304,64 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_Focused_PointOps,
+	"Bezier/UI/Focused_PointOps",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+
+bool FBezier_UI_Focused_PointOps::RunTest(const FString&)
+{
+	UWorld* World = GetEditorWorldChecked_UI();
+	UBezierEditSubsystem* Subsystem = World ? World->GetSubsystem<UBezierEditSubsystem>() : nullptr;
+	if (!TestNotNull(TEXT("Edit subsystem"), Subsystem)) return false;
+
+	FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ABezierCurve2DActor* A2 = World->SpawnActor<ABezierCurve2DActor>(P);
+	if (!TestNotNull(TEXT("Spawn 2D"), A2)) return false;
+	A2->Control = { FVector2D(0,0), FVector2D(1,0), FVector2D(2,0) };
+	A2->OverwriteSplineFromControl();
+	A2->SelectedControlPointIndex = 0;
+	Subsystem->RegisterEditable(A2);
+	Subsystem->SetFocused(A2);
+
+	TestTrue(TEXT("Focus duplicate selected 2D"), Subsystem->Focus_DuplicateSelectedControlPoint());
+	TestEqual(TEXT("2D duplicate count"), A2->Control.Num(), 4);
+
+	TestTrue(TEXT("Focus add after selected 2D"), Subsystem->Focus_AddControlPointAfterSelected());
+	TestEqual(TEXT("2D add after selected count"), A2->Control.Num(), 5);
+
+	TestTrue(TEXT("Focus delete selected 2D"), Subsystem->Focus_DeleteSelectedControlPoint());
+	TestEqual(TEXT("2D delete selected count"), A2->Control.Num(), 4);
+
+	ABezierCurveSetActor* SetActor = World->SpawnActor<ABezierCurveSetActor>(P);
+	if (!TestNotNull(TEXT("Spawn set actor"), SetActor)) return false;
+	TestTrue(TEXT("Set actor add after selected 2D"), SetActor->UI_FocusAddControlPointAfterSelected());
+	TestEqual(TEXT("Set actor add count 2D"), A2->Control.Num(), 5);
+
+	A2->Destroy();
+	SetActor->Destroy();
+
+	ABezierCurve3DActor* A3 = World->SpawnActor<ABezierCurve3DActor>(P);
+	if (!TestNotNull(TEXT("Spawn 3D"), A3)) return false;
+	A3->Control = { FVector(0,0,0), FVector(1,0,0), FVector(2,0,0) };
+	A3->OverwriteSplineFromControl();
+	A3->SelectedControlPointIndex = 0;
+	Subsystem->RegisterEditable(A3);
+	Subsystem->SetFocused(A3);
+
+	TestTrue(TEXT("Focus duplicate selected 3D"), Subsystem->Focus_DuplicateSelectedControlPoint());
+	TestEqual(TEXT("3D duplicate count"), A3->Control.Num(), 4);
+
+	TestTrue(TEXT("Focus add after selected 3D"), Subsystem->Focus_AddControlPointAfterSelected());
+	TestEqual(TEXT("3D add after selected count"), A3->Control.Num(), 5);
+
+	TestTrue(TEXT("Focus delete selected 3D"), Subsystem->Focus_DeleteSelectedControlPoint());
+	TestEqual(TEXT("3D delete selected count"), A3->Control.Num(), 4);
+
+	A3->Destroy();
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_CurveSet_IO,
 	"Bezier/UI/CurveSet_IO",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);

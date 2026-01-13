@@ -444,4 +444,8 @@ public:
 
 	virtual void BEZ_SetForcePlanar_Implementation(bool bInForce) override;
 	virtual void BEZ_ResetCurveState_Implementation() override;
+
+	virtual bool BEZ_AddControlPointAfterSelected_Implementation() override;
+	virtual bool BEZ_DeleteSelectedControlPoint_Implementation() override;
+	virtual bool BEZ_DuplicateSelectedControlPoint_Implementation() override;
 };

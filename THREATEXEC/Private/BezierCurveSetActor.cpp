@@ -1,6 +1,7 @@
 #include "BezierCurveSetActor.h"
 #include "BezierCurve2DActor.h"
 #include "BezierCurve3DActor.h"
+#include "BezierEditSubsystem.h"
 
 #include "Engine/World.h"
 #include "Dom/JsonObject.h"
@@ -390,6 +391,12 @@ void ABezierCurveSetActor::UI_SetSnapToGridForAll(bool bInSnap)
 		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetSnapToGrid(bInSnap); }
 	}
 	UI_SetShowGridForAll(bInSnap);
+	if (bInSnap)
+	{
+		UI_SetShowGridXYForAll(true);
+		UI_SetShowGridXZForAll(true);
+		UI_SetShowGridYZForAll(true);
+	}
 }
 
 // Grid settings (single implementation to avoid accidental duplication).
@@ -558,4 +565,31 @@ void ABezierCurveSetActor::UI_SetEditInteractionEnabledForAll(bool bEnabled, boo
 	UI_SetEditModeForAll(bEnabled);
 	UI_SetShowControlPointsForAll(bEnabled && bShowControlPoints);
 	UI_SetShowStripForAll(bEnabled && bShowStrip);
+}
+
+bool ABezierCurveSetActor::UI_FocusAddControlPointAfterSelected()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_AddControlPointAfterSelected();
+	}
+	return false;
+}
+
+bool ABezierCurveSetActor::UI_FocusDeleteSelectedControlPoint()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_DeleteSelectedControlPoint();
+	}
+	return false;
+}
+
+bool ABezierCurveSetActor::UI_FocusDuplicateSelectedControlPoint()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_DuplicateSelectedControlPoint();
+	}
+	return false;
 }

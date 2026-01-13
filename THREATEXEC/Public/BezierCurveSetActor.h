@@ -87,6 +87,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridForAll(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_ResetCurveStateForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetEditInteractionEnabledForAll(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") bool UI_FocusAddControlPointAfterSelected();
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") bool UI_FocusDeleteSelectedControlPoint();
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") bool UI_FocusDuplicateSelectedControlPoint();
 
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;

@@ -202,6 +202,27 @@ void UBezierEditSubsystem::Focus_ResetCurveState()
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_ResetCurveState(Obj); });
 }
 
+bool UBezierEditSubsystem::Focus_AddControlPointAfterSelected()
+{
+	bool bResult = false;
+	ForFocused([&](UObject* Obj){ bResult = IBezierEditable::Execute_BEZ_AddControlPointAfterSelected(Obj); });
+	return bResult;
+}
+
+bool UBezierEditSubsystem::Focus_DeleteSelectedControlPoint()
+{
+	bool bResult = false;
+	ForFocused([&](UObject* Obj){ bResult = IBezierEditable::Execute_BEZ_DeleteSelectedControlPoint(Obj); });
+	return bResult;
+}
+
+bool UBezierEditSubsystem::Focus_DuplicateSelectedControlPoint()
+{
+	bool bResult = false;
+	ForFocused([&](UObject* Obj){ bResult = IBezierEditable::Execute_BEZ_DuplicateSelectedControlPoint(Obj); });
+	return bResult;
+}
+
 static void ApplyEditInteraction(UObject* Obj, bool bEnabled, bool bShowControlPoints, bool bShowStrip)
 {
 	if (!Obj)

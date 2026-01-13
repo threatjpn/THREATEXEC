@@ -1223,3 +1223,7 @@ float ABezierCurve3DActor::BEZ_GetGridSize_Implementation() const { return GridS
 
 void ABezierCurve3DActor::BEZ_SetForcePlanar_Implementation(bool bInForce) { UI_SetForcePlanar(bInForce); }
 void ABezierCurve3DActor::BEZ_ResetCurveState_Implementation() { UI_ResetCurveState(); }
+
+bool ABezierCurve3DActor::BEZ_AddControlPointAfterSelected_Implementation() { return UI_AddControlPointAfterSelected(); }
+bool ABezierCurve3DActor::BEZ_DeleteSelectedControlPoint_Implementation() { return UI_DeleteSelectedControlPoint(); }
+bool ABezierCurve3DActor::BEZ_DuplicateSelectedControlPoint_Implementation() { return UI_DuplicateSelectedControlPoint(); }
