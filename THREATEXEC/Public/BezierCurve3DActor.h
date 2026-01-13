@@ -271,7 +271,16 @@ public:
 	void UI_SetGridSizeCm(float InGridSizeCm);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetGridExtentCm(float InGridExtentCm);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetGridOriginWorld(FVector InOrigin);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetGridColor(FLinearColor InColor);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetGridBaseAlpha(float InAlpha);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetLockToLocalXY(bool bInLock);
@@ -307,8 +316,17 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	float GridSizeCm = 0.25f;
 
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit", meta=(ClampMin="1.0"))
+	float GridExtentCm = 25.0f;
+
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	FVector GridOriginWorld = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
+	FLinearColor GridColor = FLinearColor(0.6f, 0.6f, 0.6f, 1.0f);
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float GridBaseAlpha = 0.15f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	bool bLockToLocalXY = false;

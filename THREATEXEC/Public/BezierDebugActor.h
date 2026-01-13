@@ -63,8 +63,17 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.01"))
 	float GridSizeCm = 0.25f;
 
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="1.0"))
+	float GridExtentCm = 25.0f;
+
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	FVector GridOriginWorld = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	FLinearColor GridColor = FLinearColor(0.6f, 0.6f, 0.6f, 1.0f);
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float GridBaseAlpha = 0.15f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bLockToLocalXY = false;

@@ -106,9 +106,19 @@ bool FBezier_UI_2D_Core::RunTest(const FString&)
 	A->UI_SetShowGrid(true);
 	TestTrue(TEXT("UI_SetShowGrid"), A->bShowGrid);
 
+	A->UI_SetGridExtentCm(25.0f);
+	TestTrue(TEXT("UI_SetGridExtentCm"), FMath::IsNearlyEqual(A->GridExtentCm, 25.0f));
+
 	const FVector GridOrigin2D(10.0f, 20.0f, 0.0f);
 	A->UI_SetGridOriginWorld(GridOrigin2D);
 	TestTrue(TEXT("UI_SetGridOriginWorld"), A->GridOriginWorld.Equals(GridOrigin2D));
+
+	const FLinearColor GridColor2D(0.4f, 0.4f, 0.4f, 1.0f);
+	A->UI_SetGridColor(GridColor2D);
+	TestTrue(TEXT("UI_SetGridColor"), A->GridColor.Equals(GridColor2D));
+
+	A->UI_SetGridBaseAlpha(0.12f);
+	TestTrue(TEXT("UI_SetGridBaseAlpha"), FMath::IsNearlyEqual(A->GridBaseAlpha, 0.12f));
 
 	A->UI_SetLockToLocalXY(false);
 	TestTrue(TEXT("UI_SetLockToLocalXY"), !A->bLockToLocalXY);
@@ -222,9 +232,19 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	A->UI_SetShowGrid(true);
 	TestTrue(TEXT("UI_SetShowGrid"), A->bShowGrid);
 
+	A->UI_SetGridExtentCm(25.0f);
+	TestTrue(TEXT("UI_SetGridExtentCm"), FMath::IsNearlyEqual(A->GridExtentCm, 25.0f));
+
 	const FVector GridOrigin3D(5.0f, 15.0f, -10.0f);
 	A->UI_SetGridOriginWorld(GridOrigin3D);
 	TestTrue(TEXT("UI_SetGridOriginWorld"), A->GridOriginWorld.Equals(GridOrigin3D));
+
+	const FLinearColor GridColor3D(0.3f, 0.3f, 0.3f, 1.0f);
+	A->UI_SetGridColor(GridColor3D);
+	TestTrue(TEXT("UI_SetGridColor"), A->GridColor.Equals(GridColor3D));
+
+	A->UI_SetGridBaseAlpha(0.1f);
+	TestTrue(TEXT("UI_SetGridBaseAlpha"), FMath::IsNearlyEqual(A->GridBaseAlpha, 0.1f));
 
 	A->UI_SetLockToLocalXY(true);
 	TestTrue(TEXT("UI_SetLockToLocalXY"), A->bLockToLocalXY);

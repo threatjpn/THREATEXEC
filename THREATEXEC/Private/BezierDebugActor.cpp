@@ -88,7 +88,10 @@ void ABezierDebugActor::ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const
 	CurveSet->UI_SetSnapToGridForAll(bSnapToGrid);
 	CurveSet->UI_SetShowGridForAll(bShowGrid);
 	CurveSet->UI_SetGridSizeForAll(GridSizeCm);
+	CurveSet->UI_SetGridExtentForAll(GridExtentCm);
 	CurveSet->UI_SetGridOriginWorldForAll(GridOriginWorld);
+	CurveSet->UI_SetGridColorForAll(GridColor);
+	CurveSet->UI_SetGridBaseAlphaForAll(GridBaseAlpha);
 	CurveSet->UI_SetLockToLocalXYForAll(bLockToLocalXY);
 	if (bForcePlanar)
 	{
@@ -129,7 +132,10 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->UI_SetSnapToGrid(bSnapToGrid);
 		It->UI_SetShowGrid(bShowGrid);
 		It->UI_SetGridSizeCm(GridSizeCm);
+		It->UI_SetGridExtentCm(GridExtentCm);
 		It->UI_SetGridOriginWorld(GridOriginWorld);
+		It->UI_SetGridColor(GridColor);
+		It->UI_SetGridBaseAlpha(GridBaseAlpha);
 		It->UI_SetLockToLocalXY(bLockToLocalXY);
 		if (bForcePlanar)
 		{
@@ -183,7 +189,10 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->UI_SetSnapToGrid(bSnapToGrid);
 		It->UI_SetShowGrid(bShowGrid);
 		It->UI_SetGridSizeCm(GridSizeCm);
+		It->UI_SetGridExtentCm(GridExtentCm);
 		It->UI_SetGridOriginWorld(GridOriginWorld);
+		It->UI_SetGridColor(GridColor);
+		It->UI_SetGridBaseAlpha(GridBaseAlpha);
 		It->UI_SetLockToLocalXY(bLockToLocalXY);
 		It->UI_SetForcePlanar(bForcePlanar);
 		It->bShowControlPolygon = bShowControlPolygon;

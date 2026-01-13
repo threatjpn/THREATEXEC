@@ -383,6 +383,33 @@ void ABezierCurveSetActor::UI_SetGridOriginWorldForAll(FVector InOrigin)
 	}
 }
 
+void ABezierCurveSetActor::UI_SetGridExtentForAll(float InGridExtentCm)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetGridExtentCm(InGridExtentCm); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetGridExtentCm(InGridExtentCm); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetGridColorForAll(FLinearColor InColor)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetGridColor(InColor); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetGridColor(InColor); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetGridBaseAlphaForAll(float InAlpha)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetGridBaseAlpha(InAlpha); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetGridBaseAlpha(InAlpha); }
+	}
+}
+
 void ABezierCurveSetActor::UI_CycleGridSizeForAll()
 {
 	const TArray<float> Defaults = { 5.0f, 10.0f, 25.0f, 50.0f, 100.0f };
