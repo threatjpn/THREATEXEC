@@ -47,13 +47,13 @@ public:
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO|AutoSave")
 	bool bAutoSaveOnlyWhenEditing = true;
 
-	UPROPERTY(EditAnywhere, Category="BezierSet|RuntimeEdit")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BezierSet|RuntimeEdit")
 	TArray<float> GridSizeCycleValues;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, Category="BezierSet|RuntimeEdit")
 	int32 GridSizeCycleIndex = 0;
 
-	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridSizeCycleValues(const TArray<float>& InValues);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit", meta=(AutoCreateRefTerm="InValues")) void UI_SetGridSizeCycleValues(const TArray<float>& InValues);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_ResetGridSizeCycleIndex(int32 InIndex = 0);
 
 	UFUNCTION(CallInEditor, Category="BezierSet|IO") void ImportCurveSetJson();

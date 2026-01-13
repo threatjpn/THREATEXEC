@@ -145,6 +145,28 @@ void ABezierCurveSetActor::RefreshSpawnedFromWorld()
 	}
 }
 
+void ABezierCurveSetActor::RefreshSpawnedFromWorld()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	Spawned.Reset();
+	for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
+	{
+		if (It->GetOwner() == this)
+		{
+			Spawned.Add(*It);
+		}
+	}
+	for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
+	{
+		if (It->GetOwner() == this)
+		{
+			Spawned.Add(*It);
+		}
+	}
+}
+
 void ABezierCurveSetActor::ImportCurveSetJson()
 {
 	ClearSpawned();
@@ -433,6 +455,96 @@ void ABezierCurveSetActor::UI_SetGridSizeCycleValues(const TArray<float>& InValu
 			GridSizeCycleValues.Add(Value);
 		}
 	}
+	if (GridSizeCycleValues.Num() == 0)
+	{
+		GridSizeCycleValues = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+	}
+	GridSizeCycleIndex = 0;
+}
+
+void ABezierCurveSetActor::UI_ResetGridSizeCycleIndex(int32 InIndex)
+{
+	if (GridSizeCycleValues.Num() > 0)
+	{
+		GridSizeCycleIndex = FMath::Clamp(InIndex, 0, GridSizeCycleValues.Num() - 1);
+	}
+	else
+	{
+		GridSizeCycleIndex = 0;
+	}
+}
+
+void ABezierCurveSetActor::UI_SetGridOriginWorldForAll(FVector InOrigin)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetGridOriginWorld(InOrigin); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetGridOriginWorld(InOrigin); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetGridExtentForAll(float InGridExtentCm)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetGridExtentCm(InGridExtentCm); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetGridExtentCm(InGridExtentCm); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetGridColorForAll(FLinearColor InColor)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetGridColor(InColor); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetGridColor(InColor); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetGridBaseAlphaForAll(float InAlpha)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetGridBaseAlpha(InAlpha); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetGridBaseAlpha(InAlpha); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetShowGridXYForAll(bool bInShow)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetShowGridXY(bInShow); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetShowGridXY(bInShow); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetShowGridXZForAll(bool bInShow)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetShowGridXZ(bInShow); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetShowGridYZForAll(bool bInShow)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetShowGridYZ(bInShow); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetGridSizeCycleValues(const TArray<float>& InValues)
+{
+	GridSizeCycleValues.Reset();
+	for (float Value : InValues)
+	{
+		if (Value > 0.0f)
+		{
+			GridSizeCycleValues.Add(Value);
+		}
+	}
 	GridSizeCycleIndex = 0;
 }
 
@@ -586,6 +698,21 @@ void ABezierCurveSetActor::UI_SetForcePlanarForAll(bool bInForce)
 	{
 		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetForcePlanar(bInForce); }
 		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetForcePlanar(bInForce); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			A3->UI_SetForcePlanarAxis(InAxis);
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			A2->UI_SetForcePlanar(InAxis != EBezierPlanarAxis::None);
+		}
 	}
 }
 
