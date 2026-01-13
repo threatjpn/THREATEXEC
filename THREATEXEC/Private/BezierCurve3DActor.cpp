@@ -988,6 +988,37 @@ void ABezierCurve3DActor::UI_SetLockToLocalXY(bool bInLock)
 	bLockToLocalXY = bInLock;
 }
 
+void ABezierCurve3DActor::UI_SetLockAxis(EBezierPlanarAxis InAxis)
+{
+	bLockToLocalXY = (InAxis == EBezierPlanarAxis::XY);
+	ForcePlanarAxis = InAxis;
+	bForcePlanar = InAxis != EBezierPlanarAxis::None;
+
+	if (bForcePlanar)
+	{
+		for (auto& P : Control)
+		{
+			switch (InAxis)
+			{
+			case EBezierPlanarAxis::XY:
+				P.Z = 0;
+				break;
+			case EBezierPlanarAxis::XZ:
+				P.Y = 0;
+				break;
+			case EBezierPlanarAxis::YZ:
+				P.X = 0;
+				break;
+			default:
+				break;
+			}
+		}
+		WriteControlToSpline();
+		RefreshControlPointVisuals();
+		UpdateStripMesh();
+	}
+}
+
 void ABezierCurve3DActor::UI_AddControlPoint(FVector ModelPos, int32 Index)
 {
 	if (Index < 0 || Index > Control.Num()) Index = Control.Num();
