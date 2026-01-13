@@ -1054,6 +1054,13 @@ EBezierPlanarAxis ABezierCurve3DActor::UI_CycleForcePlanarAxis()
 	return NextAxis;
 }
 
+void ABezierCurve3DActor::UI_SetLockAxis(EBezierPlanarAxis InAxis)
+{
+	bLockToLocalXY = (InAxis == EBezierPlanarAxis::XY);
+	ForcePlanarAxis = InAxis;
+	bForcePlanar = InAxis != EBezierPlanarAxis::None;
+}
+
 void ABezierCurve3DActor::UI_AddControlPoint(FVector ModelPos, int32 Index)
 {
 	if (Index < 0 || Index > Control.Num()) Index = Control.Num();
