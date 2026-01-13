@@ -851,45 +851,68 @@ void ABezierCurve3DActor::UI_OverwriteSplineFromControl()
 
 void ABezierCurve3DActor::UI_SetForcePlanar(bool bInForce)
 {
-	bForcePlanar = bInForce;
-	ForcePlanarAxis = bForcePlanar ? EBezierPlanarAxis::XY : EBezierPlanarAxis::None;
 	if (bInForce)
 	{
-		for (auto& P : Control) P.Z = 0;
-		WriteControlToSpline();
-		RefreshControlPointVisuals();
-		UpdateStripMesh();
+		UI_SetForcePlanarAxis(EBezierPlanarAxis::XY);
+		return;
 	}
+
+	bForcePlanar = false;
+	ForcePlanarAxis = EBezierPlanarAxis::None;
+	bForcePlanarHasBase = false;
+	ForcePlanarBaseControl.Reset();
 }
 
 void ABezierCurve3DActor::UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis)
 {
+	const bool bWasForcePlanar = bForcePlanar;
 	ForcePlanarAxis = InAxis;
 	bForcePlanar = ForcePlanarAxis != EBezierPlanarAxis::None;
 
-	if (bForcePlanar)
+	if (!bForcePlanar)
 	{
-		for (auto& P : Control)
-		{
-			switch (ForcePlanarAxis)
-			{
-			case EBezierPlanarAxis::XY:
-				P.Z = 0;
-				break;
-			case EBezierPlanarAxis::XZ:
-				P.Y = 0;
-				break;
-			case EBezierPlanarAxis::YZ:
-				P.X = 0;
-				break;
-			default:
-				break;
-			}
-		}
-		WriteControlToSpline();
-		RefreshControlPointVisuals();
-		UpdateStripMesh();
+		bForcePlanarHasBase = false;
+		ForcePlanarBaseControl.Reset();
+		return;
 	}
+
+	if (!bWasForcePlanar)
+	{
+		ForcePlanarBaseControl = Control;
+		bForcePlanarHasBase = true;
+	}
+
+	const TArray<FVector>& SourceControl = bForcePlanarHasBase ? ForcePlanarBaseControl : Control;
+	if (SourceControl.Num() == 0)
+	{
+		return;
+	}
+
+	const FTransform ActorTransform = GetActorTransform();
+	const int32 Count = FMath::Min(SourceControl.Num(), Control.Num());
+	for (int32 Index = 0; Index < Count; ++Index)
+	{
+		FVector WorldPos = ActorTransform.TransformPosition(SourceControl[Index] * Scale);
+		switch (ForcePlanarAxis)
+		{
+		case EBezierPlanarAxis::XY:
+			WorldPos.Z = GridOriginWorld.Z;
+			break;
+		case EBezierPlanarAxis::XZ:
+			WorldPos.Y = GridOriginWorld.Y;
+			break;
+		case EBezierPlanarAxis::YZ:
+			WorldPos.X = GridOriginWorld.X;
+			break;
+		default:
+			break;
+		}
+		Control[Index] = ActorTransform.InverseTransformPosition(WorldPos) / Scale;
+	}
+
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
 }
 
 void ABezierCurve3DActor::UI_SetSnapToGrid(bool bInSnap)
@@ -986,6 +1009,49 @@ void ABezierCurve3DActor::UI_SetShowGridYZ(bool bInShow)
 void ABezierCurve3DActor::UI_SetLockToLocalXY(bool bInLock)
 {
 	bLockToLocalXY = bInLock;
+	if (bInLock)
+	{
+		bLockPlanar = true;
+		LockPlanarAxis = EBezierPlanarAxis::XY;
+	}
+	else if (LockPlanarAxis == EBezierPlanarAxis::XY)
+	{
+		bLockPlanar = false;
+		LockPlanarAxis = EBezierPlanarAxis::None;
+	}
+}
+
+void ABezierCurve3DActor::UI_SetLockAxis(EBezierPlanarAxis InAxis)
+{
+	bLockToLocalXY = (InAxis == EBezierPlanarAxis::XY);
+	LockPlanarAxis = InAxis;
+	bLockPlanar = InAxis != EBezierPlanarAxis::None;
+}
+
+EBezierPlanarAxis ABezierCurve3DActor::UI_CycleForcePlanarAxis()
+{
+	const EBezierPlanarAxis CurrentAxis = bForcePlanar ? ForcePlanarAxis : EBezierPlanarAxis::None;
+	EBezierPlanarAxis NextAxis = EBezierPlanarAxis::None;
+	switch (CurrentAxis)
+	{
+	case EBezierPlanarAxis::None:
+		NextAxis = EBezierPlanarAxis::XY;
+		break;
+	case EBezierPlanarAxis::XY:
+		NextAxis = EBezierPlanarAxis::XZ;
+		break;
+	case EBezierPlanarAxis::XZ:
+		NextAxis = EBezierPlanarAxis::YZ;
+		break;
+	case EBezierPlanarAxis::YZ:
+		NextAxis = EBezierPlanarAxis::None;
+		break;
+	default:
+		break;
+	}
+
+	UI_SetForcePlanarAxis(NextAxis);
+	return NextAxis;
 }
 
 void ABezierCurve3DActor::UI_AddControlPoint(FVector ModelPos, int32 Index)
@@ -1066,28 +1132,45 @@ bool ABezierCurve3DActor::UI_SetControlPointWorld(int32 Index, const FVector& Wo
 	}
 
 	W += GridOriginWorld;
-	Control[Index] = GetActorTransform().InverseTransformPosition(W) / Scale;
-	if (bLockToLocalXY)
-	{
-		Control[Index].Z = 0;
-	}
-	else if (bForcePlanar)
+
+	if (bForcePlanar)
 	{
 		switch (ForcePlanarAxis)
 		{
 		case EBezierPlanarAxis::XY:
-			Control[Index].Z = 0;
+			W.Z = GridOriginWorld.Z;
 			break;
 		case EBezierPlanarAxis::XZ:
-			Control[Index].Y = 0;
+			W.Y = GridOriginWorld.Y;
 			break;
 		case EBezierPlanarAxis::YZ:
-			Control[Index].X = 0;
+			W.X = GridOriginWorld.X;
 			break;
 		default:
 			break;
 		}
 	}
+
+	FVector Local = GetActorTransform().InverseTransformPosition(W) / Scale;
+	const FVector CurrentLocal = Control[Index];
+	if (bLockPlanar)
+	{
+		switch (LockPlanarAxis)
+		{
+		case EBezierPlanarAxis::XY:
+			Local.Z = CurrentLocal.Z;
+			break;
+		case EBezierPlanarAxis::XZ:
+			Local.Y = CurrentLocal.Y;
+			break;
+		case EBezierPlanarAxis::YZ:
+			Local.X = CurrentLocal.X;
+			break;
+		default:
+			break;
+		}
+	}
+	Control[Index] = Local;
 
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
