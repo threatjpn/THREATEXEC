@@ -389,6 +389,7 @@ void ABezierCurveSetActor::UI_SetSnapToGridForAll(bool bInSnap)
 		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetSnapToGrid(bInSnap); }
 		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetSnapToGrid(bInSnap); }
 	}
+	UI_SetShowGridForAll(bInSnap);
 }
 
 // Grid settings (single implementation to avoid accidental duplication).

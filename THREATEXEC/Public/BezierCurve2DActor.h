@@ -168,6 +168,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
 	float GridSizeCm = 0.25f;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit", meta = (ClampMin = "0.001"))
+	TArray<float> GridSizeCycleValues;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
+	int32 GridSizeCycleIndex = 0;
+
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit", meta=(ClampMin="1.0"))
 	float GridExtentCm = 250.0f;
 
@@ -263,6 +269,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_SetGridSizeCm(float InGridSizeCm) { GridSizeCm = FMath::Max(0.01f, InGridSizeCm); }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit", meta = (AutoCreateRefTerm = "InValues"))
+	void UI_SetGridSizeCycleValues(const TArray<float>& InValues);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	void UI_ResetGridSizeCycleIndex(int32 InIndex = 0);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	void UI_CycleGridSize();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_SetGridExtentCm(float InGridExtentCm) { GridExtentCm = FMath::Max(1.0f, InGridExtentCm); }

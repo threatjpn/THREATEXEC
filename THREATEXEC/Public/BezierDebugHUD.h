@@ -20,7 +20,7 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug")
-	bool bShowOverlay = true;
+	bool bShowOverlay = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug")
 	FLinearColor TextColor = FLinearColor::White;
