@@ -142,8 +142,6 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->UI_SetShowGridXY(bShowGridXY);
 		It->UI_SetShowGridXZ(bShowGridXZ);
 		It->UI_SetShowGridYZ(bShowGridYZ);
-		It->UI_SetShowGridXZ(bShowGridXZ);
-		It->UI_SetShowGridYZ(bShowGridYZ);
 		It->UI_SetLockToLocalXY(bLockToLocalXY);
 		if (bForcePlanar)
 		{

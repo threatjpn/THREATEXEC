@@ -280,12 +280,6 @@ public:
 	void UI_SetShowGridXY(bool bInShow) { bShowGridXY = bInShow; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	void UI_SetShowGridXZ(bool bInShow) { bShowGridXY = bInShow; }
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	void UI_SetShowGridYZ(bool bInShow) { bShowGridXY = bInShow; }
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_SetLockToLocalXY(bool bInLock) { bLockToLocalXY = bInLock; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")

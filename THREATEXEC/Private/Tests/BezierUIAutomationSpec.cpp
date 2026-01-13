@@ -121,8 +121,6 @@ bool FBezier_UI_2D_Core::RunTest(const FString&)
 	TestTrue(TEXT("UI_SetGridBaseAlpha"), FMath::IsNearlyEqual(A->GridBaseAlpha, 0.12f));
 
 	A->UI_SetShowGridXY(true);
-	A->UI_SetShowGridXZ(false);
-	A->UI_SetShowGridYZ(false);
 	TestTrue(TEXT("UI_SetShowGridXY"), A->bShowGridXY);
 
 	A->UI_SetLockToLocalXY(false);
