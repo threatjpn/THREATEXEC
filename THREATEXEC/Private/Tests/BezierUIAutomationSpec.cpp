@@ -106,6 +106,10 @@ bool FBezier_UI_2D_Core::RunTest(const FString&)
 	A->UI_SetShowGrid(true);
 	TestTrue(TEXT("UI_SetShowGrid"), A->bShowGrid);
 
+	const FVector GridOrigin2D(10.0f, 20.0f, 0.0f);
+	A->UI_SetGridOriginWorld(GridOrigin2D);
+	TestTrue(TEXT("UI_SetGridOriginWorld"), A->GridOriginWorld.Equals(GridOrigin2D));
+
 	A->UI_SetLockToLocalXY(false);
 	TestTrue(TEXT("UI_SetLockToLocalXY"), !A->bLockToLocalXY);
 
@@ -217,6 +221,10 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 
 	A->UI_SetShowGrid(true);
 	TestTrue(TEXT("UI_SetShowGrid"), A->bShowGrid);
+
+	const FVector GridOrigin3D(5.0f, 15.0f, -10.0f);
+	A->UI_SetGridOriginWorld(GridOrigin3D);
+	TestTrue(TEXT("UI_SetGridOriginWorld"), A->GridOriginWorld.Equals(GridOrigin3D));
 
 	A->UI_SetLockToLocalXY(true);
 	TestTrue(TEXT("UI_SetLockToLocalXY"), A->bLockToLocalXY);

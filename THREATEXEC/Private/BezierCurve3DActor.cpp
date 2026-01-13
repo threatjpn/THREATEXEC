@@ -187,24 +187,25 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		const int32 HalfCells = 10;
 		const float Extent = G * HalfCells;
 		const FColor GridColor(160, 160, 160, GridAlpha);
+		const FVector Origin = GridOriginWorld;
 		for (int32 i = -HalfCells; i <= HalfCells; ++i)
 		{
 			const float Offset = i * G;
 			const FVector A(-Extent, Offset, 0.0f);
 			const FVector B(Extent, Offset, 0.0f);
-			DrawDebugLine(GetWorld(), A, B, GridColor, false, 0.f, 0, GridThickness);
+			DrawDebugLine(GetWorld(), A + Origin, B + Origin, GridColor, false, 0.f, 0, GridThickness);
 
 			const FVector C(Offset, -Extent, 0.0f);
 			const FVector D(Offset, Extent, 0.0f);
-			DrawDebugLine(GetWorld(), C, D, GridColor, false, 0.f, 0, GridThickness);
+			DrawDebugLine(GetWorld(), C + Origin, D + Origin, GridColor, false, 0.f, 0, GridThickness);
 
 			const FVector E(-Extent, 0.0f, Offset);
 			const FVector F(Extent, 0.0f, Offset);
-			DrawDebugLine(GetWorld(), E, F, GridColor, false, 0.f, 0, GridThickness);
+			DrawDebugLine(GetWorld(), E + Origin, F + Origin, GridColor, false, 0.f, 0, GridThickness);
 
 			const FVector G0(Offset, 0.0f, -Extent);
 			const FVector H(Offset, 0.0f, Extent);
-			DrawDebugLine(GetWorld(), G0, H, GridColor, false, 0.f, 0, GridThickness);
+			DrawDebugLine(GetWorld(), G0 + Origin, H + Origin, GridColor, false, 0.f, 0, GridThickness);
 		}
 	}
 }
@@ -879,6 +880,11 @@ void ABezierCurve3DActor::UI_SetGridSizeCm(float InGridSizeCm)
 	GridSizeCm = FMath::Max(0.01f, InGridSizeCm);
 }
 
+void ABezierCurve3DActor::UI_SetGridOriginWorld(FVector InOrigin)
+{
+	GridOriginWorld = InOrigin;
+}
+
 void ABezierCurve3DActor::UI_SetLockToLocalXY(bool bInLock)
 {
 	bLockToLocalXY = bInLock;
@@ -951,6 +957,7 @@ bool ABezierCurve3DActor::UI_SetControlPointWorld(int32 Index, const FVector& Wo
 	if (!Control.IsValidIndex(Index)) return false;
 
 	FVector W = WorldPos;
+	W -= GridOriginWorld;
 
 	if (bSnapToGrid)
 	{
@@ -960,6 +967,7 @@ bool ABezierCurve3DActor::UI_SetControlPointWorld(int32 Index, const FVector& Wo
 		W.Z = FMath::GridSnap(W.Z, G);
 	}
 
+	W += GridOriginWorld;
 	Control[Index] = GetActorTransform().InverseTransformPosition(W) / Scale;
 	if (bLockToLocalXY)
 	{

@@ -169,6 +169,9 @@ public:
 	float GridSizeCm = 0.25f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
+	FVector GridOriginWorld = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
 	bool bLockToLocalXY = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
@@ -248,6 +251,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_SetGridSizeCm(float InGridSizeCm) { GridSizeCm = FMath::Max(0.01f, InGridSizeCm); }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	void UI_SetGridOriginWorld(FVector InOrigin) { GridOriginWorld = InOrigin; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_SetLockToLocalXY(bool bInLock) { bLockToLocalXY = bInLock; }

@@ -374,6 +374,15 @@ void ABezierCurveSetActor::UI_SetGridSizeForAll(float InGridSizeCm)
 	}
 }
 
+void ABezierCurveSetActor::UI_SetGridOriginWorldForAll(FVector InOrigin)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetGridOriginWorld(InOrigin); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetGridOriginWorld(InOrigin); }
+	}
+}
+
 void ABezierCurveSetActor::UI_CycleGridSizeForAll()
 {
 	const TArray<float> Defaults = { 5.0f, 10.0f, 25.0f, 50.0f, 100.0f };

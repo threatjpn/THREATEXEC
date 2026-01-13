@@ -64,6 +64,9 @@ public:
 	float GridSizeCm = 0.25f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	FVector GridOriginWorld = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bLockToLocalXY = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
