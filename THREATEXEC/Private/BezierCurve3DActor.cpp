@@ -63,6 +63,11 @@ ABezierCurve3DActor::ABezierCurve3DActor()
 	{
 		CubeStripISM->SetStaticMesh(CubeMesh.Object);
 	}
+
+	if (GridSizeCycleValues.Num() == 0)
+	{
+		GridSizeCycleValues = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+	}
 }
 
 void ABezierCurve3DActor::BeginPlay()
@@ -902,6 +907,46 @@ void ABezierCurve3DActor::UI_SetGridSizeCm(float InGridSizeCm)
 	GridSizeCm = FMath::Max(0.01f, InGridSizeCm);
 }
 
+void ABezierCurve3DActor::UI_SetGridSizeCycleValues(const TArray<float>& InValues)
+{
+	GridSizeCycleValues.Reset();
+	for (float Value : InValues)
+	{
+		if (Value > 0.0f)
+		{
+			GridSizeCycleValues.Add(Value);
+		}
+	}
+	if (GridSizeCycleValues.Num() == 0)
+	{
+		GridSizeCycleValues = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+	}
+	GridSizeCycleIndex = 0;
+}
+
+void ABezierCurve3DActor::UI_ResetGridSizeCycleIndex(int32 InIndex)
+{
+	if (GridSizeCycleValues.Num() > 0)
+	{
+		GridSizeCycleIndex = FMath::Clamp(InIndex, 0, GridSizeCycleValues.Num() - 1);
+	}
+	else
+	{
+		GridSizeCycleIndex = 0;
+	}
+}
+
+void ABezierCurve3DActor::UI_CycleGridSize()
+{
+	const TArray<float> Defaults = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+	const TArray<float>& Values = GridSizeCycleValues.Num() > 0 ? GridSizeCycleValues : Defaults;
+	if (Values.Num() == 0) return;
+
+	GridSizeCycleIndex = (GridSizeCycleIndex + 1) % Values.Num();
+	UI_SetGridSizeCm(Values[GridSizeCycleIndex]);
+	UI_SetShowGrid(true);
+}
+
 void ABezierCurve3DActor::UI_SetGridExtentCm(float InGridExtentCm)
 {
 	GridExtentCm = FMath::Max(1.0f, InGridExtentCm);
@@ -1178,3 +1223,7 @@ float ABezierCurve3DActor::BEZ_GetGridSize_Implementation() const { return GridS
 
 void ABezierCurve3DActor::BEZ_SetForcePlanar_Implementation(bool bInForce) { UI_SetForcePlanar(bInForce); }
 void ABezierCurve3DActor::BEZ_ResetCurveState_Implementation() { UI_ResetCurveState(); }
+
+bool ABezierCurve3DActor::BEZ_AddControlPointAfterSelected_Implementation() { return UI_AddControlPointAfterSelected(); }
+bool ABezierCurve3DActor::BEZ_DeleteSelectedControlPoint_Implementation() { return UI_DeleteSelectedControlPoint(); }
+bool ABezierCurve3DActor::BEZ_DuplicateSelectedControlPoint_Implementation() { return UI_DuplicateSelectedControlPoint(); }

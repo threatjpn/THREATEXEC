@@ -55,6 +55,11 @@ ABezierCurve2DActor::ABezierCurve2DActor()
 	CubeStripISM->SetupAttachment(Root);
 	CubeStripISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (CubeMesh.Succeeded()) { CubeStripISM->SetStaticMesh(CubeMesh.Object); }
+
+	if (GridSizeCycleValues.Num() == 0)
+	{
+		GridSizeCycleValues = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+	}
 }
 
 void ABezierCurve2DActor::BeginPlay()
@@ -541,6 +546,46 @@ void ABezierCurve2DActor::UI_SetSnapToGrid(bool bInSnap)
 	bShowGrid = bInSnap;
 }
 
+void ABezierCurve2DActor::UI_SetGridSizeCycleValues(const TArray<float>& InValues)
+{
+	GridSizeCycleValues.Reset();
+	for (float Value : InValues)
+	{
+		if (Value > 0.0f)
+		{
+			GridSizeCycleValues.Add(Value);
+		}
+	}
+	if (GridSizeCycleValues.Num() == 0)
+	{
+		GridSizeCycleValues = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+	}
+	GridSizeCycleIndex = 0;
+}
+
+void ABezierCurve2DActor::UI_ResetGridSizeCycleIndex(int32 InIndex)
+{
+	if (GridSizeCycleValues.Num() > 0)
+	{
+		GridSizeCycleIndex = FMath::Clamp(InIndex, 0, GridSizeCycleValues.Num() - 1);
+	}
+	else
+	{
+		GridSizeCycleIndex = 0;
+	}
+}
+
+void ABezierCurve2DActor::UI_CycleGridSize()
+{
+	const TArray<float> Defaults = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
+	const TArray<float>& Values = GridSizeCycleValues.Num() > 0 ? GridSizeCycleValues : Defaults;
+	if (Values.Num() == 0) return;
+
+	GridSizeCycleIndex = (GridSizeCycleIndex + 1) % Values.Num();
+	UI_SetGridSizeCm(Values[GridSizeCycleIndex]);
+	UI_SetShowGrid(true);
+}
+
 void ABezierCurve2DActor::UI_SetControlPointSize(float InVisualScale)
 {
 	ControlPointVisualScale = FMath::Max(0.001f, InVisualScale);
@@ -943,3 +988,7 @@ float ABezierCurve2DActor::BEZ_GetGridSize_Implementation() const { return GridS
 
 void ABezierCurve2DActor::BEZ_SetForcePlanar_Implementation(bool bInForce) { UI_SetForcePlanar(bInForce); }
 void ABezierCurve2DActor::BEZ_ResetCurveState_Implementation() { UI_ResetCurveState(); }
+
+bool ABezierCurve2DActor::BEZ_AddControlPointAfterSelected_Implementation() { return UI_AddControlPointAfterSelected(); }
+bool ABezierCurve2DActor::BEZ_DeleteSelectedControlPoint_Implementation() { return UI_DeleteSelectedControlPoint(); }
+bool ABezierCurve2DActor::BEZ_DuplicateSelectedControlPoint_Implementation() { return UI_DuplicateSelectedControlPoint(); }
