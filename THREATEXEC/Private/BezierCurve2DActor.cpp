@@ -187,7 +187,8 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 {
 	SetActorHiddenInGame(!bActorVisibleInGame);
 
-	const bool bCanShowVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing);
+	const bool bAllowFade = bEnableVisualFade && (ControlPointFadeAlpha > KINDA_SMALL_NUMBER || StripFadeAlpha > KINDA_SMALL_NUMBER);
+	const bool bCanShowVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing || bAllowFade);
 
 	const bool bShowCP = bCanShowVisuals && bShowControlPoints;
 	const bool bShowStrip = bCanShowVisuals && bShowStripMesh;

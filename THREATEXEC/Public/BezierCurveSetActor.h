@@ -72,6 +72,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetControlPointSizeForAll(float InVisualScale);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetControlPointColorsForAll(FLinearColor Normal, FLinearColor Hover, FLinearColor Selected);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetSnapToGridForAll(bool bInSnap);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") bool UI_ToggleSnapToGridForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridSizeForAll(float InGridSizeCm);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridOriginWorldForAll(FVector InOrigin);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridExtentForAll(float InGridExtentCm);

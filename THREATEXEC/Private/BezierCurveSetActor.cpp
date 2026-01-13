@@ -399,6 +399,34 @@ void ABezierCurveSetActor::UI_SetSnapToGridForAll(bool bInSnap)
 	}
 }
 
+bool ABezierCurveSetActor::UI_ToggleSnapToGridForAll()
+{
+	bool bCurrent = false;
+	bool bFound = false;
+	for (AActor* A : Spawned)
+	{
+		if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			bCurrent = A3->bSnapToGrid;
+			bFound = true;
+			break;
+		}
+		if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			bCurrent = A2->bSnapToGrid;
+			bFound = true;
+			break;
+		}
+	}
+	if (!bFound)
+	{
+		return false;
+	}
+	const bool bNext = !bCurrent;
+	UI_SetSnapToGridForAll(bNext);
+	return bNext;
+}
+
 // Grid settings (single implementation to avoid accidental duplication).
 void ABezierCurveSetActor::UI_SetGridSizeForAll(float InGridSizeCm)
 {

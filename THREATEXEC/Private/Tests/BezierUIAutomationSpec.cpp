@@ -338,6 +338,11 @@ bool FBezier_UI_Focused_PointOps::RunTest(const FString&)
 	TestTrue(TEXT("Set actor add after selected 2D"), SetActor->UI_FocusAddControlPointAfterSelected());
 	TestEqual(TEXT("Set actor add count 2D"), A2->Control.Num(), 5);
 
+	Subsystem->All_ToggleSnapToGrid();
+	TestTrue(TEXT("All toggle snap on 2D"), A2->bSnapToGrid);
+	Subsystem->All_ToggleSnapToGrid();
+	TestTrue(TEXT("All toggle snap off 2D"), !A2->bSnapToGrid);
+
 	A2->Destroy();
 	SetActor->Destroy();
 
