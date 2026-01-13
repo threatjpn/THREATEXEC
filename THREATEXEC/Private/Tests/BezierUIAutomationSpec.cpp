@@ -106,6 +106,23 @@ bool FBezier_UI_2D_Core::RunTest(const FString&)
 	A->UI_SetShowGrid(true);
 	TestTrue(TEXT("UI_SetShowGrid"), A->bShowGrid);
 
+	A->UI_SetGridExtentCm(250.0f);
+	TestTrue(TEXT("UI_SetGridExtentCm"), FMath::IsNearlyEqual(A->GridExtentCm, 250.0f));
+
+	const FVector GridOrigin2D(10.0f, 20.0f, 0.0f);
+	A->UI_SetGridOriginWorld(GridOrigin2D);
+	TestTrue(TEXT("UI_SetGridOriginWorld"), A->GridOriginWorld.Equals(GridOrigin2D));
+
+	const FLinearColor GridColor2D(0.4f, 0.4f, 0.4f, 1.0f);
+	A->UI_SetGridColor(GridColor2D);
+	TestTrue(TEXT("UI_SetGridColor"), A->GridColor.Equals(GridColor2D));
+
+	A->UI_SetGridBaseAlpha(0.12f);
+	TestTrue(TEXT("UI_SetGridBaseAlpha"), FMath::IsNearlyEqual(A->GridBaseAlpha, 0.12f));
+
+	A->UI_SetShowGridXY(true);
+	TestTrue(TEXT("UI_SetShowGridXY"), A->bShowGridXY);
+
 	A->UI_SetLockToLocalXY(false);
 	TestTrue(TEXT("UI_SetLockToLocalXY"), !A->bLockToLocalXY);
 
@@ -117,6 +134,26 @@ bool FBezier_UI_2D_Core::RunTest(const FString&)
 	A->DebugPulseMaxAlpha = 0.5f;
 	A->DebugPulseSpeed = 2.0f;
 	TestTrue(TEXT("Debug pulse params"), !A->bPulseDebugLines && FMath::IsNearlyEqual(A->DebugPulseMaxAlpha, 0.5f));
+
+	A->bPulseGrid = true;
+	A->GridPulseMinAlpha = 0.1f;
+	A->GridPulseMaxAlpha = 0.6f;
+	A->GridPulseSpeed = 1.5f;
+	A->GridPulseMinThickness = 0.25f;
+	A->GridPulseMaxThickness = 1.25f;
+	TestTrue(TEXT("Grid pulse params"), A->bPulseGrid && FMath::IsNearlyEqual(A->GridPulseMinAlpha, 0.1f));
+
+	A->ControlPointPulseMinAlpha = 0.35f;
+	A->ControlPointPulseMaxAlpha = 0.9f;
+	TestTrue(TEXT("Control point pulse alpha"), FMath::IsNearlyEqual(A->ControlPointPulseMinAlpha, 0.35f));
+
+	A->StripPulseMinAlpha = 0.3f;
+	A->StripPulseMaxAlpha = 0.95f;
+	TestTrue(TEXT("Strip pulse alpha"), FMath::IsNearlyEqual(A->StripPulseMaxAlpha, 0.95f));
+
+	A->bEnableVisualFade = true;
+	A->VisualFadeSpeed = 3.0f;
+	TestTrue(TEXT("Visual fade params"), A->bEnableVisualFade && FMath::IsNearlyEqual(A->VisualFadeSpeed, 3.0f));
 
 	A->IOPathAbsolute = OutDir;
 	A->UI_ExportAllJson();
@@ -198,6 +235,25 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	A->UI_SetShowGrid(true);
 	TestTrue(TEXT("UI_SetShowGrid"), A->bShowGrid);
 
+	A->UI_SetGridExtentCm(250.0f);
+	TestTrue(TEXT("UI_SetGridExtentCm"), FMath::IsNearlyEqual(A->GridExtentCm, 250.0f));
+
+	const FVector GridOrigin3D(5.0f, 15.0f, -10.0f);
+	A->UI_SetGridOriginWorld(GridOrigin3D);
+	TestTrue(TEXT("UI_SetGridOriginWorld"), A->GridOriginWorld.Equals(GridOrigin3D));
+
+	const FLinearColor GridColor3D(0.3f, 0.3f, 0.3f, 1.0f);
+	A->UI_SetGridColor(GridColor3D);
+	TestTrue(TEXT("UI_SetGridColor"), A->GridColor.Equals(GridColor3D));
+
+	A->UI_SetGridBaseAlpha(0.1f);
+	TestTrue(TEXT("UI_SetGridBaseAlpha"), FMath::IsNearlyEqual(A->GridBaseAlpha, 0.1f));
+
+	A->UI_SetShowGridXY(true);
+	A->UI_SetShowGridXZ(true);
+	A->UI_SetShowGridYZ(true);
+	TestTrue(TEXT("UI_SetShowGridXY"), A->bShowGridXY);
+
 	A->UI_SetLockToLocalXY(true);
 	TestTrue(TEXT("UI_SetLockToLocalXY"), A->bLockToLocalXY);
 
@@ -209,6 +265,26 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	A->DebugPulseMaxAlpha = 0.5f;
 	A->DebugPulseSpeed = 2.0f;
 	TestTrue(TEXT("Debug pulse params"), !A->bPulseDebugLines && FMath::IsNearlyEqual(A->DebugPulseMaxAlpha, 0.5f));
+
+	A->bPulseGrid = true;
+	A->GridPulseMinAlpha = 0.2f;
+	A->GridPulseMaxAlpha = 0.7f;
+	A->GridPulseSpeed = 1.25f;
+	A->GridPulseMinThickness = 0.3f;
+	A->GridPulseMaxThickness = 1.3f;
+	TestTrue(TEXT("Grid pulse params"), A->bPulseGrid && FMath::IsNearlyEqual(A->GridPulseMaxAlpha, 0.7f));
+
+	A->ControlPointPulseMinAlpha = 0.25f;
+	A->ControlPointPulseMaxAlpha = 0.85f;
+	TestTrue(TEXT("Control point pulse alpha"), FMath::IsNearlyEqual(A->ControlPointPulseMaxAlpha, 0.85f));
+
+	A->StripPulseMinAlpha = 0.2f;
+	A->StripPulseMaxAlpha = 0.9f;
+	TestTrue(TEXT("Strip pulse alpha"), FMath::IsNearlyEqual(A->StripPulseMinAlpha, 0.2f));
+
+	A->bEnableVisualFade = true;
+	A->VisualFadeSpeed = 4.0f;
+	TestTrue(TEXT("Visual fade params"), A->bEnableVisualFade && FMath::IsNearlyEqual(A->VisualFadeSpeed, 4.0f));
 
 	A->UI_MirrorCurveX();
 	A->UI_MirrorCurveY();
