@@ -618,13 +618,9 @@ EBezierPlanarAxis ABezierCurveSetActor::UI_CycleLockAxisForAll()
 		{
 			if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
 			{
-				if (A3->bLockToLocalXY)
+				if (A3->bLockPlanar)
 				{
-					CurrentAxis = EBezierPlanarAxis::XY;
-				}
-				else if (A3->bForcePlanar)
-				{
-					CurrentAxis = A3->ForcePlanarAxis;
+					CurrentAxis = A3->LockPlanarAxis;
 				}
 				break;
 			}
@@ -719,4 +715,13 @@ bool ABezierCurveSetActor::UI_FocusDuplicateSelectedControlPoint()
 		return Subsystem->Focus_DuplicateSelectedControlPoint();
 	}
 	return false;
+}
+
+EBezierPlanarAxis ABezierCurveSetActor::UI_FocusCycleForcePlanarAxis()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_CycleForcePlanarAxis();
+	}
+	return EBezierPlanarAxis::None;
 }

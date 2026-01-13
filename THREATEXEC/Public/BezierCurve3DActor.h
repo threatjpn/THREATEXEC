@@ -241,6 +241,9 @@ public:
 	void UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	EBezierPlanarAxis UI_CycleForcePlanarAxis();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	bool UI_SelectFromHit(const FHitResult& Hit);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
@@ -368,10 +371,22 @@ public:
 	bool bLockToLocalXY = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
+	bool bLockPlanar = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
+	EBezierPlanarAxis LockPlanarAxis = EBezierPlanarAxis::None;
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	bool bForcePlanar = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	EBezierPlanarAxis ForcePlanarAxis = EBezierPlanarAxis::None;
+
+	UPROPERTY(Transient)
+	TArray<FVector> ForcePlanarBaseControl;
+
+	UPROPERTY(Transient)
+	bool bForcePlanarHasBase = false;
 
 	UPROPERTY(VisibleAnywhere, Category = "Bezier3D|RuntimeEdit")
 	int32 SelectedControlPointIndex = -1;
