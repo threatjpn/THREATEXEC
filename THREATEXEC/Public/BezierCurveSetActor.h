@@ -92,6 +92,7 @@ private:
 	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> Spawned;
 	FTimerHandle AutoSaveTimerHandle;
 
+	void RefreshSpawnedFromWorld();
 	FString MakeAbs(const FString& FileName) const;
 	bool ReadText(const FString& AbsPath, FString& Out) const;
 	bool WriteText(const FString& AbsPath, const FString& In) const;
