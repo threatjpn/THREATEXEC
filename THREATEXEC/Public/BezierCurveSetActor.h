@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "TimerManager.h"
+#include "BezierRuntimeTypes.h"
 #include "BezierCurveSetActor.generated.h"
 
 class ABezierCurve2DActor;
@@ -46,11 +47,14 @@ public:
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO|AutoSave")
 	bool bAutoSaveOnlyWhenEditing = true;
 
-	UPROPERTY(EditAnywhere, Category="BezierSet|RuntimeEdit")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BezierSet|RuntimeEdit")
 	TArray<float> GridSizeCycleValues;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, Category="BezierSet|RuntimeEdit")
 	int32 GridSizeCycleIndex = 0;
+
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit", meta=(AutoCreateRefTerm="InValues")) void UI_SetGridSizeCycleValues(const TArray<float>& InValues);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_ResetGridSizeCycleIndex(int32 InIndex = 0);
 
 	UFUNCTION(CallInEditor, Category="BezierSet|IO") void ImportCurveSetJson();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|IO") void UI_ImportCurveSetJson();
@@ -69,8 +73,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetControlPointColorsForAll(FLinearColor Normal, FLinearColor Hover, FLinearColor Selected);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetSnapToGridForAll(bool bInSnap);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridSizeForAll(float InGridSizeCm);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridOriginWorldForAll(FVector InOrigin);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridExtentForAll(float InGridExtentCm);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridColorForAll(FLinearColor InColor);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridBaseAlphaForAll(float InAlpha);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridXYForAll(bool bInShow);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridXZForAll(bool bInShow);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridYZForAll(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_CycleGridSizeForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarForAll(bool bInForce);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetLockToLocalXYForAll(bool bInLock);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridForAll(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_ResetCurveStateForAll();
@@ -83,6 +95,7 @@ private:
 	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> Spawned;
 	FTimerHandle AutoSaveTimerHandle;
 
+	void RefreshSpawnedFromWorld();
 	FString MakeAbs(const FString& FileName) const;
 	bool ReadText(const FString& AbsPath, FString& Out) const;
 	bool WriteText(const FString& AbsPath, const FString& In) const;
