@@ -538,10 +538,7 @@ void ABezierCurve2DActor::UI_SetShowControlPoints(bool bInShow)
 void ABezierCurve2DActor::UI_SetSnapToGrid(bool bInSnap)
 {
 	bSnapToGrid = bInSnap;
-	if (bInSnap)
-	{
-		bShowGrid = true;
-	}
+	bShowGrid = bInSnap;
 }
 
 void ABezierCurve2DActor::UI_SetControlPointSize(float InVisualScale)

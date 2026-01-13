@@ -53,6 +53,9 @@ public:
 	UPROPERTY(Transient)
 	int32 GridSizeCycleIndex = 0;
 
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetGridSizeCycleValues(const TArray<float>& InValues);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_ResetGridSizeCycleIndex(int32 InIndex = 0);
+
 	UFUNCTION(CallInEditor, Category="BezierSet|IO") void ImportCurveSetJson();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|IO") void UI_ImportCurveSetJson();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|IO") void UI_ExportCurveSetJson();

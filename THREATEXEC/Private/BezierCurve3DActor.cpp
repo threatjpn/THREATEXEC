@@ -889,10 +889,7 @@ void ABezierCurve3DActor::UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis)
 void ABezierCurve3DActor::UI_SetSnapToGrid(bool bInSnap)
 {
 	bSnapToGrid = bInSnap;
-	if (bInSnap)
-	{
-		bShowGrid = true;
-	}
+	bShowGrid = bInSnap;
 }
 
 void ABezierCurve3DActor::UI_SetShowGrid(bool bInShow)
