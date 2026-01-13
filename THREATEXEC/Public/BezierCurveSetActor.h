@@ -56,6 +56,9 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category="BezierSet|RuntimeEdit")
 	EBezierPlanarAxis LockAxisCycle = EBezierPlanarAxis::None;
 
+	UPROPERTY(Transient, BlueprintReadOnly, Category="BezierSet|RuntimeEdit")
+	EBezierPlanarAxis ForcePlanarAxisCycle = EBezierPlanarAxis::None;
+
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit", meta=(AutoCreateRefTerm="InValues")) void UI_SetGridSizeCycleValues(const TArray<float>& InValues);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_ResetGridSizeCycleIndex(int32 InIndex = 0);
 
@@ -87,6 +90,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_CycleGridSizeForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarForAll(bool bInForce);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis);
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") EBezierPlanarAxis UI_CycleForcePlanarAxisForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetLockToLocalXYForAll(bool bInLock);
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") EBezierPlanarAxis UI_CycleLockAxisForAll();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetShowGridForAll(bool bInShow);

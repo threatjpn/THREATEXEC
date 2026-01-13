@@ -561,6 +561,45 @@ void ABezierCurveSetActor::UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis)
 	}
 }
 
+EBezierPlanarAxis ABezierCurveSetActor::UI_CycleForcePlanarAxisForAll()
+{
+	EBezierPlanarAxis CurrentAxis = ForcePlanarAxisCycle;
+	if (CurrentAxis == EBezierPlanarAxis::None)
+	{
+		for (AActor* A : Spawned)
+		{
+			if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+			{
+				CurrentAxis = A3->bForcePlanar ? A3->ForcePlanarAxis : EBezierPlanarAxis::None;
+				break;
+			}
+		}
+	}
+
+	EBezierPlanarAxis NextAxis = EBezierPlanarAxis::None;
+	switch (CurrentAxis)
+	{
+	case EBezierPlanarAxis::None:
+		NextAxis = EBezierPlanarAxis::XY;
+		break;
+	case EBezierPlanarAxis::XY:
+		NextAxis = EBezierPlanarAxis::XZ;
+		break;
+	case EBezierPlanarAxis::XZ:
+		NextAxis = EBezierPlanarAxis::YZ;
+		break;
+	case EBezierPlanarAxis::YZ:
+		NextAxis = EBezierPlanarAxis::None;
+		break;
+	default:
+		break;
+	}
+
+	ForcePlanarAxisCycle = NextAxis;
+	UI_SetForcePlanarAxisForAll(NextAxis);
+	return NextAxis;
+}
+
 void ABezierCurveSetActor::UI_SetLockToLocalXYForAll(bool bInLock)
 {
 	for (AActor* A : Spawned)
