@@ -270,6 +270,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetGridSizeCm(float InGridSizeCm);
 
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit", meta = (AutoCreateRefTerm = "InValues"))
+	void UI_SetGridSizeCycleValues(const TArray<float>& InValues);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_ResetGridSizeCycleIndex(int32 InIndex = 0);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_CycleGridSize();
+
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetGridExtentCm(float InGridExtentCm);
 
@@ -324,6 +333,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
 	float GridSizeCm = 0.25f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit", meta = (ClampMin = "0.001"))
+	TArray<float> GridSizeCycleValues;
+
+	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit")
+	int32 GridSizeCycleIndex = 0;
 
 	UPROPERTY(EditAnywhere, Category="Bezier3D|RuntimeEdit", meta=(ClampMin="1.0"))
 	float GridExtentCm = 250.0f;
@@ -487,4 +502,8 @@ public:
 
 	virtual void BEZ_SetForcePlanar_Implementation(bool bInForce) override;
 	virtual void BEZ_ResetCurveState_Implementation() override;
+
+	virtual bool BEZ_AddControlPointAfterSelected_Implementation() override;
+	virtual bool BEZ_DeleteSelectedControlPoint_Implementation() override;
+	virtual bool BEZ_DuplicateSelectedControlPoint_Implementation() override;
 };
