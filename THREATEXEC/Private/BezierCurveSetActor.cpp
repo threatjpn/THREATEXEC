@@ -563,6 +563,14 @@ void ABezierCurveSetActor::UI_SetForcePlanarAxisForAll(EBezierPlanarAxis InAxis)
 
 EBezierPlanarAxis ABezierCurveSetActor::UI_CycleForcePlanarAxisForAll()
 {
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		if (Subsystem->HasFocused())
+		{
+			return Subsystem->Focus_CycleForcePlanarAxis();
+		}
+	}
+
 	EBezierPlanarAxis CurrentAxis = ForcePlanarAxisCycle;
 	if (CurrentAxis == EBezierPlanarAxis::None)
 	{
