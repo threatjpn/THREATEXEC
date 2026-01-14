@@ -55,6 +55,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetGridSize(float InGridSizeCm);
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetForcePlanar(bool bInForce);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") EBezierPlanarAxis Focus_CycleForcePlanarAxis();
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ResetCurveState();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_AddControlPointAfterSelected();

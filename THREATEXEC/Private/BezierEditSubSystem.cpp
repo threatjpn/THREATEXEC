@@ -1,4 +1,6 @@
 #include "BezierEditSubsystem.h"
+#include "BezierCurve2DActor.h"
+#include "BezierCurve3DActor.h"
 #include "BezierCurveSetActor.h"
 #include "BezierEditable.h"
 
@@ -195,6 +197,27 @@ void UBezierEditSubsystem::Focus_SetGridSize(float InGridSizeCm)
 void UBezierEditSubsystem::Focus_SetForcePlanar(bool bInForce)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetForcePlanar(Obj, bInForce); });
+}
+
+EBezierPlanarAxis UBezierEditSubsystem::Focus_CycleForcePlanarAxis()
+{
+	EBezierPlanarAxis Result = EBezierPlanarAxis::None;
+	ForFocused([&](UObject* Obj)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Obj))
+		{
+			Result = A3->UI_CycleForcePlanarAxis();
+			return;
+		}
+
+		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
+		{
+			const bool bEnable = !A2->bForcePlanar;
+			A2->UI_SetForcePlanar(bEnable);
+			Result = bEnable ? EBezierPlanarAxis::XY : EBezierPlanarAxis::None;
+		}
+	});
+	return Result;
 }
 
 void UBezierEditSubsystem::Focus_ResetCurveState()
