@@ -203,6 +203,36 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
 	void UI_ReverseControlOrder();
 
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	void UI_SetSamplingMode(EBezierSamplingMode InMode) { SamplingMode = InMode; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	EBezierSamplingMode UI_GetSamplingMode() const { return SamplingMode; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	void UI_SetSampleCount(int32 InCount);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	int32 UI_GetSampleCount() const { return StripSegments; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	void UI_SetShowSamplePoints(bool bInShow) { bShowSamplePoints = bInShow; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	bool UI_GetShowSamplePoints() const { return bShowSamplePoints; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	void UI_SetShowDeCasteljauLevels(bool bInShow) { bShowLevelsAtT = bInShow; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	bool UI_GetShowDeCasteljauLevels() const { return bShowLevelsAtT; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	void UI_SetProofT(double InT) { ProofT = FMath::Clamp(InT, 0.0, 1.0); }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
+	double UI_GetProofT() const { return ProofT; }
+
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI")
 	void UI_SyncControlFromSpline();
 
@@ -434,6 +464,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	double ProofT = 0.5;
 
+	// Sampling & visibility
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Sampling")
+	EBezierSamplingMode SamplingMode = EBezierSamplingMode::Parametric;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Sampling")
+	bool bShowSamplePoints = false;
+
 	// Math
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|Math")
 	FVector Eval(double T) const;
@@ -444,6 +481,7 @@ protected:
 	void WriteControlToSpline();
 	void DrawDebugView();
 	void UniformArcLengthSample3D(int32 TargetCount, TArray<FVector>& Out) const;
+	void SampleCurvePoints(int32 TargetCount, TArray<FVector>& Out) const;
 
 	bool WriteJson(const FString& AbsPath, const FString& Str) const;
 	bool ReadJson(const FString& AbsPath, FString& OutStr) const;

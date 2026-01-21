@@ -4,6 +4,7 @@ Runtime Bezier editing tools for Unreal Engine, including:
 * In-game control point editing (hover/select/drag).
 * Curve-set import/export (single JSON file).
 * Runtime batch controls (show/hide, snapping, sizes, colors).
+* Runtime sampling controls (mode/count) and proof visualization.
 * Debug helpers (trace overlays, toggle settings).
 
 ---
@@ -25,6 +26,7 @@ Runtime Bezier editing tools for Unreal Engine, including:
 * Focused vs. all routing for edit actions.
 * Batch runtime edit toggles (`All_*` functions).
 * Curve-set IO helpers (`All_ExportCurveSetJson`, `All_ImportCurveSetJson`).
+* Focused curve tools for mirror/cycle, closed loop, sampling controls, and proof visualization.
 
 ### `ABezierCurveSetActor`
 * Imports/exports a **single JSON** containing all curves.
@@ -64,6 +66,53 @@ At runtime, enable edit mode and control point visibility:
   * or call the equivalent `ABezierCurveSetActor::UI_SetEditInteractionEnabledForAll(...)`
 
 If you rely on focused-only calls, ensure a focused curve exists (hover/click a control point).
+
+---
+
+## Sampling & proof visualization (runtime)
+
+Both 2D and 3D curve actors expose runtime sampling settings:
+* **Sampling mode** (`Parametric` or `Arc Length`)
+* **Sample count** (drives strip sampling and debug points)
+* **Proof T** (0..1) for De Casteljau proof levels
+* **Show sample points** toggle
+* **Show De Casteljau levels** toggle
+
+### Focused curve API (UMG friendly)
+Use these `UBezierEditSubsystem` calls to drive the currently focused curve:
+* `Focus_SetSamplingMode(EBezierSamplingMode Mode)`
+* `Focus_GetSamplingMode()`
+* `Focus_SetSampleCount(int32 Count)`
+* `Focus_GetSampleCount()`
+* `Focus_SetProofT(double T)`
+* `Focus_GetProofT()`
+* `Focus_SetShowSamplePoints(bool bShow)`
+* `Focus_GetShowSamplePoints()`
+* `Focus_SetShowDeCasteljauLevels(bool bShow)`
+* `Focus_GetShowDeCasteljauLevels()`
+
+### Per-actor API (direct)
+On `ABezierCurve2DActor` / `ABezierCurve3DActor`, you can call:
+* `UI_SetSamplingMode(...)`, `UI_GetSamplingMode()`
+* `UI_SetSampleCount(...)`, `UI_GetSampleCount()`
+* `UI_SetProofT(...)`, `UI_GetProofT()`
+* `UI_SetShowSamplePoints(...)`, `UI_GetShowSamplePoints()`
+* `UI_SetShowDeCasteljauLevels(...)`, `UI_GetShowDeCasteljauLevels()`
+
+---
+
+## Mirror & closed-loop helpers (focused curves)
+
+Use the focused-only functions from `UBezierEditSubsystem` to drive UI buttons:
+* `Focus_MirrorCurve()` cycles axis per press (X/Y for 2D, X/Y/Z for 3D).
+  * The mirror cycle **resets after 10s** of inactivity.
+  * `OnMirrorAxisCycleReset` can be bound in UMG to show a popup when it resets.
+  * `Focus_GetMirrorAxisCycleSecondsRemaining()` returns time left until reset.
+* `Focus_ToggleClosedLoop()` / `Focus_SetClosedLoop(bool)` / `Focus_IsClosedLoop()`
+* `Focus_ReverseControlOrder()`
+* `Focus_CenterCurve()`
+* `Focus_DuplicateCurve()`
+* `Focus_IsolateCurve(bool)`
 
 ---
 

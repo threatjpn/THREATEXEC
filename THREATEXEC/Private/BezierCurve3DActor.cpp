@@ -186,6 +186,24 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		}
 	}
 
+	if (bShowSamplePoints && Control.Num() >= 2)
+	{
+		TArray<FVector> Samples;
+		const int32 SampleCount = FMath::Clamp(StripSegments, 2, 512);
+		SampleCurvePoints(SampleCount, Samples);
+		for (const FVector& Sample : Samples)
+		{
+			DrawDebugPoint(
+				GetWorld(),
+				Xf.TransformPosition(Sample * Scale),
+				6.0f,
+				FColor(64, 220, 255, DebugAlpha),
+				false,
+				0.0f
+			);
+		}
+	}
+
 	if (bShowGrid || bSnapToGrid)
 	{
 		const float G = FMath::Max(0.01f, GridSizeCm);
@@ -605,6 +623,12 @@ void ABezierCurve3DActor::UI_SetShowControlPoints(bool bInShow)
 	ApplyRuntimeEditVisibility();
 }
 
+void ABezierCurve3DActor::UI_SetSampleCount(int32 InCount)
+{
+	StripSegments = FMath::Clamp(InCount, 2, 512);
+	UpdateStripMesh();
+}
+
 void ABezierCurve3DActor::UI_SetControlPointSize(float InVisualScale)
 {
 	ControlPointVisualScale = FMath::Max(0.001f, InVisualScale);
@@ -704,7 +728,7 @@ bool ABezierCurve3DActor::ExportCurveSamplesToJson() const
 {
 	TArray<FVector> Samples;
 	const int32 SampleCount = FMath::Clamp(StripSegments, 8, 4096);
-	TEBezier::SampleUniform(Control, SampleCount, Samples);
+	SampleCurvePoints(SampleCount, Samples);
 
 	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
 	TArray<TSharedPtr<FJsonValue>> SampleValues;
@@ -1091,7 +1115,8 @@ bool ABezierCurve3DActor::UI_DeleteSelectedControlPoint() { return UI_DeleteCont
 bool ABezierCurve3DActor::UI_DuplicateControlPoint(int32 Index)
 {
 	if (!Control.IsValidIndex(Index)) return false;
-	Control.Insert(Control[Index], Index + 1);
+	const FVector Copy = Control[Index];
+	Control.Insert(Copy, Index + 1);
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
 	UpdateStripMesh();
@@ -1273,6 +1298,24 @@ void ABezierCurve3DActor::WriteControlToSpline()
 void ABezierCurve3DActor::UniformArcLengthSample3D(int32 TargetCount, TArray<FVector>& Out) const
 {
 	TEBezier::UniformArcLengthSample(Control, TargetCount, Out);
+}
+
+void ABezierCurve3DActor::SampleCurvePoints(int32 TargetCount, TArray<FVector>& Out) const
+{
+	Out.Reset();
+	if (Control.Num() < 2 || TargetCount < 2)
+	{
+		return;
+	}
+
+	if (SamplingMode == EBezierSamplingMode::ArcLength)
+	{
+		TEBezier::UniformArcLengthSample(Control, TargetCount, Out);
+	}
+	else
+	{
+		TEBezier::SampleUniform(Control, TargetCount, Out);
+	}
 }
 
 FVector ABezierCurve3DActor::Eval(double T) const
