@@ -152,6 +152,43 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		}
 	}
 
+	if (bShowLevelsAtT && Control.Num() >= 2)
+	{
+		TArray<TArray<FVector2D>> Levels;
+		TEBezier::DeCasteljauLevels<FVector2D>(Control, FMath::Clamp(ProofT, 0.0, 1.0), Levels);
+		for (int32 L = 0; L < Levels.Num(); ++L)
+		{
+			FColor C = (L == Levels.Num() - 1) ? FColor::Red : FColor(128, 200, 255, 255);
+			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
+			{
+				DrawDebugLine(
+					GetWorld(),
+					Xf.TransformPosition(FVector(Levels[L][i].X * Scale, Levels[L][i].Y * Scale, 0.0f)),
+					Xf.TransformPosition(FVector(Levels[L][i + 1].X * Scale, Levels[L][i + 1].Y * Scale, 0.0f)),
+					FColor(C.R, C.G, C.B, DebugAlpha), false, 0.f, 0, DebugThickness
+				);
+			}
+		}
+	}
+
+	if (bShowSamplePoints && Control.Num() >= 2)
+	{
+		TArray<FVector2D> Samples;
+		const int32 SampleCount = FMath::Clamp(StripSegments, 2, 512);
+		SampleCurvePoints(SampleCount, Samples);
+		for (const FVector2D& Sample : Samples)
+		{
+			DrawDebugPoint(
+				GetWorld(),
+				Xf.TransformPosition(FVector(Sample.X * Scale, Sample.Y * Scale, 0.0f)),
+				6.0f,
+				FColor(64, 220, 255, DebugAlpha),
+				false,
+				0.0f
+			);
+		}
+	}
+
 	if (bShowGrid || bSnapToGrid)
 	{
 		const float G = FMath::Max(0.01f, GridSizeCm);
@@ -496,6 +533,24 @@ void ABezierCurve2DActor::UpdateStripMesh()
 	if (StripMaterial) { StripMeshComponent->SetMaterial(0, StripMaterial); }
 }
 
+void ABezierCurve2DActor::SampleCurvePoints(int32 TargetCount, TArray<FVector2D>& Out) const
+{
+	Out.Reset();
+	if (Control.Num() < 2 || TargetCount < 2)
+	{
+		return;
+	}
+
+	if (SamplingMode == EBezierSamplingMode::ArcLength)
+	{
+		TEBezier::UniformArcLengthSample(Control, TargetCount, Out);
+	}
+	else
+	{
+		TEBezier::SampleUniform(Control, TargetCount, Out);
+	}
+}
+
 // --- Newly added UI runtime edit functions ---
 void ABezierCurve2DActor::UI_SetEditMode(bool bInEditMode)
 {
@@ -539,6 +594,12 @@ void ABezierCurve2DActor::UI_SetShowControlPoints(bool bInShow)
 {
 	bShowControlPoints = bInShow;
 	ApplyRuntimeEditVisibility();
+}
+
+void ABezierCurve2DActor::UI_SetSampleCount(int32 InCount)
+{
+	StripSegments = FMath::Clamp(InCount, 2, 512);
+	UpdateStripMesh();
 }
 
 void ABezierCurve2DActor::UI_SetSnapToGrid(bool bInSnap)
@@ -685,7 +746,7 @@ bool ABezierCurve2DActor::ExportCurveSamplesToJson() const
 {
 	TArray<FVector2D> Samples;
 	const int32 SampleCount = FMath::Clamp(StripSegments, 8, 4096);
-	TEBezier::SampleUniform(Control, SampleCount, Samples);
+	SampleCurvePoints(SampleCount, Samples);
 
 	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
 	TArray<TSharedPtr<FJsonValue>> SampleValues;
@@ -755,6 +816,22 @@ void ABezierCurve2DActor::UI_CenterCurve()
 	for (const FVector2D& P : Control) Avg += P;
 	Avg /= (double)Control.Num();
 	for (FVector2D& P : Control) P -= Avg;
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve2DActor::UI_MirrorCurveX()
+{
+	for (FVector2D& P : Control) P.X = -P.X;
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve2DActor::UI_MirrorCurveY()
+{
+	for (FVector2D& P : Control) P.Y = -P.Y;
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
 	UpdateStripMesh();

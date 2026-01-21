@@ -2,10 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "TimerManager.h"
 #include "BezierEditable.h"
 #include "BezierEditSubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBezierFocusChanged, AActor*, FocusedActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBezierMirrorAxisCycleReset);
 
 UCLASS()
 class THREATEXEC_API UBezierEditSubsystem : public UWorldSubsystem
@@ -61,7 +63,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_AddControlPointAfterSelected();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_DeleteSelectedControlPoint();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_DuplicateSelectedControlPoint();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_CenterCurve();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_MirrorCurve();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ReverseControlOrder();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ToggleClosedLoop();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetClosedLoop(bool bInClosed);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_IsClosedLoop();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_DuplicateCurve();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_IsolateCurve(bool bInIsolate);
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetSamplingMode(EBezierSamplingMode InMode);
+UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") EBezierSamplingMode Focus_GetSamplingMode();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetSampleCount(int32 InCount);
+UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") int32 Focus_GetSampleCount();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetProofT(double InT);
+UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") double Focus_GetProofT();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetShowSamplePoints(bool bInShow);
+UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowSamplePoints();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetShowDeCasteljauLevels(bool bInShow);
+UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowDeCasteljauLevels();
+
+	// Mirror cycle helpers
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ResetMirrorAxisCycle();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") float Focus_GetMirrorAxisCycleSecondsRemaining() const;
+
+	UPROPERTY(BlueprintAssignable, Category="Bezier|Edit|Focused")
+	FOnBezierMirrorAxisCycleReset OnMirrorAxisCycleReset;
 
 	// All curves (UMG calls these)
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetEditMode(bool bInEditMode);
@@ -101,6 +128,15 @@ private:
 	bool bApplyAllToFocusedOnly = true;
 	UPROPERTY(EditAnywhere, Category="Bezier|Edit")
 	bool bAutoFocusFirstEditable = true;
+	UPROPERTY(Transient)
+	bool bIsolateFocusedCurve = false;
+	UPROPERTY(Transient)
+	int32 MirrorAxisCycleIndex = 0;
+	UPROPERTY(EditAnywhere, Category="Bezier|Edit")
+	float MirrorAxisCycleResetDelaySeconds = 10.0f;
+	UPROPERTY(Transient)
+	float LastMirrorAxisCycleTimeSeconds = -1.0f;
+	FTimerHandle MirrorAxisCycleResetHandle;
 
 private:
 	bool IsEditable(AActor* Actor) const;
