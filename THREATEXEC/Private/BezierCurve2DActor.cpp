@@ -945,7 +945,8 @@ bool ABezierCurve2DActor::UI_DeleteSelectedControlPoint()
 bool ABezierCurve2DActor::UI_DuplicateControlPoint(int32 Index)
 {
 	if (!Control.IsValidIndex(Index)) return false;
-	Control.Insert(Control[Index], Index + 1);
+	const FVector2D Copy = Control[Index];
+	Control.Insert(Copy, Index + 1);
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
 	UpdateStripMesh();
