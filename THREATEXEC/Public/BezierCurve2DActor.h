@@ -232,6 +232,16 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	double ProofT = 0.5;
 
+	// Sampling & visibility
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Sampling")
+	EBezierSamplingMode SamplingMode = EBezierSamplingMode::Parametric;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Sampling")
+	bool bShowSamplePoints = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Sampling")
+	bool bShowLevelsAtT = false;
+
 	// --- UI Callbacks ---
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_ResetCurveState();
@@ -241,6 +251,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_CenterCurve();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
+	void UI_MirrorCurveX();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
+	void UI_MirrorCurveY();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_ToggleClosedLoop();
@@ -253,6 +269,36 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_ReverseControlOrder();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	void UI_SetSamplingMode(EBezierSamplingMode InMode) { SamplingMode = InMode; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	EBezierSamplingMode UI_GetSamplingMode() const { return SamplingMode; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	void UI_SetSampleCount(int32 InCount);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	int32 UI_GetSampleCount() const { return StripSegments; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	void UI_SetShowSamplePoints(bool bInShow) { bShowSamplePoints = bInShow; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	bool UI_GetShowSamplePoints() const { return bShowSamplePoints; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	void UI_SetShowDeCasteljauLevels(bool bInShow) { bShowLevelsAtT = bInShow; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	bool UI_GetShowDeCasteljauLevels() const { return bShowLevelsAtT; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	void UI_SetProofT(double InT) { ProofT = FMath::Clamp(InT, 0.0, 1.0); }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|Sampling")
+	double UI_GetProofT() const { return ProofT; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI")
 	void UI_ExportAllJson();
@@ -366,6 +412,7 @@ public:
 	void UpdateControlPointInstanceColors();
 	void UpdateStripMesh();
 	void UpdateCubeStrip();
+	void SampleCurvePoints(int32 TargetCount, TArray<FVector2D>& Out) const;
 
 protected:
 	void EnsureSpline();
