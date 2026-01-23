@@ -167,6 +167,17 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		}
 	}
 
+	if (bShowPivotAxes && bEnableRuntimeEditing && bActorVisibleInGame)
+	{
+		const FVector Pivot = Xf.GetLocation();
+		const FVector XAxis = Xf.GetUnitAxis(EAxis::X);
+		const FVector YAxis = Xf.GetUnitAxis(EAxis::Y);
+		const FVector ZAxis = Xf.GetUnitAxis(EAxis::Z);
+		DrawDebugLine(GetWorld(), Pivot, Pivot + XAxis * PivotAxisLength, FColor::Red, false, 0.0f, 0, PivotAxisThickness);
+		DrawDebugLine(GetWorld(), Pivot, Pivot + YAxis * PivotAxisLength, FColor::Green, false, 0.0f, 0, PivotAxisThickness);
+		DrawDebugLine(GetWorld(), Pivot, Pivot + ZAxis * PivotAxisLength, FColor::Blue, false, 0.0f, 0, PivotAxisThickness);
+	}
+
 	if (bShowLevelsAtT && Control.Num() >= 2)
 	{
 		TArray<TArray<FVector>> Levels;
@@ -330,8 +341,18 @@ void ABezierCurve3DActor::UpdateControlPointInstanceColors()
 	for (int32 i = 0; i < Count; ++i)
 	{
 		FLinearColor C = ControlPointColor;
-		if (i == SelectedControlPointIndex) C = ControlPointSelectedColor;
-		else if (i == HoveredControlPointIndex) C = ControlPointHoverColor;
+		if (bSelectAllControlPoints)
+		{
+			C = ControlPointSelectedColor;
+		}
+		else if (i == SelectedControlPointIndex)
+		{
+			C = ControlPointSelectedColor;
+		}
+		else if (i == HoveredControlPointIndex)
+		{
+			C = ControlPointHoverColor;
+		}
 
 		SetInstanceColorRGB3D(ControlPointISM, i, C, Alpha);
 	}
@@ -805,9 +826,50 @@ void ABezierCurve3DActor::UI_CenterCurve()
 	UpdateStripMesh();
 }
 
-void ABezierCurve3DActor::UI_MirrorCurveX() { for (FVector& P : Control) P.X = -P.X; WriteControlToSpline(); RefreshControlPointVisuals(); UpdateStripMesh(); }
-void ABezierCurve3DActor::UI_MirrorCurveY() { for (FVector& P : Control) P.Y = -P.Y; WriteControlToSpline(); RefreshControlPointVisuals(); UpdateStripMesh(); }
-void ABezierCurve3DActor::UI_MirrorCurveZ() { for (FVector& P : Control) P.Z = -P.Z; WriteControlToSpline(); RefreshControlPointVisuals(); UpdateStripMesh(); }
+void ABezierCurve3DActor::UI_MirrorCurveX()
+{
+	const FTransform ActorXf = GetActorTransform();
+	const float PivotX = ActorXf.GetLocation().X;
+	for (FVector& P : Control)
+	{
+		const FVector World = ActorXf.TransformPosition(P * Scale);
+		const FVector Mirrored(2.0f * PivotX - World.X, World.Y, World.Z);
+		P = ActorXf.InverseTransformPosition(Mirrored) / Scale;
+	}
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve3DActor::UI_MirrorCurveY()
+{
+	const FTransform ActorXf = GetActorTransform();
+	const float PivotY = ActorXf.GetLocation().Y;
+	for (FVector& P : Control)
+	{
+		const FVector World = ActorXf.TransformPosition(P * Scale);
+		const FVector Mirrored(World.X, 2.0f * PivotY - World.Y, World.Z);
+		P = ActorXf.InverseTransformPosition(Mirrored) / Scale;
+	}
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
+
+void ABezierCurve3DActor::UI_MirrorCurveZ()
+{
+	const FTransform ActorXf = GetActorTransform();
+	const float PivotZ = ActorXf.GetLocation().Z;
+	for (FVector& P : Control)
+	{
+		const FVector World = ActorXf.TransformPosition(P * Scale);
+		const FVector Mirrored(World.X, World.Y, 2.0f * PivotZ - World.Z);
+		P = ActorXf.InverseTransformPosition(Mirrored) / Scale;
+	}
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+}
 
 void ABezierCurve3DActor::UI_ToggleClosedLoop()
 {
@@ -1129,6 +1191,7 @@ bool ABezierCurve3DActor::UI_SelectFromHit(const FHitResult& Hit)
 	if (!bEnableRuntimeEditing || !bEditMode) return false;
 	if (Hit.Component != ControlPointISM || Hit.Item == INDEX_NONE) return false;
 	SelectedControlPointIndex = Hit.Item;
+	bSelectAllControlPoints = false;
 	UpdateControlPointInstanceColors();
 	return true;
 }
@@ -1206,7 +1269,102 @@ bool ABezierCurve3DActor::UI_SetControlPointWorld(int32 Index, const FVector& Wo
 void ABezierCurve3DActor::UI_ClearSelectedControlPoint()
 {
 	SelectedControlPointIndex = -1;
+	bSelectAllControlPoints = false;
 	UpdateControlPointInstanceColors();
+}
+
+void ABezierCurve3DActor::UI_SelectAllControlPoints()
+{
+	if (!bEnableRuntimeEditing || !bEditMode) return;
+	bSelectAllControlPoints = true;
+	SelectedControlPointIndex = -1;
+	UpdateControlPointInstanceColors();
+}
+
+bool ABezierCurve3DActor::UI_GetAllControlPointsWorld(TArray<FVector>& OutWorld) const
+{
+	OutWorld.Reset();
+	if (Control.IsEmpty()) return false;
+	OutWorld.Reserve(Control.Num());
+	const FTransform ActorXf = GetActorTransform();
+	for (const FVector& P : Control)
+	{
+		OutWorld.Add(ActorXf.TransformPosition(P * Scale));
+	}
+	return true;
+}
+
+bool ABezierCurve3DActor::UI_SetAllControlPointsWorld(const TArray<FVector>& WorldPositions)
+{
+	if (!bEnableRuntimeEditing || !bEditMode) return false;
+	if (WorldPositions.Num() != Control.Num()) return false;
+
+	TArray<FVector> NewControl;
+	NewControl.SetNum(WorldPositions.Num());
+
+	const FTransform ActorXf = GetActorTransform();
+	const float G = FMath::Max(0.01f, GridSizeCm);
+
+	for (int32 i = 0; i < WorldPositions.Num(); ++i)
+	{
+		FVector W = WorldPositions[i];
+		W -= GridOriginWorld;
+
+		if (bSnapToGrid)
+		{
+			W.X = FMath::GridSnap(W.X, G);
+			W.Y = FMath::GridSnap(W.Y, G);
+			W.Z = FMath::GridSnap(W.Z, G);
+		}
+
+		W += GridOriginWorld;
+
+		if (bForcePlanar)
+		{
+			switch (ForcePlanarAxis)
+			{
+			case EBezierPlanarAxis::XY:
+				W.Z = GridOriginWorld.Z;
+				break;
+			case EBezierPlanarAxis::XZ:
+				W.Y = GridOriginWorld.Y;
+				break;
+			case EBezierPlanarAxis::YZ:
+				W.X = GridOriginWorld.X;
+				break;
+			default:
+				break;
+			}
+		}
+
+		FVector Local = ActorXf.InverseTransformPosition(W) / Scale;
+		const FVector CurrentLocal = Control[i];
+		if (bLockPlanar)
+		{
+			switch (LockPlanarAxis)
+			{
+			case EBezierPlanarAxis::XY:
+				Local.Z = CurrentLocal.Z;
+				break;
+			case EBezierPlanarAxis::XZ:
+				Local.Y = CurrentLocal.Y;
+				break;
+			case EBezierPlanarAxis::YZ:
+				Local.X = CurrentLocal.X;
+				break;
+			default:
+				break;
+			}
+		}
+
+		NewControl[i] = Local;
+	}
+
+	Control = MoveTemp(NewControl);
+	WriteControlToSpline();
+	RefreshControlPointVisuals();
+	UpdateStripMesh();
+	return true;
 }
 
 void ABezierCurve3DActor::UI_ImportFromJson()

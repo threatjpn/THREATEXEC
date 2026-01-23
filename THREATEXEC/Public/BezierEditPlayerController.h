@@ -29,6 +29,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName CancelActionName = "Cancel";
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta=(ClampMin="0.05"))
+	float DoubleClickTimeSeconds = 0.3f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")
 	bool bDebugTrace = false;
 
@@ -86,6 +89,21 @@ private:
 
 	UPROPERTY(Transient)
 	FVector DragPlaneNormal = FVector::UpVector;
+
+	UPROPERTY(Transient)
+	bool bDragAllControlPoints = false;
+
+	UPROPERTY(Transient)
+	TArray<FVector> DragStartWorldPoints;
+
+	UPROPERTY(Transient)
+	float LastPrimaryClickTimeSeconds = -1.0f;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AActor> LastPrimaryClickActor;
+
+	UPROPERTY(Transient)
+	int32 LastPrimaryClickIndex = -1;
 
 	UPROPERTY(Transient)
 	FString DebugLastMessage;
