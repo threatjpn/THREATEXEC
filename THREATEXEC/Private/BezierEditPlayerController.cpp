@@ -159,10 +159,46 @@ void ABezierEditPlayerController::SetHoveredOnActor(AActor* Actor, int32 Control
 void ABezierEditPlayerController::Input_PrimaryPressed()
 {
 	FHitResult Hit;
-	if (!TraceUnderCursor(Hit)) return;
+	if (!TraceUnderCursor(Hit))
+	{
+		if (UWorld* W = GetWorld())
+		{
+			if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
+			{
+				AActor* Focused = Sub->GetFocused();
+				ClearSelectedOnActor(Focused);
+			}
+		}
+		bLastPressWasDoubleClick = false;
+		return;
+	}
 
 	AActor* HitActor = Hit.GetActor();
 	if (!HitActor) return;
+
+	const float NowSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	const bool bHasControlPoint = Hit.Item != INDEX_NONE;
+	const bool bSameClickTarget = (LastPrimaryClickActor.Get() == HitActor && LastPrimaryClickIndex == Hit.Item);
+	const bool bIsDoubleClick = bHasControlPoint && bSameClickTarget
+		&& (LastPrimaryClickTimeSeconds >= 0.0f)
+		&& ((NowSeconds - LastPrimaryClickTimeSeconds) <= DoubleClickTimeSeconds);
+
+	LastPrimaryClickTimeSeconds = NowSeconds;
+	LastPrimaryClickActor = HitActor;
+	LastPrimaryClickIndex = Hit.Item;
+
+	if (bIsDoubleClick)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(HitActor))
+		{
+			A3->UI_SelectAllControlPoints();
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(HitActor))
+		{
+			A2->UI_SelectAllControlPoints();
+		}
+	}
+	bLastPressWasDoubleClick = bIsDoubleClick;
 
 	// Focus editable actor on click.
 	if (UWorld* W = GetWorld())
@@ -225,12 +261,25 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 	ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(HitActor);
 	if (!A3 && !A2) return;
 
-	const bool bSelected = (A3 ? A3->UI_SelectFromHit(Hit) : A2->UI_SelectFromHit(Hit));
-	if (!bSelected) return;
+	const bool bAllSelected = A3 ? A3->UI_AreAllControlPointsSelected() : A2->UI_AreAllControlPointsSelected();
+	const bool bAllowAllDrag = bAllSelected && bLastPressWasDoubleClick;
+	if (!bAllSelected)
+	{
+		const bool bSelected = (A3 ? A3->UI_SelectFromHit(Hit) : A2->UI_SelectFromHit(Hit));
+		if (!bSelected) return;
+	}
+	else if (!bAllowAllDrag)
+	{
+		const bool bSelected = (A3 ? A3->UI_SelectFromHit(Hit) : A2->UI_SelectFromHit(Hit));
+		if (!bSelected) return;
+	}
 
 	DraggedActor = HitActor;
 	DraggedIndex = CPIndex;
 	bDragging = true;
+	bDragAllControlPoints = false;
+	DragStartWorldPoints.Reset();
+	bLastPressWasDoubleClick = false;
 
 	DragPlanePoint = Hit.ImpactPoint;
 
@@ -252,13 +301,24 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 		}
 	}
 
+	if (bAllowAllDrag)
+	{
+		bDragAllControlPoints = A3 ? A3->UI_GetAllControlPointsWorld(DragStartWorldPoints)
+			: A2->UI_GetAllControlPointsWorld(DragStartWorldPoints);
+		if (!bDragAllControlPoints)
+		{
+			StopDrag();
+			return;
+		}
+	}
+
 	ClearHovered();
 }
 
 void ABezierEditPlayerController::UpdateDrag()
 {
 	AActor* A = DraggedActor.Get();
-	if (!A || DraggedIndex < 0)
+	if (!A || (!bDragAllControlPoints && DraggedIndex < 0))
 	{
 		StopDrag();
 		return;
@@ -267,6 +327,26 @@ void ABezierEditPlayerController::UpdateDrag()
 	FVector WorldPoint;
 	if (!DeprojectMouseToPlane(DragPlanePoint, DragPlaneNormal, WorldPoint))
 	{
+		return;
+	}
+
+	if (bDragAllControlPoints)
+	{
+		const FVector Delta = WorldPoint - DragPlanePoint;
+		TArray<FVector> NewWorldPoints = DragStartWorldPoints;
+		for (FVector& P : NewWorldPoints)
+		{
+			P += Delta;
+		}
+
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			A3->UI_SetAllControlPointsWorld(NewWorldPoints);
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			A2->UI_SetAllControlPointsWorld(NewWorldPoints);
+		}
 		return;
 	}
 
@@ -289,6 +369,8 @@ void ABezierEditPlayerController::StopDrag()
 	bDragging = false;
 	DraggedActor = nullptr;
 	DraggedIndex = -1;
+	bDragAllControlPoints = false;
+	DragStartWorldPoints.Reset();
 }
 
 bool ABezierEditPlayerController::DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const

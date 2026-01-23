@@ -143,4 +143,5 @@ private:
 	void CompactRegistry();
 	void ForFocused(TFunctionRef<void(UObject* Obj)> Fn);
 	void ForAll(TFunctionRef<void(UObject* Obj)> Fn);
+	void ApplyIsolateVisibility();
 };

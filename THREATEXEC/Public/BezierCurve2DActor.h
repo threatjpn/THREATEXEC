@@ -200,6 +200,15 @@ public:
 	bool bShowControlPolygon = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
+	bool bShowPivotAxes = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "1.0"))
+	float PivotAxisLength = 60.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
+	float PivotAxisThickness = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
 	bool bPulseDebugLines = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
@@ -391,6 +400,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_ClearSelectedControlPoint();
 
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	void UI_SelectAllControlPoints();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_AreAllControlPointsSelected() const { return bSelectAllControlPoints; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	int32 UI_GetControlPointCount() const { return Control.Num(); }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_GetAllControlPointsWorld(TArray<FVector>& OutWorld) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_SetAllControlPointsWorld(const TArray<FVector>& WorldPositions);
+
 	// --------------------------------------------------------------------
 	// Core operations (used by tests and tools)
 	// --------------------------------------------------------------------
@@ -438,6 +462,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Bezier2D|RuntimeEdit")
 	int32 HoveredControlPointIndex = -1;
+
+	UPROPERTY(VisibleAnywhere, Category = "Bezier2D|RuntimeEdit")
+	bool bSelectAllControlPoints = false;
 
 private:
 	UPROPERTY()

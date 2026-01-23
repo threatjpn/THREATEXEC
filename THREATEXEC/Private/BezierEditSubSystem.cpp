@@ -53,6 +53,10 @@ void UBezierEditSubsystem::SetFocused(AActor* Actor)
 
 	FocusedActor = Actor;
 	OnFocusChanged.Broadcast(Actor);
+	if (bIsolateFocusedCurve)
+	{
+		ApplyIsolateVisibility();
+	}
 }
 
 AActor* UBezierEditSubsystem::GetFocused() const
@@ -392,6 +396,38 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 		Params.Template = Actor;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 		AActor* NewActor = World->SpawnActor<AActor>(Actor->GetClass(), Actor->GetActorTransform(), Params);
+		if (NewActor)
+		{
+			FBox Bounds(EForceInit::ForceInit);
+			const FTransform ActorXf = Actor->GetActorTransform();
+			if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
+			{
+				for (const FVector2D& P : A2->Control)
+				{
+					Bounds += ActorXf.TransformPosition(FVector(P.X * A2->Scale, P.Y * A2->Scale, 0.0f));
+				}
+			}
+			else if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Actor))
+			{
+				for (const FVector& P : A3->Control)
+				{
+					Bounds += ActorXf.TransformPosition(P * A3->Scale);
+				}
+			}
+			else
+			{
+				FVector Origin = FVector::ZeroVector;
+				FVector Extents = FVector::ZeroVector;
+				Actor->GetActorBounds(true, Origin, Extents);
+				Bounds += Origin - Extents;
+				Bounds += Origin + Extents;
+			}
+
+			const float BoundsSize = Bounds.IsValid ? Bounds.GetSize().Size() : 0.0f;
+			const float OffsetDistance = FMath::Max(100.0f, BoundsSize * 0.25f);
+			const FVector Offset = (Actor->GetActorRightVector() + Actor->GetActorForwardVector() * 0.5f) * OffsetDistance;
+			NewActor->AddActorWorldOffset(Offset, false, nullptr, ETeleportType::TeleportPhysics);
+		}
 		if (IsEditable(NewActor))
 		{
 			RegisterEditable(NewActor);
@@ -403,15 +439,23 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 void UBezierEditSubsystem::Focus_IsolateCurve(bool bInIsolate)
 {
 	bIsolateFocusedCurve = bInIsolate;
-	AActor* Focused = FocusedActor.Get();
-	if (!Focused) return;
+	ApplyIsolateVisibility();
+}
 
-	ForAll([&](UObject* Obj)
+void UBezierEditSubsystem::ApplyIsolateVisibility()
+{
+	AActor* Focused = FocusedActor.Get();
+	const bool bHasFocused = IsEditable(Focused);
+	CompactRegistry();
+	for (const auto& P : Editables)
 	{
-		const bool bIsFocused = Obj == Focused;
-		const bool bVisible = bIsolateFocusedCurve ? bIsFocused : true;
+		UObject* Obj = P.Get();
+		if (!IsEditable(Cast<AActor>(Obj))) continue;
+
+		const bool bIsFocused = bHasFocused && Obj == Focused;
+		const bool bVisible = bIsolateFocusedCurve ? (bHasFocused ? bIsFocused : true) : true;
 		IBezierEditable::Execute_BEZ_SetActorVisibleInGame(Obj, bVisible);
-	});
+	}
 }
 
 void UBezierEditSubsystem::Focus_SetSamplingMode(EBezierSamplingMode InMode)

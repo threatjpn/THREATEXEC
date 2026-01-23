@@ -348,6 +348,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_ClearSelectedControlPoint();
 
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SelectAllControlPoints();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_AreAllControlPointsSelected() const { return bSelectAllControlPoints; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	int32 UI_GetControlPointCount() const { return Control.Num(); }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_GetAllControlPointsWorld(TArray<FVector>& OutWorld) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	bool UI_SetAllControlPointsWorld(const TArray<FVector>& WorldPositions);
+
 	// --------------------------------------------------------------------
 	// Core operations (used by tests and tools)
 	// --------------------------------------------------------------------
@@ -424,9 +439,21 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Bezier3D|RuntimeEdit")
 	int32 HoveredControlPointIndex = -1;
 
+	UPROPERTY(VisibleAnywhere, Category = "Bezier3D|RuntimeEdit")
+	bool bSelectAllControlPoints = false;
+
 	// Debug
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bShowControlPolygon = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	bool bShowPivotAxes = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "1.0"))
+	float PivotAxisLength = 60.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.1"))
+	float PivotAxisThickness = 1.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bPulseDebugLines = true;
