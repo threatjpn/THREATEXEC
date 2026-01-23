@@ -106,5 +106,8 @@ private:
 	int32 LastPrimaryClickIndex = -1;
 
 	UPROPERTY(Transient)
+	bool bLastPressWasDoubleClick = false;
+
+	UPROPERTY(Transient)
 	FString DebugLastMessage;
 };

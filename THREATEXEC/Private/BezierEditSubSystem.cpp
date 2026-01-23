@@ -398,10 +398,33 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 		AActor* NewActor = World->SpawnActor<AActor>(Actor->GetClass(), Actor->GetActorTransform(), Params);
 		if (NewActor)
 		{
-			FVector Origin = FVector::ZeroVector;
-			FVector Extents = FVector::ZeroVector;
-			Actor->GetActorBounds(true, Origin, Extents);
-			const float OffsetDistance = FMath::Max(50.0f, Extents.Size());
+			FBox Bounds(EForceInit::ForceInit);
+			const FTransform ActorXf = Actor->GetActorTransform();
+			if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
+			{
+				for (const FVector2D& P : A2->Control)
+				{
+					Bounds += ActorXf.TransformPosition(FVector(P.X * A2->Scale, P.Y * A2->Scale, 0.0f));
+				}
+			}
+			else if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Actor))
+			{
+				for (const FVector& P : A3->Control)
+				{
+					Bounds += ActorXf.TransformPosition(P * A3->Scale);
+				}
+			}
+			else
+			{
+				FVector Origin = FVector::ZeroVector;
+				FVector Extents = FVector::ZeroVector;
+				Actor->GetActorBounds(true, Origin, Extents);
+				Bounds += Origin - Extents;
+				Bounds += Origin + Extents;
+			}
+
+			const float BoundsSize = Bounds.IsValid ? Bounds.GetSize().Size() : 0.0f;
+			const float OffsetDistance = FMath::Max(100.0f, BoundsSize * 0.25f);
 			const FVector Offset = (Actor->GetActorRightVector() + Actor->GetActorForwardVector() * 0.5f) * OffsetDistance;
 			NewActor->AddActorWorldOffset(Offset, false, nullptr, ETeleportType::TeleportPhysics);
 		}

@@ -152,7 +152,8 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (bShowPivotAxes && bEnableRuntimeEditing && bActorVisibleInGame)
+	if (bShowPivotAxes && bEnableRuntimeEditing && bActorVisibleInGame
+		&& (bSelectAllControlPoints || SelectedControlPointIndex >= 0))
 	{
 		const FVector Pivot = Xf.GetLocation();
 		const FVector XAxis = Xf.GetUnitAxis(EAxis::X);
