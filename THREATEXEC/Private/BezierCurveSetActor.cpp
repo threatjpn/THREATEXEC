@@ -126,8 +126,6 @@ void ABezierCurveSetActor::RefreshSpawnedFromWorld()
 
 void ABezierCurveSetActor::ImportCurveSetJson()
 {
-	ClearSpawned();
-
 	FString JsonText;
 	const FString AbsPath = MakeAbs(CurveSetFile);
 	if (!ReadText(AbsPath, JsonText))
@@ -142,6 +140,14 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to parse %s"), *AbsPath);
 		return;
+	}
+
+	const int32 CurrentVersion = 1;
+	int32 Version = 0;
+	Root->TryGetNumberField(TEXT("version"), Version);
+	if (Version > CurrentVersion)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Curve set version %d is newer than supported %d."), Version, CurrentVersion);
 	}
 
 	double FileScale = 100.0;
@@ -159,6 +165,25 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 	if (!Curve2DClass) Curve2DClass = ABezierCurve2DActor::StaticClass();
 	if (!Curve3DClass) Curve3DClass = ABezierCurve3DActor::StaticClass();
 
+	if (ImportMode == EBezierCurveSetImportMode::ReplaceAll)
+	{
+		ClearSpawned();
+	}
+
+	TMap<FName, TWeakObjectPtr<AActor>> ExistingByName;
+	if (ImportMode == EBezierCurveSetImportMode::ReplaceByName || ImportMode == EBezierCurveSetImportMode::SkipExisting)
+	{
+		for (AActor* A : Spawned)
+		{
+			if (!IsValid(A)) continue;
+			const FName NameKey = A->GetFName();
+			if (!NameKey.IsNone())
+			{
+				ExistingByName.Add(NameKey, A);
+			}
+		}
+	}
+
 	for (const TSharedPtr<FJsonValue>& CurveValue : *CurvesArray)
 	{
 		const TSharedPtr<FJsonObject>* CurveObj = nullptr;
@@ -172,9 +197,48 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 		(*CurveObj)->TryGetBoolField(TEXT("closed"), bClosed);
 
 		const TArray<TSharedPtr<FJsonValue>>* ControlArray = nullptr;
-		if (!(*CurveObj)->TryGetArrayField(TEXT("control"), ControlArray) || !ControlArray) continue;
+		if (!(*CurveObj)->TryGetArrayField(TEXT("control"), ControlArray) || !ControlArray)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Curve '%s' missing control array."), *CurveName);
+			continue;
+		}
 
 		const bool bIs3D = Space.Equals(TEXT("3D"), ESearchCase::IgnoreCase);
+		const bool bIs2D = Space.Equals(TEXT("2D"), ESearchCase::IgnoreCase);
+		if (!bIs3D && !bIs2D)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Curve '%s' has invalid space '%s'."), *CurveName, *Space);
+			continue;
+		}
+
+		if (ControlArray->Num() < 2)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Curve '%s' has too few control points."), *CurveName);
+			continue;
+		}
+
+		if (!CurveName.IsEmpty())
+		{
+			const FName CurveFName(*CurveName);
+			if (ImportMode == EBezierCurveSetImportMode::SkipExisting && ExistingByName.Contains(CurveFName))
+			{
+				continue;
+			}
+
+			if (ImportMode == EBezierCurveSetImportMode::ReplaceByName)
+			{
+				if (TWeakObjectPtr<AActor>* Existing = ExistingByName.Find(CurveFName))
+				{
+					if (Existing->IsValid())
+					{
+						Spawned.Remove(Existing->Get());
+						Existing->Get()->Destroy();
+					}
+					ExistingByName.Remove(CurveFName);
+				}
+			}
+		}
+
 		FActorSpawnParameters Params;
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -199,6 +263,12 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 				const double Z = (*PointArray)[2]->AsNumber();
 				A3->Control.Add(FVector(X, Y, Z));
 			}
+			if (A3->Control.Num() < 2)
+			{
+				A3->Destroy();
+				continue;
+			}
+
 			A3->UI_SetInitialControlFromCurrent();
 			A3->OverwriteSplineFromControl();
 			A3->UI_SetClosedLoop(bClosed);
@@ -219,6 +289,12 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 				const double Y = (*PointArray)[1]->AsNumber();
 				A2->Control.Add(FVector2D(X, Y));
 			}
+			if (A2->Control.Num() < 2)
+			{
+				A2->Destroy();
+				continue;
+			}
+
 			A2->UI_SetInitialControlFromCurrent();
 			A2->OverwriteSplineFromControl();
 			A2->UI_SetClosedLoop(bClosed);
@@ -237,6 +313,7 @@ void ABezierCurveSetActor::UI_ExportCurveSetJson()
 	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
 	TArray<TSharedPtr<FJsonValue>> Curves;
 
+	const int32 CurrentVersion = 1;
 	double ScaleValue = 100.0;
 	bool bScaleSet = false;
 
@@ -283,6 +360,7 @@ void ABezierCurveSetActor::UI_ExportCurveSetJson()
 		}
 	}
 
+	Root->SetNumberField(TEXT("version"), CurrentVersion);
 	Root->SetNumberField(TEXT("scale"), ScaleValue);
 	Root->SetArrayField(TEXT("curves"), Curves);
 
@@ -309,6 +387,24 @@ void ABezierCurveSetActor::UI_ExportCurveSetJson()
 void ABezierCurveSetActor::UI_ClearSpawned()
 {
 	ClearSpawned();
+}
+
+void ABezierCurveSetActor::UI_RegisterSpawned(AActor* Actor)
+{
+	if (!IsValid(Actor))
+	{
+		return;
+	}
+
+	if (!Spawned.Contains(Actor))
+	{
+		Spawned.Add(Actor);
+	}
+
+	if (Actor->GetOwner() != this)
+	{
+		Actor->SetOwner(this);
+	}
 }
 
 void ABezierCurveSetActor::UI_SetEditModeForAll(bool bInEditMode)

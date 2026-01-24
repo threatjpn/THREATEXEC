@@ -71,6 +71,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_IsClosedLoop();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_DuplicateCurve();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_IsolateCurve(bool bInIsolate);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ToggleIsolateCurve();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetSamplingMode(EBezierSamplingMode InMode);
 UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") EBezierSamplingMode Focus_GetSamplingMode();
@@ -82,6 +83,7 @@ UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") double Focus_GetPro
 UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowSamplePoints();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetShowDeCasteljauLevels(bool bInShow);
 UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowDeCasteljauLevels();
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_EnsureFocused();
 
 	// Mirror cycle helpers
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_ResetMirrorAxisCycle();
@@ -120,6 +122,12 @@ UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowD
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
 	bool GetApplyAllToFocusedOnly() const;
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
+	void SetAutoFocusFirstEditable(bool bInAutoFocus);
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
+	bool GetAutoFocusFirstEditable() const;
 
 private:
 	UPROPERTY(Transient) TWeakObjectPtr<AActor> FocusedActor;

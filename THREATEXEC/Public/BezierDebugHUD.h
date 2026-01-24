@@ -45,6 +45,7 @@ private:
 	void CycleGridSize();
 	void ToggleLockToXY();
 	void ToggleForcePlanar();
+	void TogglePivotAxes();
 	void TogglePulseDebug();
 	void TogglePulseControlPoints();
 	void TogglePulseStrip();
