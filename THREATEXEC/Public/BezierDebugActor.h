@@ -116,6 +116,12 @@ public:
 	float DebugPulseMaxAlpha = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
+	float DebugPulseMinThickness = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
+	float DebugPulseMaxThickness = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
 	float DebugPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
@@ -187,20 +193,8 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
 	float GridPulseMaxThickness = 1.5f;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Subsystem")
-	bool bApplyAllToFocusedOnly = true;
-
 	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
 	void ApplyDebugSettings();
-
-	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
-	void ExportCurveSet();
-
-	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
-	void ImportCurveSet();
-
-	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
-	void ResetAllCurves();
 
 protected:
 	virtual void BeginPlay() override;
@@ -210,5 +204,4 @@ private:
 	void ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const;
 	void ApplyCurveSetDebugAll() const;
 	void ApplyCurveActorDebug() const;
-	void ApplySubsystemDebug() const;
 };

@@ -218,6 +218,12 @@ public:
 	float DebugPulseMaxAlpha = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
+	float DebugPulseMinThickness = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
+	float DebugPulseMaxThickness = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
 	float DebugPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
