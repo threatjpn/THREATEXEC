@@ -145,7 +145,9 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		? FMath::Lerp(DebugPulseMinAlpha, DebugPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
 		: DebugPulseMaxAlpha;
 	const uint8 DebugAlpha = static_cast<uint8>(FMath::Clamp(PulseAlpha, 0.0f, 1.0f) * 255.0f);
-	const float DebugThickness = 0.5f + (PulseAlpha * 1.0f);
+	const float DebugThickness = bPulseDebugLines
+		? FMath::Lerp(DebugPulseMinThickness, DebugPulseMaxThickness, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
+		: DebugPulseMaxThickness;
 	const float GridPulseAlpha = bPulseGrid
 		? FMath::Lerp(GridPulseMinAlpha, GridPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f)
 		: GridPulseMaxAlpha;
@@ -170,7 +172,21 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 	if (bShowPivotAxes && bEnableRuntimeEditing && bActorVisibleInGame
 		&& (bSelectAllControlPoints || SelectedControlPointIndex >= 0))
 	{
-		const FVector Pivot = Xf.GetLocation();
+		FVector Pivot = Xf.GetLocation();
+		if (SelectedControlPointIndex >= 0 && Control.IsValidIndex(SelectedControlPointIndex))
+		{
+			Pivot = Xf.TransformPosition(Control[SelectedControlPointIndex] * Scale);
+		}
+		else if (bSelectAllControlPoints && Control.Num() > 0)
+		{
+			FVector Sum = FVector::ZeroVector;
+			for (const FVector& P : Control)
+			{
+				Sum += P;
+			}
+			const FVector Average = Sum / static_cast<float>(Control.Num());
+			Pivot = Xf.TransformPosition(Average * Scale);
+		}
 		const FVector XAxis = Xf.GetUnitAxis(EAxis::X);
 		const FVector YAxis = Xf.GetUnitAxis(EAxis::Y);
 		const FVector ZAxis = Xf.GetUnitAxis(EAxis::Z);

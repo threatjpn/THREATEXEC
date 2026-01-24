@@ -396,6 +396,7 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 		FActorSpawnParameters Params;
 		Params.Template = Actor;
 		Params.Owner = Owner;
+		Params.OverrideLevel = Actor->GetLevel();
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 		AActor* NewActor = World->SpawnActor<AActor>(Actor->GetClass(), Actor->GetActorTransform(), Params);
 		if (NewActor)

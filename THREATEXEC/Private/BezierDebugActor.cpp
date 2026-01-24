@@ -27,36 +27,8 @@ void ABezierDebugActor::BeginPlay()
 void ABezierDebugActor::ApplyDebugSettings()
 {
 	ApplyControllerDebug();
-	ApplySubsystemDebug();
 	ApplyCurveActorDebug();
 	ApplyCurveSetDebugAll();
-}
-
-void ABezierDebugActor::ExportCurveSet()
-{
-	if (!GetWorld()) return;
-	for (TActorIterator<ABezierCurveSetActor> It(GetWorld()); It; ++It)
-	{
-		It->UI_ExportCurveSetJson();
-	}
-}
-
-void ABezierDebugActor::ImportCurveSet()
-{
-	if (!GetWorld()) return;
-	for (TActorIterator<ABezierCurveSetActor> It(GetWorld()); It; ++It)
-	{
-		It->UI_ImportCurveSetJson();
-	}
-}
-
-void ABezierDebugActor::ResetAllCurves()
-{
-	if (!GetWorld()) return;
-	for (TActorIterator<ABezierCurveSetActor> It(GetWorld()); It; ++It)
-	{
-		It->UI_ResetCurveStateForAll();
-	}
 }
 
 void ABezierDebugActor::ApplyControllerDebug() const
@@ -158,6 +130,8 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
+		It->DebugPulseMinThickness = DebugPulseMinThickness;
+		It->DebugPulseMaxThickness = DebugPulseMaxThickness;
 		It->DebugPulseSpeed = DebugPulseSpeed;
 		It->bPulseControlPoints = bPulseControlPoints;
 		It->ControlPointPulseMinScale = ControlPointPulseMinScale;
@@ -212,6 +186,8 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
+		It->DebugPulseMinThickness = DebugPulseMinThickness;
+		It->DebugPulseMaxThickness = DebugPulseMaxThickness;
 		It->DebugPulseSpeed = DebugPulseSpeed;
 		It->bPulseControlPoints = bPulseControlPoints;
 		It->ControlPointPulseMinScale = ControlPointPulseMinScale;
@@ -235,14 +211,5 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->GridPulseMaxThickness = GridPulseMaxThickness;
 		It->bEnableVisualFade = bEnableVisualFade;
 		It->VisualFadeSpeed = VisualFadeSpeed;
-	}
-}
-
-void ABezierDebugActor::ApplySubsystemDebug() const
-{
-	if (!GetWorld()) return;
-	if (UBezierEditSubsystem* Subsystem = GetWorld()->GetSubsystem<UBezierEditSubsystem>())
-	{
-		Subsystem->SetApplyAllToFocusedOnly(bApplyAllToFocusedOnly);
 	}
 }
