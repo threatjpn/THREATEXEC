@@ -392,12 +392,19 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 		AActor* Actor = Cast<AActor>(Obj);
 		if (!Actor) return;
 
+		AActor* Owner = Actor->GetOwner();
 		FActorSpawnParameters Params;
 		Params.Template = Actor;
+		Params.Owner = Owner;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 		AActor* NewActor = World->SpawnActor<AActor>(Actor->GetClass(), Actor->GetActorTransform(), Params);
 		if (NewActor)
 		{
+			if (ABezierCurveSetActor* CurveSet = Cast<ABezierCurveSetActor>(Owner))
+			{
+				CurveSet->UI_RegisterSpawned(NewActor);
+			}
+
 			FBox Bounds(EForceInit::ForceInit);
 			const FTransform ActorXf = Actor->GetActorTransform();
 			if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
@@ -438,7 +445,20 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 
 void UBezierEditSubsystem::Focus_IsolateCurve(bool bInIsolate)
 {
-	bIsolateFocusedCurve = bInIsolate;
+	if (bInIsolate && bIsolateFocusedCurve)
+	{
+		bIsolateFocusedCurve = false;
+	}
+	else
+	{
+		bIsolateFocusedCurve = bInIsolate;
+	}
+	ApplyIsolateVisibility();
+}
+
+void UBezierEditSubsystem::Focus_ToggleIsolateCurve()
+{
+	bIsolateFocusedCurve = !bIsolateFocusedCurve;
 	ApplyIsolateVisibility();
 }
 
@@ -616,6 +636,33 @@ bool UBezierEditSubsystem::Focus_GetShowDeCasteljauLevels()
 		}
 	});
 	return bShow;
+}
+
+bool UBezierEditSubsystem::Focus_EnsureFocused()
+{
+	if (HasFocused())
+	{
+		return true;
+	}
+
+	if (!bAutoFocusFirstEditable)
+	{
+		return false;
+	}
+
+	CompactRegistry();
+	for (const auto& P : Editables)
+	{
+		AActor* A = P.Get();
+		if (IsEditable(A))
+		{
+			FocusedActor = A;
+			OnFocusChanged.Broadcast(A);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void UBezierEditSubsystem::Focus_ResetMirrorAxisCycle()
@@ -816,4 +863,14 @@ void UBezierEditSubsystem::ToggleApplyAllToFocusedOnly()
 bool UBezierEditSubsystem::GetApplyAllToFocusedOnly() const
 {
 	return bApplyAllToFocusedOnly;
+}
+
+void UBezierEditSubsystem::SetAutoFocusFirstEditable(bool bInAutoFocus)
+{
+	bAutoFocusFirstEditable = bInAutoFocus;
+}
+
+bool UBezierEditSubsystem::GetAutoFocusFirstEditable() const
+{
+	return bAutoFocusFirstEditable;
 }

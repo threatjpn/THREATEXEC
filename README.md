@@ -27,6 +27,7 @@ Runtime Bezier editing tools for Unreal Engine, including:
 * Batch runtime edit toggles (`All_*` functions).
 * Curve-set IO helpers (`All_ExportCurveSetJson`, `All_ImportCurveSetJson`).
 * Focused curve tools for mirror/cycle, closed loop, sampling controls, and proof visualization.
+* Auto-focus safety: `SetAutoFocusFirstEditable(true)` and `Focus_EnsureFocused()` to guard focused-only actions.
 
 ### `ABezierCurveSetActor`
 * Imports/exports a **single JSON** containing all curves.
@@ -39,7 +40,7 @@ Runtime Bezier editing tools for Unreal Engine, including:
 
 ### `ABezierDebugHUD`
 * Minimal in-game overlay with hotkeys to toggle edit/debug features.
-* Set your GameMode HUD class to `ABezierDebugHUD` and press **F1** to show/hide.
+* Set your GameMode HUD class to `ABezierDebugHUD` and press **F7** to show/hide.
 
 ---
 
@@ -113,6 +114,8 @@ Use the focused-only functions from `UBezierEditSubsystem` to drive UI buttons:
 * `Focus_CenterCurve()`
 * `Focus_DuplicateCurve()`
 * `Focus_IsolateCurve(bool)`
+* `Focus_ToggleIsolateCurve()`
+* `Focus_EnsureFocused()` (auto-focuses the first editable if enabled)
 
 ---
 
@@ -121,6 +124,7 @@ Use the focused-only functions from `UBezierEditSubsystem` to drive UI buttons:
 ### JSON format
 ```
 {
+  "version": 1,
   "scale": 100.0,
   "curves": [
     {
@@ -136,6 +140,11 @@ Use the focused-only functions from `UBezierEditSubsystem` to drive UI buttons:
 ### Runtime usage
 Place an `ABezierCurveSetActor` in the level:
 * Set `IOPathAbsolute` and `CurveSetFile`.
+* Set `ImportMode` to control how named curves merge:
+  * `Replace All` (default)
+  * `Replace By Name`
+  * `Skip Existing`
+  * `Append`
 * Call:
   * `UI_ImportCurveSetJson()` to load and spawn curves.
   * `UI_ExportCurveSetJson()` to save all curves to one file.
@@ -158,10 +167,11 @@ Place an `ABezierCurveSetActor` in the level:
 Drop a `BezierDebugActor` in the level and toggle settings in Details:
 * `bEnableMouseTraceDebug` → on-screen hover/trace output.
 * Visual toggles for control points/strip, sizing, colors, snapping.
+* `bShowPivotAxes` → render pivot axes for selected control points (V in debug HUD).
 * `ApplyDebugSettings()` to push settings.
 
 ### `ABezierDebugHUD` (overlay)
-Set your GameMode’s **HUD Class** to `ABezierDebugHUD` and press **F1** in-game to toggle.
+Set your GameMode’s **HUD Class** to `ABezierDebugHUD` and press **F7** in-game to toggle.
 Hotkeys (press **K** to apply after changes):
 * **E**: Edit mode
 * **C**: Control points
@@ -171,7 +181,10 @@ Hotkeys (press **K** to apply after changes):
 * **H**: Cycle grid size
 * **L**: Lock to XY
 * **P**: Force planar
+* **V**: Pivot axes
 * **D**: Pulse debug lines
+* **U**: Pulse control points
+* **I**: Pulse strip
 * **T**: Trace debug
 * **K**: Apply debug settings
 

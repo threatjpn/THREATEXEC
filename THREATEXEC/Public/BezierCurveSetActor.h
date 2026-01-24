@@ -9,6 +9,15 @@
 class ABezierCurve2DActor;
 class ABezierCurve3DActor;
 
+UENUM(BlueprintType)
+enum class EBezierCurveSetImportMode : uint8
+{
+	ReplaceAll UMETA(DisplayName="Replace All"),
+	ReplaceByName UMETA(DisplayName="Replace By Name"),
+	SkipExisting UMETA(DisplayName="Skip Existing"),
+	Append UMETA(DisplayName="Append")
+};
+
 UCLASS()
 class THREATEXEC_API ABezierCurveSetActor : public AActor
 {
@@ -31,6 +40,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO")
 	FString CurveSetFile = TEXT("curves.json");
+
+	UPROPERTY(EditAnywhere, Category="BezierSet|IO")
+	EBezierCurveSetImportMode ImportMode = EBezierCurveSetImportMode::ReplaceAll;
 
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO")
 	bool bWriteBackupOnExport = true;
@@ -67,6 +79,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|IO") void UI_ExportCurveSetJson();
 	UFUNCTION(CallInEditor, Category="BezierSet|Manage") void ClearSpawned();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|Manage") void UI_ClearSpawned();
+	UFUNCTION(BlueprintCallable, Category="BezierSet|Manage") void UI_RegisterSpawned(AActor* Actor);
 
 	// Runtime helpers (easy to call from UMG)
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_SetEditModeForAll(bool bInEditMode);
