@@ -200,10 +200,31 @@ public:
 	bool bShowControlPolygon = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
-	bool bShowPivotAxes = true;
+	bool bShowTransformGizmo = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "1.0"))
-	FBezierPivotGizmoSettings PivotGizmo;
+	FBezierTransformGizmoSettings TransformGizmo;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
+	EBezierTransformGizmoMode GizmoMode = EBezierTransformGizmoMode::Translate;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
+	EBezierTransformGizmoSpace GizmoSpace = EBezierTransformGizmoSpace::Local;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
+	bool bSnapRotation = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit", meta = (ClampMin = "0.1"))
+	float RotationSnapDegrees = 15.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
+	bool bSnapScale = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit", meta = (ClampMin = "0.01"))
+	float ScaleSnapIncrement = 0.1f;
+
+	UPROPERTY(Transient)
+	FVector PivotOffsetWorld = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
 	bool bPulseDebugLines = true;
@@ -425,25 +446,58 @@ public:
 	bool UI_GetPivotWorld(FVector& OutPivot) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	bool UI_FindPivotHandleFromRay(const FVector& RayOrigin, const FVector& RayDirection, EBezierPivotHandle& OutHandle) const;
+	bool UI_FindPivotHandleFromRay(const FVector& RayOrigin, const FVector& RayDirection, EBezierTransformHandle& OutHandle) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	void UI_SetHoveredPivotHandle(EBezierPivotHandle InHandle);
+	void UI_SetHoveredPivotHandle(EBezierTransformHandle InHandle);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	EBezierPivotHandle UI_GetHoveredPivotHandle() const { return HoveredPivotHandle; }
+	EBezierTransformHandle UI_GetHoveredPivotHandle() const { return HoveredPivotHandle; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	void UI_SetActivePivotHandle(EBezierPivotHandle InHandle);
+	void UI_SetActivePivotHandle(EBezierTransformHandle InHandle);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
-	EBezierPivotHandle UI_GetActivePivotHandle() const { return ActivePivotHandle; }
+	EBezierTransformHandle UI_GetActivePivotHandle() const { return ActivePivotHandle; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	bool UI_ApplyPivotTranslation(const FVector& DeltaWorld);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	bool UI_ApplyPivotRotation(const FVector& PivotWorld, const FVector& AxisWorld, float AngleRadians);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_ApplyPivotScale(const FVector& PivotWorld, const FVector& AxisWorld, float ScaleFactor);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_ApplyPivotUniformScale(const FVector& PivotWorld, float ScaleFactor);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	void UI_SetGizmoMode(EBezierTransformGizmoMode InMode);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	EBezierTransformGizmoMode UI_GetGizmoMode() const { return GizmoMode; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	void UI_SetGizmoSpace(EBezierTransformGizmoSpace InSpace);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	EBezierTransformGizmoSpace UI_GetGizmoSpace() const { return GizmoSpace; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_GetSelectedControlPointWorld(FVector& OutWorld) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_SetSelectedControlPointWorld(const FVector& WorldPos);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_SetPivotWorld(const FVector& WorldPos);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	FVector UI_GetPivotOffsetWorld() const { return PivotOffsetWorld; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	void UI_ResetPivotOffset();
 
 	// --------------------------------------------------------------------
 	// Core operations (used by tests and tools)
@@ -497,10 +551,10 @@ public:
 	bool bSelectAllControlPoints = false;
 
 	UPROPERTY(Transient)
-	EBezierPivotHandle HoveredPivotHandle = EBezierPivotHandle::None;
+	EBezierTransformHandle HoveredPivotHandle = EBezierTransformHandle::None;
 
 	UPROPERTY(Transient)
-	EBezierPivotHandle ActivePivotHandle = EBezierPivotHandle::None;
+	EBezierTransformHandle ActivePivotHandle = EBezierTransformHandle::None;
 
 private:
 	UPROPERTY()

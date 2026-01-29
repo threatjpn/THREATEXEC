@@ -52,7 +52,7 @@ protected:
 	void StartDrag(const FHitResult& Hit);
 	void UpdateDrag();
 	void StopDrag();
-	void StartPivotDrag(AActor* TargetActor, EBezierPivotHandle Handle, const FVector& RayOrigin, const FVector& RayDirection);
+	void StartPivotDrag(AActor* TargetActor, EBezierTransformHandle Handle, const FVector& RayOrigin, const FVector& RayDirection);
 	void UpdatePivotDrag(const FVector& RayOrigin, const FVector& RayDirection);
 
 	bool DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const;
@@ -97,10 +97,10 @@ private:
 	TWeakObjectPtr<AActor> HoveredPivotActor;
 
 	UPROPERTY(Transient)
-	EBezierPivotHandle HoveredPivotHandle = EBezierPivotHandle::None;
+	EBezierTransformHandle HoveredPivotHandle = EBezierTransformHandle::None;
 
 	UPROPERTY(Transient)
-	EBezierPivotHandle ActivePivotHandle = EBezierPivotHandle::None;
+	EBezierTransformHandle ActivePivotHandle = EBezierTransformHandle::None;
 
 	UPROPERTY(Transient)
 	FVector PivotDragOrigin = FVector::ZeroVector;
@@ -113,6 +113,18 @@ private:
 
 	UPROPERTY(Transient)
 	FVector PivotDragStartVector = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	FVector PivotDragPlanePoint = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	FVector PivotDragPlaneNormal = FVector::UpVector;
+
+	UPROPERTY(Transient)
+	FVector PivotDragStartPlanePoint = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	float PivotDragStartDistance = 0.0f;
 
 	UPROPERTY(Transient)
 	FVector DragPlanePoint = FVector::ZeroVector;
