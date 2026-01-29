@@ -98,25 +98,28 @@ public:
 	bool bShowControlPolygon = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	bool bShowPivotAxes = true;
+	bool bShowTransformGizmo = true;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
+	EBezierTransformGizmoMode GizmoMode = EBezierTransformGizmoMode::Translate;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
+	EBezierTransformGizmoSpace GizmoSpace = EBezierTransformGizmoSpace::Local;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="1.0"))
-	float PivotAxisLength = 40.0f;
+	FBezierTransformGizmoSettings GizmoSettings;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
-	float PivotAxisThickness = 1.25f;
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	bool bSnapRotation = false;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
-	float PivotArrowSizeDebug = 8.0f;
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.1"))
+	float RotationSnapDegrees = 15.0f;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="1.0"))
-	float PivotRotateRadiusDebug = 28.0f;
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	bool bSnapScale = false;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
-	float PivotRotateThicknessDebug = 1.25f;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
-	float PivotCenterRadiusDebug = 4.0f;
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.01"))
+	float ScaleSnapIncrement = 0.1f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	bool bPulseDebugLines = true;

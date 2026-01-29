@@ -14,6 +14,8 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Engine/EngineTypes.h"
+#include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
@@ -29,7 +31,7 @@ static void SetInstanceColorRGB2D(UInstancedStaticMeshComponent* ISM, int32 Inst
 	ISM->SetCustomDataValue(InstanceIndex, 3, Alpha, true);
 }
 
-static FColor PivotHandleColor(EBezierPivotHandle Handle, EBezierPivotHandle Hovered, EBezierPivotHandle Active, const FColor& Base)
+static FColor PivotHandleColor(EBezierTransformHandle Handle, EBezierTransformHandle Hovered, EBezierTransformHandle Active, const FColor& Base)
 {
 	if (Handle == Active)
 	{
@@ -42,6 +44,25 @@ static FColor PivotHandleColor(EBezierPivotHandle Handle, EBezierPivotHandle Hov
 	}
 	const FLinearColor Bright = FLinearColor(Base) * 1.35f;
 	return Bright.ToFColor(true);
+}
+
+static float GetGizmoViewScale(const FVector& Pivot, const FBezierTransformGizmoSettings& Settings, const UWorld* World)
+{
+	if (!World || Settings.ViewScaleDistance <= 0.0f)
+	{
+		return 1.0f;
+	}
+
+	const APlayerController* PC = World->GetFirstPlayerController();
+	if (!PC || !PC->PlayerCameraManager)
+	{
+		return 1.0f;
+	}
+
+	const FVector ViewOrigin = PC->PlayerCameraManager->GetCameraLocation();
+	const float Dist = FVector::Distance(ViewOrigin, Pivot);
+	const float RawScale = Dist / Settings.ViewScaleDistance;
+	return FMath::Clamp(RawScale, Settings.MinViewScale, Settings.MaxViewScale);
 }
 
 static bool ClosestPointRayLine(const FVector& RayOrigin, const FVector& RayDir, const FVector& LineOrigin, const FVector& LineDir, float& OutRayT, float& OutLineT)
@@ -78,42 +99,78 @@ static bool RayPlaneIntersection(const FVector& RayOrigin, const FVector& RayDir
 	return true;
 }
 
-static void DrawPivotGizmo2D(
+static void DrawTransformGizmo2D(
 	UWorld* World,
 	const FVector& Pivot,
 	const FTransform& Xf,
-	float AxisLength,
-	float AxisThickness,
-	float ArrowSize,
-	float RingRadius,
-	float RingThickness,
-	float CenterRadius,
-	EBezierPivotHandle HoveredHandle,
-	EBezierPivotHandle ActiveHandle)
+	const FBezierTransformGizmoSettings& Settings,
+	EBezierTransformGizmoMode Mode,
+	EBezierTransformHandle HoveredHandle,
+	EBezierTransformHandle ActiveHandle)
 {
 	if (!World) return;
+
+	const float ViewScale = GetGizmoViewScale(Pivot, Settings, World);
+	const float AxisLength = Settings.AxisLength * ViewScale;
+	const float AxisThickness = Settings.AxisThickness * ViewScale;
+	const float ArrowSize = Settings.ArrowSize * ViewScale;
+	const float RingRadius = Settings.RotateRadius * ViewScale;
+	const float RingThickness = Settings.RotateThickness * ViewScale;
+	const float CenterRadius = Settings.CenterRadius * ViewScale;
+	const float PlaneHandleSize = Settings.PlaneHandleSize * ViewScale;
+	const float PlaneOffset = Settings.PlaneHandleOffset * ViewScale;
+	const float ScaleHandleSize = Settings.ScaleHandleSize * ViewScale;
+	const float ScaleHandleOffset = Settings.ScaleHandleOffset * ViewScale;
+	const float UniformScaleRadius = Settings.UniformScaleRadius * ViewScale;
 
 	const FVector XAxis = Xf.GetUnitAxis(EAxis::X);
 	const FVector YAxis = Xf.GetUnitAxis(EAxis::Y);
 	const FVector ZAxis = Xf.GetUnitAxis(EAxis::Z);
 	const uint8 DepthPriority = SDPG_Foreground;
 
-	DrawDebugDirectionalArrow(World, Pivot, Pivot + XAxis * AxisLength, ArrowSize,
-		PivotHandleColor(EBezierPivotHandle::TranslateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, AxisThickness);
-	DrawDebugDirectionalArrow(World, Pivot, Pivot + YAxis * AxisLength, ArrowSize,
-		PivotHandleColor(EBezierPivotHandle::TranslateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, AxisThickness);
-	DrawDebugDirectionalArrow(World, Pivot, Pivot + ZAxis * AxisLength, ArrowSize,
-		PivotHandleColor(EBezierPivotHandle::TranslateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, AxisThickness);
+	if (Mode == EBezierTransformGizmoMode::Translate || Mode == EBezierTransformGizmoMode::Pivot)
+	{
+		DrawDebugDirectionalArrow(World, Pivot, Pivot + XAxis * AxisLength, ArrowSize,
+			PivotHandleColor(EBezierTransformHandle::TranslateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, AxisThickness);
+		DrawDebugDirectionalArrow(World, Pivot, Pivot + YAxis * AxisLength, ArrowSize,
+			PivotHandleColor(EBezierTransformHandle::TranslateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, AxisThickness);
 
-	const int32 RingSegments = 48;
-	DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-		PivotHandleColor(EBezierPivotHandle::RotateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, RingThickness, YAxis, ZAxis, false);
-	DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-		PivotHandleColor(EBezierPivotHandle::RotateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, RingThickness, XAxis, ZAxis, false);
-	DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-		PivotHandleColor(EBezierPivotHandle::RotateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, RingThickness, XAxis, YAxis, false);
+		const FVector PlaneXY = Pivot + (XAxis + YAxis) * PlaneOffset;
+		const FVector PlaneExtent(PlaneHandleSize * 0.5f);
+		DrawDebugSolidBox(World, PlaneXY, PlaneExtent, FRotationMatrix::MakeFromXY(XAxis, YAxis).ToQuat(),
+			PivotHandleColor(EBezierTransformHandle::TranslateXY, HoveredHandle, ActiveHandle, FColor::Yellow), false, 0.0f, DepthPriority);
+	}
 
-	DrawDebugSphere(World, Pivot, CenterRadius, 16, FColor::Yellow, false, 0.0f, DepthPriority, AxisThickness);
+	if (Mode == EBezierTransformGizmoMode::Rotate)
+	{
+		const int32 RingSegments = 48;
+		DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
+			PivotHandleColor(EBezierTransformHandle::RotateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, RingThickness, XAxis, YAxis, false);
+	}
+
+	if (Mode == EBezierTransformGizmoMode::Scale)
+	{
+		DrawDebugLine(World, Pivot, Pivot + XAxis * AxisLength, FColor::Red, false, 0.0f, DepthPriority, AxisThickness);
+		DrawDebugLine(World, Pivot, Pivot + YAxis * AxisLength, FColor::Green, false, 0.0f, DepthPriority, AxisThickness);
+
+		const FVector ScaleExtent(ScaleHandleSize * 0.5f);
+		DrawDebugBox(World, Pivot + XAxis * (AxisLength + ScaleHandleOffset), ScaleExtent, FRotationMatrix::MakeFromX(XAxis).ToQuat(),
+			PivotHandleColor(EBezierTransformHandle::ScaleX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority);
+		DrawDebugBox(World, Pivot + YAxis * (AxisLength + ScaleHandleOffset), ScaleExtent, FRotationMatrix::MakeFromY(YAxis).ToQuat(),
+			PivotHandleColor(EBezierTransformHandle::ScaleY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority);
+
+		DrawDebugSphere(World, Pivot, UniformScaleRadius, 12,
+			PivotHandleColor(EBezierTransformHandle::ScaleUniform, HoveredHandle, ActiveHandle, FColor::White), false, 0.0f, DepthPriority, AxisThickness);
+	}
+
+	if (Mode == EBezierTransformGizmoMode::Pivot)
+	{
+		DrawDebugSphere(World, Pivot, CenterRadius * 1.2f, 16, FColor::Orange, false, 0.0f, DepthPriority, AxisThickness);
+	}
+	else
+	{
+		DrawDebugSphere(World, Pivot, CenterRadius, 16, FColor::Yellow, false, 0.0f, DepthPriority, AxisThickness);
+	}
 }
 
 ABezierCurve2DActor::ABezierCurve2DActor()
@@ -242,7 +299,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (bShowPivotAxes && bEnableRuntimeEditing && bActorVisibleInGame
+	if (bShowTransformGizmo && bEnableRuntimeEditing && bActorVisibleInGame
 		&& (bSelectAllControlPoints || SelectedControlPointIndex >= 0))
 	{
 		FVector Pivot = Xf.GetLocation();
@@ -261,16 +318,18 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			const FVector2D Average = Sum / static_cast<float>(Control.Num());
 			Pivot = Xf.TransformPosition(FVector(Average.X * Scale, Average.Y * Scale, 0.0f));
 		}
-		DrawPivotGizmo2D(
+		Pivot += PivotOffsetWorld;
+		FTransform GizmoXf = Xf;
+		if (GizmoSpace == EBezierTransformGizmoSpace::World)
+		{
+			GizmoXf.SetRotation(FQuat::Identity);
+		}
+		DrawTransformGizmo2D(
 			GetWorld(),
 			Pivot,
-			Xf,
-			PivotGizmo.AxisLength,
-			PivotGizmo.AxisThickness,
-			PivotGizmo.ArrowSize,
-			PivotGizmo.RotateRadius,
-			PivotGizmo.RotateThickness,
-			PivotGizmo.CenterRadius,
+			GizmoXf,
+			TransformGizmo,
+			GizmoMode,
 			HoveredPivotHandle,
 			ActivePivotHandle
 		);
@@ -1226,6 +1285,7 @@ bool ABezierCurve2DActor::UI_GetPivotWorld(FVector& OutPivot) const
 	{
 		const FVector2D Selected = Control[SelectedControlPointIndex];
 		OutPivot = Xf.TransformPosition(FVector(Selected.X * Scale, Selected.Y * Scale, 0.0f));
+		OutPivot += PivotOffsetWorld;
 		return true;
 	}
 
@@ -1238,15 +1298,16 @@ bool ABezierCurve2DActor::UI_GetPivotWorld(FVector& OutPivot) const
 		}
 		const FVector2D Average = Sum / static_cast<float>(Control.Num());
 		OutPivot = Xf.TransformPosition(FVector(Average.X * Scale, Average.Y * Scale, 0.0f));
+		OutPivot += PivotOffsetWorld;
 		return true;
 	}
 
 	return false;
 }
 
-bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, const FVector& RayDirection, EBezierPivotHandle& OutHandle) const
+bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, const FVector& RayDirection, EBezierTransformHandle& OutHandle) const
 {
-	OutHandle = EBezierPivotHandle::None;
+	OutHandle = EBezierTransformHandle::None;
 
 	FVector Pivot;
 	if (!UI_GetPivotWorld(Pivot))
@@ -1254,23 +1315,35 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 		return false;
 	}
 
-	const FTransform Xf = GetActorTransform();
+	FTransform Xf = GetActorTransform();
+	if (GizmoSpace == EBezierTransformGizmoSpace::World)
+	{
+		Xf.SetRotation(FQuat::Identity);
+	}
 	const FVector XAxis = Xf.GetUnitAxis(EAxis::X);
 	const FVector YAxis = Xf.GetUnitAxis(EAxis::Y);
 	const FVector ZAxis = Xf.GetUnitAxis(EAxis::Z);
 
-	const float AxisHitRadius = FMath::Max(6.0f, FMath::Max(PivotGizmo.AxisThickness * 6.0f, PivotGizmo.ArrowSize * 0.6f));
-	const float RingHitTolerance = FMath::Max(6.0f, PivotGizmo.RotateThickness * 8.0f);
+	const float ViewScale = FMath::Clamp(FVector::Distance(RayOrigin, Pivot) / FMath::Max(1.0f, TransformGizmo.ViewScaleDistance),
+		TransformGizmo.MinViewScale, TransformGizmo.MaxViewScale);
+	const float AxisHitRadius = FMath::Max(6.0f, FMath::Max(TransformGizmo.AxisThickness * 6.0f, TransformGizmo.ArrowSize * 0.6f)) * ViewScale;
+	const float RingHitTolerance = FMath::Max(6.0f, TransformGizmo.RotateThickness * 8.0f) * ViewScale;
+	const float PlaneHandleSize = TransformGizmo.PlaneHandleSize * ViewScale;
+	const float PlaneOffset = TransformGizmo.PlaneHandleOffset * ViewScale;
+	const float AxisLength = TransformGizmo.AxisLength * ViewScale;
+	const float ScaleHandleRangeStart = AxisLength + TransformGizmo.ScaleHandleOffset * ViewScale - TransformGizmo.ScaleHandleSize * ViewScale;
+	const float ScaleHandleRangeEnd = AxisLength + TransformGizmo.ScaleHandleOffset * ViewScale + TransformGizmo.ScaleHandleSize * ViewScale;
+	const float UniformScaleRadius = TransformGizmo.UniformScaleRadius * ViewScale;
 
 	struct FHandleCandidate
 	{
-		EBezierPivotHandle Handle = EBezierPivotHandle::None;
+		EBezierTransformHandle Handle = EBezierTransformHandle::None;
 		float Distance = TNumericLimits<float>::Max();
 	};
 
 	FHandleCandidate Best;
 
-	auto ConsiderAxis = [&](const FVector& AxisDir, EBezierPivotHandle Handle)
+	auto ConsiderAxis = [&](const FVector& AxisDir, EBezierTransformHandle Handle, float RangeStart, float RangeEnd)
 	{
 		float RayT = 0.0f;
 		float LineT = 0.0f;
@@ -1279,7 +1352,7 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 			return;
 		}
 
-		if (LineT < 0.0f || LineT > (PivotGizmo.AxisLength + PivotGizmo.ArrowSize))
+		if (LineT < RangeStart || LineT > RangeEnd)
 		{
 			return;
 		}
@@ -1294,7 +1367,7 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 		}
 	};
 
-	auto ConsiderRing = [&](const FVector& AxisDir, EBezierPivotHandle Handle)
+	auto ConsiderRing = [&](const FVector& AxisDir, EBezierTransformHandle Handle)
 	{
 		FVector PlanePoint;
 		if (!RayPlaneIntersection(RayOrigin, RayDirection, Pivot, AxisDir, PlanePoint))
@@ -1303,7 +1376,7 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 		}
 
 		const float Radius = FVector::Distance(PlanePoint, Pivot);
-		const float Dist = FMath::Abs(Radius - PivotGizmo.RotateRadius);
+		const float Dist = FMath::Abs(Radius - TransformGizmo.RotateRadius * ViewScale);
 		if (Dist <= RingHitTolerance && Dist < Best.Distance)
 		{
 			Best.Handle = Handle;
@@ -1311,15 +1384,48 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 		}
 	};
 
-	ConsiderAxis(XAxis, EBezierPivotHandle::TranslateX);
-	ConsiderAxis(YAxis, EBezierPivotHandle::TranslateY);
-	ConsiderAxis(ZAxis, EBezierPivotHandle::TranslateZ);
+	if (GizmoMode == EBezierTransformGizmoMode::Translate || GizmoMode == EBezierTransformGizmoMode::Pivot)
+	{
+		const float TranslateRange = AxisLength + TransformGizmo.ArrowSize * ViewScale;
+		ConsiderAxis(XAxis, EBezierTransformHandle::TranslateX, 0.0f, TranslateRange);
+		ConsiderAxis(YAxis, EBezierTransformHandle::TranslateY, 0.0f, TranslateRange);
 
-	ConsiderRing(XAxis, EBezierPivotHandle::RotateX);
-	ConsiderRing(YAxis, EBezierPivotHandle::RotateY);
-	ConsiderRing(ZAxis, EBezierPivotHandle::RotateZ);
+		FVector PlanePoint;
+		if (RayPlaneIntersection(RayOrigin, RayDirection, Pivot, ZAxis, PlanePoint))
+		{
+			const FVector PlaneCenter = Pivot + (XAxis + YAxis) * PlaneOffset;
+			const FVector Offset = PlanePoint - PlaneCenter;
+			const float CoordA = FVector::DotProduct(Offset, XAxis);
+			const float CoordB = FVector::DotProduct(Offset, YAxis);
+			if (FMath::Abs(CoordA) <= PlaneHandleSize * 0.5f && FMath::Abs(CoordB) <= PlaneHandleSize * 0.5f)
+			{
+				const float Dist = FVector::Distance(PlanePoint, PlaneCenter);
+				if (Dist < Best.Distance)
+				{
+					Best.Handle = EBezierTransformHandle::TranslateXY;
+					Best.Distance = Dist;
+				}
+			}
+		}
+	}
+	else if (GizmoMode == EBezierTransformGizmoMode::Rotate)
+	{
+		ConsiderRing(ZAxis, EBezierTransformHandle::RotateZ);
+	}
+	else if (GizmoMode == EBezierTransformGizmoMode::Scale)
+	{
+		ConsiderAxis(XAxis, EBezierTransformHandle::ScaleX, ScaleHandleRangeStart, ScaleHandleRangeEnd);
+		ConsiderAxis(YAxis, EBezierTransformHandle::ScaleY, ScaleHandleRangeStart, ScaleHandleRangeEnd);
 
-	if (Best.Handle == EBezierPivotHandle::None)
+		const float DistToPivot = FVector::Distance(Pivot, RayOrigin + RayDirection * FVector::DotProduct(Pivot - RayOrigin, RayDirection));
+		if (DistToPivot <= UniformScaleRadius && DistToPivot < Best.Distance)
+		{
+			Best.Handle = EBezierTransformHandle::ScaleUniform;
+			Best.Distance = DistToPivot;
+		}
+	}
+
+	if (Best.Handle == EBezierTransformHandle::None)
 	{
 		return false;
 	}
@@ -1328,12 +1434,12 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 	return true;
 }
 
-void ABezierCurve2DActor::UI_SetHoveredPivotHandle(EBezierPivotHandle InHandle)
+void ABezierCurve2DActor::UI_SetHoveredPivotHandle(EBezierTransformHandle InHandle)
 {
 	HoveredPivotHandle = InHandle;
 }
 
-void ABezierCurve2DActor::UI_SetActivePivotHandle(EBezierPivotHandle InHandle)
+void ABezierCurve2DActor::UI_SetActivePivotHandle(EBezierTransformHandle InHandle)
 {
 	ActivePivotHandle = InHandle;
 }
@@ -1342,6 +1448,17 @@ bool ABezierCurve2DActor::UI_ApplyPivotTranslation(const FVector& DeltaWorld)
 {
 	if (!bEnableRuntimeEditing || !bEditMode) return false;
 	if (DeltaWorld.IsNearlyZero()) return true;
+
+	if (GizmoMode == EBezierTransformGizmoMode::Pivot)
+	{
+		FVector PivotWorld = FVector::ZeroVector;
+		if (!UI_GetPivotWorld(PivotWorld))
+		{
+			return false;
+		}
+		PivotWorld += DeltaWorld;
+		return UI_SetPivotWorld(PivotWorld);
+	}
 
 	if (bSelectAllControlPoints)
 	{
@@ -1374,6 +1491,12 @@ bool ABezierCurve2DActor::UI_ApplyPivotRotation(const FVector& PivotWorld, const
 {
 	if (!bEnableRuntimeEditing || !bEditMode) return false;
 	if (FMath::IsNearlyZero(AngleRadians)) return true;
+
+	if (bSnapRotation)
+	{
+		const float Snap = FMath::DegreesToRadians(FMath::Max(0.1f, RotationSnapDegrees));
+		AngleRadians = FMath::GridSnap(AngleRadians, Snap);
+	}
 
 	const FVector Axis = AxisWorld.GetSafeNormal();
 	if (Axis.IsNearlyZero())
@@ -1409,6 +1532,167 @@ bool ABezierCurve2DActor::UI_ApplyPivotRotation(const FVector& PivotWorld, const
 	}
 
 	return false;
+}
+
+bool ABezierCurve2DActor::UI_ApplyPivotScale(const FVector& PivotWorld, const FVector& AxisWorld, float ScaleFactor)
+{
+	if (!bEnableRuntimeEditing || !bEditMode) return false;
+	if (FMath::IsNearlyZero(ScaleFactor - 1.0f)) return true;
+
+	const FVector Axis = AxisWorld.GetSafeNormal();
+	if (Axis.IsNearlyZero())
+	{
+		return false;
+	}
+
+	if (bSnapScale)
+	{
+		const float Snap = FMath::Max(0.01f, ScaleSnapIncrement);
+		ScaleFactor = 1.0f + FMath::GridSnap(ScaleFactor - 1.0f, Snap);
+	}
+
+	ScaleFactor = FMath::Max(0.01f, ScaleFactor);
+
+	auto ApplyScaleToPoint = [&](FVector& Point)
+	{
+		const FVector Delta = Point - PivotWorld;
+		const float Along = FVector::DotProduct(Delta, Axis);
+		const FVector AlongVec = Axis * Along;
+		const FVector Perp = Delta - AlongVec;
+		Point = PivotWorld + (AlongVec * ScaleFactor) + Perp;
+	};
+
+	if (bSelectAllControlPoints)
+	{
+		TArray<FVector> WorldPoints;
+		if (!UI_GetAllControlPointsWorld(WorldPoints))
+		{
+			return false;
+		}
+		for (FVector& P : WorldPoints)
+		{
+			ApplyScaleToPoint(P);
+		}
+		return UI_SetAllControlPointsWorld(WorldPoints);
+	}
+
+	if (SelectedControlPointIndex >= 0)
+	{
+		FVector WorldPoint;
+		if (!UI_GetControlPointWorld(SelectedControlPointIndex, WorldPoint))
+		{
+			return false;
+		}
+		ApplyScaleToPoint(WorldPoint);
+		return UI_SetControlPointWorld(SelectedControlPointIndex, WorldPoint);
+	}
+
+	return false;
+}
+
+bool ABezierCurve2DActor::UI_ApplyPivotUniformScale(const FVector& PivotWorld, float ScaleFactor)
+{
+	if (!bEnableRuntimeEditing || !bEditMode) return false;
+	if (FMath::IsNearlyZero(ScaleFactor - 1.0f)) return true;
+
+	if (bSnapScale)
+	{
+		const float Snap = FMath::Max(0.01f, ScaleSnapIncrement);
+		ScaleFactor = 1.0f + FMath::GridSnap(ScaleFactor - 1.0f, Snap);
+	}
+
+	ScaleFactor = FMath::Max(0.01f, ScaleFactor);
+
+	auto ApplyScaleToPoint = [&](FVector& Point)
+	{
+		Point = PivotWorld + (Point - PivotWorld) * ScaleFactor;
+	};
+
+	if (bSelectAllControlPoints)
+	{
+		TArray<FVector> WorldPoints;
+		if (!UI_GetAllControlPointsWorld(WorldPoints))
+		{
+			return false;
+		}
+		for (FVector& P : WorldPoints)
+		{
+			ApplyScaleToPoint(P);
+		}
+		return UI_SetAllControlPointsWorld(WorldPoints);
+	}
+
+	if (SelectedControlPointIndex >= 0)
+	{
+		FVector WorldPoint;
+		if (!UI_GetControlPointWorld(SelectedControlPointIndex, WorldPoint))
+		{
+			return false;
+		}
+		ApplyScaleToPoint(WorldPoint);
+		return UI_SetControlPointWorld(SelectedControlPointIndex, WorldPoint);
+	}
+
+	return false;
+}
+
+void ABezierCurve2DActor::UI_SetGizmoMode(EBezierTransformGizmoMode InMode)
+{
+	GizmoMode = InMode;
+	HoveredPivotHandle = EBezierTransformHandle::None;
+	ActivePivotHandle = EBezierTransformHandle::None;
+}
+
+void ABezierCurve2DActor::UI_SetGizmoSpace(EBezierTransformGizmoSpace InSpace)
+{
+	GizmoSpace = InSpace;
+}
+
+bool ABezierCurve2DActor::UI_GetSelectedControlPointWorld(FVector& OutWorld) const
+{
+	if (SelectedControlPointIndex < 0)
+	{
+		return false;
+	}
+	return UI_GetControlPointWorld(SelectedControlPointIndex, OutWorld);
+}
+
+bool ABezierCurve2DActor::UI_SetSelectedControlPointWorld(const FVector& WorldPos)
+{
+	if (SelectedControlPointIndex < 0)
+	{
+		return false;
+	}
+	return UI_SetControlPointWorld(SelectedControlPointIndex, WorldPos);
+}
+
+bool ABezierCurve2DActor::UI_SetPivotWorld(const FVector& WorldPos)
+{
+	FVector BasePivot = FVector::ZeroVector;
+	const bool bHasPivot = UI_GetPivotWorld(BasePivot);
+	if (!bHasPivot)
+	{
+		return false;
+	}
+
+	PivotOffsetWorld += (WorldPos - BasePivot);
+	if (bSnapToGrid)
+	{
+		const float G = FMath::Max(0.01f, GridSizeCm);
+		FVector Snapped = WorldPos - GridOriginWorld;
+		Snapped.X = FMath::GridSnap(Snapped.X, G);
+		Snapped.Y = FMath::GridSnap(Snapped.Y, G);
+		Snapped.Z = FMath::GridSnap(Snapped.Z, G);
+		Snapped += GridOriginWorld;
+		PivotOffsetWorld += (Snapped - WorldPos);
+	}
+
+	return true;
+}
+
+void ABezierCurve2DActor::UI_ResetPivotOffset()
+{
+	PivotOffsetWorld = FVector::ZeroVector;
 }
 
 FVector2D ABezierCurve2DActor::Eval(double T) const

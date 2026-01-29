@@ -9,6 +9,31 @@
 #include "EngineUtils.h"
 #include "InputCoreTypes.h"
 
+namespace
+{
+	const TCHAR* GizmoModeLabel(EBezierTransformGizmoMode Mode)
+	{
+		switch (Mode)
+		{
+		case EBezierTransformGizmoMode::Translate:
+			return TEXT("Translate");
+		case EBezierTransformGizmoMode::Rotate:
+			return TEXT("Rotate");
+		case EBezierTransformGizmoMode::Scale:
+			return TEXT("Scale");
+		case EBezierTransformGizmoMode::Pivot:
+			return TEXT("Pivot");
+		default:
+			return TEXT("Unknown");
+		}
+	}
+
+	const TCHAR* GizmoSpaceLabel(EBezierTransformGizmoSpace Space)
+	{
+		return Space == EBezierTransformGizmoSpace::World ? TEXT("World") : TEXT("Local");
+	}
+}
+
 ABezierDebugHUD::ABezierDebugHUD()
 {
 }
@@ -46,14 +71,14 @@ void ABezierDebugHUD::DrawHUD()
 	DrawLineText(Y, FString::Printf(TEXT("H: Cycle Grid Size (Current %.1f)"), Debug->GridSizeCm));
 	DrawLineText(Y, FString::Printf(TEXT("L: Lock To XY [%s]"), Debug->bLockToLocalXY ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("P: Force Planar [%s]"), Debug->bForcePlanar ? TEXT("ON") : TEXT("OFF")));
-	DrawLineText(Y, FString::Printf(TEXT("V: Pivot Axes [%s] (Len %.1f Thick %.2f Arrow %.1f RotR %.1f RotT %.2f Center %.1f)"),
-		Debug->bShowPivotAxes ? TEXT("ON") : TEXT("OFF"),
-		Debug->PivotAxisLength,
-		Debug->PivotAxisThickness,
-		Debug->PivotArrowSizeDebug,
-		Debug->PivotRotateRadiusDebug,
-		Debug->PivotRotateThicknessDebug,
-		Debug->PivotCenterRadiusDebug));
+	DrawLineText(Y, FString::Printf(TEXT("V: Transform Gizmo [%s] (Mode %s Space %s Len %.1f RotR %.1f Plane %.1f Scale %.1f)"),
+		Debug->bShowTransformGizmo ? TEXT("ON") : TEXT("OFF"),
+		GizmoModeLabel(Debug->GizmoMode),
+		GizmoSpaceLabel(Debug->GizmoSpace),
+		Debug->GizmoSettings.AxisLength,
+		Debug->GizmoSettings.RotateRadius,
+		Debug->GizmoSettings.PlaneHandleSize,
+		Debug->GizmoSettings.ScaleHandleSize));
 	DrawLineText(Y, FString::Printf(TEXT("D: Pulse Debug Lines [%s]"), Debug->bPulseDebugLines ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("U: Pulse Control Points [%s]"), Debug->bPulseControlPoints ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("I: Pulse Strip [%s]"), Debug->bPulseStrip ? TEXT("ON") : TEXT("OFF")));
@@ -197,7 +222,7 @@ void ABezierDebugHUD::TogglePivotAxes()
 {
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
-		Debug->bShowPivotAxes = !Debug->bShowPivotAxes;
+		Debug->bShowTransformGizmo = !Debug->bShowTransformGizmo;
 		ApplyAndRefresh();
 	}
 }

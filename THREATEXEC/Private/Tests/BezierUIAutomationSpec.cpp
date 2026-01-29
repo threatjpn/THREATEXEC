@@ -304,11 +304,11 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_PivotGizmo3D,
-	"Bezier/UI/PivotGizmo3D",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_TransformGizmo3D,
+	"Bezier/UI/TransformGizmo3D",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
-bool FBezier_UI_PivotGizmo3D::RunTest(const FString&)
+bool FBezier_UI_TransformGizmo3D::RunTest(const FString&)
 {
 	UWorld* World = GetEditorWorldChecked_UI();
 
@@ -332,26 +332,28 @@ bool FBezier_UI_PivotGizmo3D::RunTest(const FString&)
 	FVector Pivot = FVector::ZeroVector;
 	TestTrue(TEXT("Pivot world available"), A->UI_GetPivotWorld(Pivot));
 
-	const FVector RayOriginAxis = Pivot + FVector(A->PivotGizmo.AxisLength * 0.5f, 2.0f, 0.0f);
+	A->UI_SetGizmoMode(EBezierTransformGizmoMode::Translate);
+	const FVector RayOriginAxis = Pivot + FVector(A->TransformGizmo.AxisLength * 0.5f, 2.0f, 0.0f);
 	const FVector RayDirAxis = FVector(0.0f, -1.0f, 0.0f);
-	EBezierPivotHandle Handle = EBezierPivotHandle::None;
+	EBezierTransformHandle Handle = EBezierTransformHandle::None;
 	TestTrue(TEXT("Find translate X handle"), A->UI_FindPivotHandleFromRay(RayOriginAxis, RayDirAxis, Handle));
-	TestEqual(TEXT("Translate X handle"), Handle, EBezierPivotHandle::TranslateX);
+	TestEqual(TEXT("Translate X handle"), Handle, EBezierTransformHandle::TranslateX);
 
-	A->UI_SetHoveredPivotHandle(EBezierPivotHandle::TranslateX);
-	TestEqual(TEXT("Hovered handle stored"), A->UI_GetHoveredPivotHandle(), EBezierPivotHandle::TranslateX);
+	A->UI_SetHoveredPivotHandle(EBezierTransformHandle::TranslateX);
+	TestEqual(TEXT("Hovered handle stored"), A->UI_GetHoveredPivotHandle(), EBezierTransformHandle::TranslateX);
 
-	const FVector RayOriginAxisY = Pivot + FVector(2.0f, A->PivotGizmo.AxisLength + A->PivotGizmo.ArrowSize * 0.5f, 0.0f);
+	const FVector RayOriginAxisY = Pivot + FVector(2.0f, A->TransformGizmo.AxisLength + A->TransformGizmo.ArrowSize * 0.5f, 0.0f);
 	const FVector RayDirAxisY = FVector(-1.0f, 0.0f, 0.0f);
-	Handle = EBezierPivotHandle::None;
+	Handle = EBezierTransformHandle::None;
 	TestTrue(TEXT("Find translate Y handle"), A->UI_FindPivotHandleFromRay(RayOriginAxisY, RayDirAxisY, Handle));
-	TestEqual(TEXT("Translate Y handle"), Handle, EBezierPivotHandle::TranslateY);
+	TestEqual(TEXT("Translate Y handle"), Handle, EBezierTransformHandle::TranslateY);
 
-	const FVector RayOriginAxisZ = Pivot + FVector(2.0f, 0.0f, A->PivotGizmo.AxisLength + A->PivotGizmo.ArrowSize * 0.5f);
-	const FVector RayDirAxisZ = FVector(-1.0f, 0.0f, 0.0f);
-	Handle = EBezierPivotHandle::None;
-	TestTrue(TEXT("Find translate Z handle"), A->UI_FindPivotHandleFromRay(RayOriginAxisZ, RayDirAxisZ, Handle));
-	TestEqual(TEXT("Translate Z handle"), Handle, EBezierPivotHandle::TranslateZ);
+	const FVector PlaneCenter = Pivot + FVector(A->TransformGizmo.PlaneHandleOffset, A->TransformGizmo.PlaneHandleOffset, 0.0f);
+	const FVector RayOriginPlane = PlaneCenter + FVector(0.0f, 0.0f, 50.0f);
+	const FVector RayDirPlane = FVector(0.0f, 0.0f, -1.0f);
+	Handle = EBezierTransformHandle::None;
+	TestTrue(TEXT("Find translate XY handle"), A->UI_FindPivotHandleFromRay(RayOriginPlane, RayDirPlane, Handle));
+	TestEqual(TEXT("Translate XY handle"), Handle, EBezierTransformHandle::TranslateXY);
 
 	FVector WorldPoint = FVector::ZeroVector;
 	TestTrue(TEXT("Get control point world"), A->UI_GetControlPointWorld(0, WorldPoint));
@@ -361,33 +363,80 @@ bool FBezier_UI_PivotGizmo3D::RunTest(const FString&)
 	TestTrue(TEXT("Get control point world after"), A->UI_GetControlPointWorld(0, WorldPointAfter));
 	TestTrue(TEXT("Translation applied"), WorldPointAfter.Equals(WorldPoint + FVector(10.0f, 0.0f, 0.0f), 0.01f));
 
+	A->Control = { FVector(1, 0, 0), FVector(0, 1, 0) };
+	A->OverwriteSplineFromControl();
+	A->UI_ResetPivotOffset();
 	A->bSelectAllControlPoints = true;
 	A->SelectedControlPointIndex = -1;
 	TestTrue(TEXT("Pivot world for all selected"), A->UI_GetPivotWorld(Pivot));
 
-	const FVector RayOriginRing = Pivot + FVector(A->PivotGizmo.RotateRadius, 0.0f, 50.0f);
+	A->UI_SetGizmoMode(EBezierTransformGizmoMode::Rotate);
+	const FVector RayOriginRing = Pivot + FVector(A->TransformGizmo.RotateRadius, 0.0f, 50.0f);
 	const FVector RayDirRing = FVector(0.0f, 0.0f, -1.0f);
-	Handle = EBezierPivotHandle::None;
+	Handle = EBezierTransformHandle::None;
 	TestTrue(TEXT("Find rotate Z handle"), A->UI_FindPivotHandleFromRay(RayOriginRing, RayDirRing, Handle));
-	TestEqual(TEXT("Rotate Z handle"), Handle, EBezierPivotHandle::RotateZ);
+	TestEqual(TEXT("Rotate Z handle"), Handle, EBezierTransformHandle::RotateZ);
 
-	TestTrue(TEXT("Apply pivot rotation"), A->UI_ApplyPivotRotation(Pivot, FVector::UpVector, PI / 2.0f));
+	A->bSnapRotation = true;
+	A->RotationSnapDegrees = 15.0f;
+	TestTrue(TEXT("Apply pivot rotation with snap"), A->UI_ApplyPivotRotation(Pivot, FVector::UpVector, FMath::DegreesToRadians(10.0f)));
 
 	TArray<FVector> WorldPoints;
 	TestTrue(TEXT("Get all control points"), A->UI_GetAllControlPointsWorld(WorldPoints));
 	TestEqual(TEXT("Two control points after rotate"), WorldPoints.Num(), 2);
-	TestTrue(TEXT("Rotate point 0"), WorldPoints[0].Equals(FVector(1.0f, 1.0f, 0.0f), 0.05f));
-	TestTrue(TEXT("Rotate point 1"), WorldPoints[1].Equals(FVector(0.0f, 0.0f, 0.0f), 0.05f));
+	TestTrue(TEXT("Rotate point 0 snapped"), WorldPoints[0].Equals(FVector(1.112f, 0.146f, 0.0f), 0.05f));
+	TestTrue(TEXT("Rotate point 1 snapped"), WorldPoints[1].Equals(FVector(-0.112f, 0.854f, 0.0f), 0.05f));
+
+	FVector PointBeforeScale = FVector::ZeroVector;
+	TestTrue(TEXT("Get point before scale"), A->UI_GetControlPointWorld(0, PointBeforeScale));
+
+	A->UI_SetGizmoMode(EBezierTransformGizmoMode::Scale);
+	const FVector RayOriginScale = Pivot + FVector(A->TransformGizmo.AxisLength + A->TransformGizmo.ScaleHandleOffset, 2.0f, 0.0f);
+	const FVector RayDirScale = FVector(0.0f, -1.0f, 0.0f);
+	Handle = EBezierTransformHandle::None;
+	TestTrue(TEXT("Find scale X handle"), A->UI_FindPivotHandleFromRay(RayOriginScale, RayDirScale, Handle));
+	TestEqual(TEXT("Scale X handle"), Handle, EBezierTransformHandle::ScaleX);
+
+	A->bSnapScale = true;
+	A->ScaleSnapIncrement = 0.25f;
+	TestTrue(TEXT("Apply pivot scale"), A->UI_ApplyPivotScale(Pivot, FVector::ForwardVector, 1.4f));
+
+	FVector SelectedAfterScale = FVector::ZeroVector;
+	TestTrue(TEXT("Get control point after scale"), A->UI_GetControlPointWorld(0, SelectedAfterScale));
+	TestTrue(TEXT("Scale applied"), !SelectedAfterScale.Equals(PointBeforeScale, 0.01f));
+
+	A->UI_SetGizmoMode(EBezierTransformGizmoMode::Pivot);
+	A->bSelectAllControlPoints = false;
+	A->SelectedControlPointIndex = 0;
+	FVector PointBeforePivotEdit = FVector::ZeroVector;
+	TestTrue(TEXT("Get control point before pivot edit"), A->UI_GetControlPointWorld(0, PointBeforePivotEdit));
+	FVector PivotBefore = FVector::ZeroVector;
+	TestTrue(TEXT("Pivot world before edit"), A->UI_GetPivotWorld(PivotBefore));
+	TestTrue(TEXT("Apply pivot edit translation"), A->UI_ApplyPivotTranslation(FVector(5.0f, 0.0f, 0.0f)));
+
+	FVector PivotAfter = FVector::ZeroVector;
+	TestTrue(TEXT("Pivot world after edit"), A->UI_GetPivotWorld(PivotAfter));
+	TestTrue(TEXT("Pivot moved without control point"), PivotAfter.Equals(PivotBefore + FVector(5.0f, 0.0f, 0.0f), 0.01f));
+
+	FVector WorldPointAfterPivot = FVector::ZeroVector;
+	TestTrue(TEXT("Control point unchanged after pivot edit"), A->UI_GetControlPointWorld(0, WorldPointAfterPivot));
+	TestTrue(TEXT("Control point still same after pivot edit"), WorldPointAfterPivot.Equals(PointBeforePivotEdit, 0.01f));
+
+	FVector NumericTarget(150.5f, 200.0f, 10.0f);
+	TestTrue(TEXT("Set selected control point world"), A->UI_SetSelectedControlPointWorld(NumericTarget));
+	FVector NumericResult = FVector::ZeroVector;
+	TestTrue(TEXT("Get selected control point world"), A->UI_GetSelectedControlPointWorld(NumericResult));
+	TestTrue(TEXT("Numeric input applied"), NumericResult.Equals(NumericTarget, 0.01f));
 
 	A->Destroy();
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_PivotGizmo2D,
-	"Bezier/UI/PivotGizmo2D",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_TransformGizmo2D,
+	"Bezier/UI/TransformGizmo2D",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
-bool FBezier_UI_PivotGizmo2D::RunTest(const FString&)
+bool FBezier_UI_TransformGizmo2D::RunTest(const FString&)
 {
 	UWorld* World = GetEditorWorldChecked_UI();
 
@@ -411,17 +460,18 @@ bool FBezier_UI_PivotGizmo2D::RunTest(const FString&)
 	FVector Pivot = FVector::ZeroVector;
 	TestTrue(TEXT("Pivot world available 2D"), A->UI_GetPivotWorld(Pivot));
 
-	const FVector RayOriginAxis = Pivot + FVector(A->PivotGizmo.AxisLength * 0.5f, 2.0f, 0.0f);
+	A->UI_SetGizmoMode(EBezierTransformGizmoMode::Translate);
+	const FVector RayOriginAxis = Pivot + FVector(A->TransformGizmo.AxisLength * 0.5f, 2.0f, 0.0f);
 	const FVector RayDirAxis = FVector(0.0f, -1.0f, 0.0f);
-	EBezierPivotHandle Handle = EBezierPivotHandle::None;
+	EBezierTransformHandle Handle = EBezierTransformHandle::None;
 	TestTrue(TEXT("Find translate X handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginAxis, RayDirAxis, Handle));
-	TestEqual(TEXT("Translate X handle 2D"), Handle, EBezierPivotHandle::TranslateX);
+	TestEqual(TEXT("Translate X handle 2D"), Handle, EBezierTransformHandle::TranslateX);
 
-	const FVector RayOriginAxisY = Pivot + FVector(2.0f, A->PivotGizmo.AxisLength + A->PivotGizmo.ArrowSize * 0.5f, 0.0f);
+	const FVector RayOriginAxisY = Pivot + FVector(2.0f, A->TransformGizmo.AxisLength + A->TransformGizmo.ArrowSize * 0.5f, 0.0f);
 	const FVector RayDirAxisY = FVector(-1.0f, 0.0f, 0.0f);
-	Handle = EBezierPivotHandle::None;
+	Handle = EBezierTransformHandle::None;
 	TestTrue(TEXT("Find translate Y handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginAxisY, RayDirAxisY, Handle));
-	TestEqual(TEXT("Translate Y handle 2D"), Handle, EBezierPivotHandle::TranslateY);
+	TestEqual(TEXT("Translate Y handle 2D"), Handle, EBezierTransformHandle::TranslateY);
 
 	FVector WorldPoint = FVector::ZeroVector;
 	TestTrue(TEXT("Get control point world 2D"), A->UI_GetControlPointWorld(0, WorldPoint));
@@ -431,23 +481,59 @@ bool FBezier_UI_PivotGizmo2D::RunTest(const FString&)
 	TestTrue(TEXT("Get control point world after 2D"), A->UI_GetControlPointWorld(0, WorldPointAfter));
 	TestTrue(TEXT("Translation applied 2D"), WorldPointAfter.Equals(WorldPoint + FVector(10.0f, 0.0f, 0.0f), 0.01f));
 
+	A->Control = { FVector2D(1, 0), FVector2D(0, 1) };
+	A->OverwriteSplineFromControl();
+	A->UI_ResetPivotOffset();
 	A->bSelectAllControlPoints = true;
 	A->SelectedControlPointIndex = -1;
 	TestTrue(TEXT("Pivot world for all selected 2D"), A->UI_GetPivotWorld(Pivot));
 
-	const FVector RayOriginRing = Pivot + FVector(A->PivotGizmo.RotateRadius, 0.0f, 50.0f);
+	A->UI_SetGizmoMode(EBezierTransformGizmoMode::Rotate);
+	const FVector RayOriginRing = Pivot + FVector(A->TransformGizmo.RotateRadius, 0.0f, 50.0f);
 	const FVector RayDirRing = FVector(0.0f, 0.0f, -1.0f);
-	Handle = EBezierPivotHandle::None;
+	Handle = EBezierTransformHandle::None;
 	TestTrue(TEXT("Find rotate Z handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginRing, RayDirRing, Handle));
-	TestEqual(TEXT("Rotate Z handle 2D"), Handle, EBezierPivotHandle::RotateZ);
+	TestEqual(TEXT("Rotate Z handle 2D"), Handle, EBezierTransformHandle::RotateZ);
 
-	TestTrue(TEXT("Apply pivot rotation 2D"), A->UI_ApplyPivotRotation(Pivot, FVector::UpVector, PI / 2.0f));
+	A->bSnapRotation = true;
+	A->RotationSnapDegrees = 15.0f;
+	TestTrue(TEXT("Apply pivot rotation 2D"), A->UI_ApplyPivotRotation(Pivot, FVector::UpVector, FMath::DegreesToRadians(10.0f)));
 
 	TArray<FVector> WorldPoints;
 	TestTrue(TEXT("Get all control points 2D"), A->UI_GetAllControlPointsWorld(WorldPoints));
 	TestEqual(TEXT("Two control points after rotate 2D"), WorldPoints.Num(), 2);
-	TestTrue(TEXT("Rotate point 0 2D"), WorldPoints[0].Equals(FVector(1.0f, 1.0f, 0.0f), 0.05f));
-	TestTrue(TEXT("Rotate point 1 2D"), WorldPoints[1].Equals(FVector(0.0f, 0.0f, 0.0f), 0.05f));
+	TestTrue(TEXT("Rotate point 0 2D"), WorldPoints[0].Equals(FVector(1.112f, 0.146f, 0.0f), 0.05f));
+	TestTrue(TEXT("Rotate point 1 2D"), WorldPoints[1].Equals(FVector(-0.112f, 0.854f, 0.0f), 0.05f));
+
+	FVector PointBeforeScale2D = FVector::ZeroVector;
+	TestTrue(TEXT("Get point before scale 2D"), A->UI_GetControlPointWorld(0, PointBeforeScale2D));
+
+	A->UI_SetGizmoMode(EBezierTransformGizmoMode::Scale);
+	const FVector RayOriginScale2D = Pivot + FVector(A->TransformGizmo.AxisLength + A->TransformGizmo.ScaleHandleOffset, 2.0f, 0.0f);
+	const FVector RayDirScale2D = FVector(0.0f, -1.0f, 0.0f);
+	Handle = EBezierTransformHandle::None;
+	TestTrue(TEXT("Find scale X handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginScale2D, RayDirScale2D, Handle));
+	TestEqual(TEXT("Scale X handle 2D"), Handle, EBezierTransformHandle::ScaleX);
+
+	A->bSnapScale = true;
+	A->ScaleSnapIncrement = 0.25f;
+	TestTrue(TEXT("Apply pivot scale 2D"), A->UI_ApplyPivotScale(Pivot, FVector::ForwardVector, 1.4f));
+
+	A->UI_SetGizmoMode(EBezierTransformGizmoMode::Pivot);
+	A->bSelectAllControlPoints = false;
+	A->SelectedControlPointIndex = 0;
+	FVector PointBeforePivotEdit2D = FVector::ZeroVector;
+	TestTrue(TEXT("Get control point before pivot edit 2D"), A->UI_GetControlPointWorld(0, PointBeforePivotEdit2D));
+	FVector PivotBefore = FVector::ZeroVector;
+	TestTrue(TEXT("Pivot world before edit 2D"), A->UI_GetPivotWorld(PivotBefore));
+	TestTrue(TEXT("Apply pivot edit translation 2D"), A->UI_ApplyPivotTranslation(FVector(5.0f, 0.0f, 0.0f)));
+
+	FVector PivotAfter = FVector::ZeroVector;
+	TestTrue(TEXT("Pivot world after edit 2D"), A->UI_GetPivotWorld(PivotAfter));
+	TestTrue(TEXT("Pivot moved without control point 2D"), PivotAfter.Equals(PivotBefore + FVector(5.0f, 0.0f, 0.0f), 0.01f));
+	FVector PointAfterPivotEdit2D = FVector::ZeroVector;
+	TestTrue(TEXT("Control point unchanged after pivot edit 2D"), A->UI_GetControlPointWorld(0, PointAfterPivotEdit2D));
+	TestTrue(TEXT("Control point still same after pivot edit 2D"), PointAfterPivotEdit2D.Equals(PointBeforePivotEdit2D, 0.01f));
 
 	A->Destroy();
 	return true;
