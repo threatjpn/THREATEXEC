@@ -10,8 +10,29 @@
 #include "Engine/Engine.h"
 #include "Camera/PlayerCameraManager.h"
 
-namespace
+namespace BezierEditPlayerControllerHelpers
 {
+	const TCHAR* PivotHandleLabel(EBezierPivotHandle Handle)
+	{
+		switch (Handle)
+		{
+		case EBezierPivotHandle::TranslateX:
+			return TEXT("Translate X");
+		case EBezierPivotHandle::TranslateY:
+			return TEXT("Translate Y");
+		case EBezierPivotHandle::TranslateZ:
+			return TEXT("Translate Z");
+		case EBezierPivotHandle::RotateX:
+			return TEXT("Rotate X");
+		case EBezierPivotHandle::RotateY:
+			return TEXT("Rotate Y");
+		case EBezierPivotHandle::RotateZ:
+			return TEXT("Rotate Z");
+		default:
+			return TEXT("None");
+		}
+	}
+
 	bool ClosestPointRayLine(const FVector& RayOrigin, const FVector& RayDir, const FVector& LineOrigin, const FVector& LineDir, float& OutRayT, float& OutLineT)
 	{
 		const float A = FVector::DotProduct(RayDir, RayDir);
@@ -164,7 +185,7 @@ bool ABezierEditPlayerController::UpdatePivotHover()
 	HoveredPivotActor = Focused;
 	HoveredPivotHandle = Handle;
 	ClearHovered();
-	ReportDebugMessage(TEXT("Hover: pivot handle"));
+	ReportDebugMessage(FString::Printf(TEXT("Hover: pivot handle %s"), BezierEditPlayerControllerHelpers::PivotHandleLabel(Handle)));
 	return true;
 }
 
@@ -510,7 +531,7 @@ void ABezierEditPlayerController::StartPivotDrag(AActor* TargetActor, EBezierPiv
 	{
 		float RayT = 0.0f;
 		float LineT = 0.0f;
-		if (!ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
+		if (!BezierEditPlayerControllerHelpers::ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
 		{
 			StopDrag();
 			return;
@@ -542,6 +563,7 @@ void ABezierEditPlayerController::StartPivotDrag(AActor* TargetActor, EBezierPiv
 	}
 
 	ClearHovered();
+	ReportDebugMessage(FString::Printf(TEXT("Pivot drag start: %s"), BezierEditPlayerControllerHelpers::PivotHandleLabel(Handle)));
 }
 
 void ABezierEditPlayerController::UpdateDrag()
@@ -627,7 +649,7 @@ void ABezierEditPlayerController::UpdatePivotDrag(const FVector& RayOrigin, cons
 	{
 		float RayT = 0.0f;
 		float LineT = 0.0f;
-		if (!ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
+		if (!BezierEditPlayerControllerHelpers::ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
 		{
 			return;
 		}

@@ -1538,7 +1538,7 @@ bool ABezierCurve3DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 			return;
 		}
 
-		if (LineT < 0.0f || LineT > PivotGizmo.AxisLength)
+		if (LineT < 0.0f || LineT > (PivotGizmo.AxisLength + PivotGizmo.ArrowSize))
 		{
 			return;
 		}

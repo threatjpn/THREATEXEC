@@ -127,6 +127,10 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->bShowPivotAxes = bShowPivotAxes;
 		It->PivotGizmo.AxisLength = PivotAxisLength;
 		It->PivotGizmo.AxisThickness = PivotAxisThickness;
+		It->PivotGizmo.ArrowSize = PivotArrowSize;
+		It->PivotGizmo.RotateRadius = PivotRotateRadius;
+		It->PivotGizmo.RotateThickness = PivotRotateThickness;
+		It->PivotGizmo.CenterRadius = PivotCenterRadius;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
@@ -183,6 +187,10 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->bShowPivotAxes = bShowPivotAxes;
 		It->PivotGizmo.AxisLength = PivotAxisLength;
 		It->PivotGizmo.AxisThickness = PivotAxisThickness;
+		It->PivotGizmo.ArrowSize = PivotArrowSize;
+		It->PivotGizmo.RotateRadius = PivotRotateRadius;
+		It->PivotGizmo.RotateThickness = PivotRotateThickness;
+		It->PivotGizmo.CenterRadius = PivotCenterRadius;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;

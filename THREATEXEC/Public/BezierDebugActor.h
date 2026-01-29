@@ -106,6 +106,18 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
 	float PivotAxisThickness = 1.5f;
 
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
+	float PivotArrowSize = 8.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="1.0"))
+	float PivotRotateRadius = 28.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
+	float PivotRotateThickness = 1.25f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
+	float PivotCenterRadius = 4.0f;
+
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	bool bPulseDebugLines = true;
 
