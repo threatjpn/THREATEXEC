@@ -50,10 +50,10 @@ void ABezierDebugHUD::DrawHUD()
 		Debug->bShowPivotAxes ? TEXT("ON") : TEXT("OFF"),
 		Debug->PivotAxisLength,
 		Debug->PivotAxisThickness,
-		Debug->PivotArrowSize,
-		Debug->PivotRotateRadius,
-		Debug->PivotRotateThickness,
-		Debug->PivotCenterRadius));
+		Debug->PivotArrowSizeDebug,
+		Debug->PivotRotateRadiusDebug,
+		Debug->PivotRotateThicknessDebug,
+		Debug->PivotCenterRadiusDebug));
 	DrawLineText(Y, FString::Printf(TEXT("D: Pulse Debug Lines [%s]"), Debug->bPulseDebugLines ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("U: Pulse Control Points [%s]"), Debug->bPulseControlPoints ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("I: Pulse Strip [%s]"), Debug->bPulseStrip ? TEXT("ON") : TEXT("OFF")));
