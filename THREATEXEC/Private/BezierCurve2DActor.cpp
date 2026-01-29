@@ -13,6 +13,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Engine/EngineTypes.h"
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
@@ -26,6 +27,36 @@ static void SetInstanceColorRGB2D(UInstancedStaticMeshComponent* ISM, int32 Inst
 	ISM->SetCustomDataValue(InstanceIndex, 1, C.G, false);
 	ISM->SetCustomDataValue(InstanceIndex, 2, C.B, false);
 	ISM->SetCustomDataValue(InstanceIndex, 3, Alpha, true);
+}
+
+static void DrawPivotGizmo2D(
+	UWorld* World,
+	const FVector& Pivot,
+	const FTransform& Xf,
+	float AxisLength,
+	float AxisThickness,
+	float ArrowSize,
+	float RingRadius,
+	float RingThickness,
+	float CenterRadius)
+{
+	if (!World) return;
+
+	const FVector XAxis = Xf.GetUnitAxis(EAxis::X);
+	const FVector YAxis = Xf.GetUnitAxis(EAxis::Y);
+	const FVector ZAxis = Xf.GetUnitAxis(EAxis::Z);
+	const uint8 DepthPriority = SDPG_Foreground;
+
+	DrawDebugDirectionalArrow(World, Pivot, Pivot + XAxis * AxisLength, ArrowSize, FColor::Red, false, 0.0f, DepthPriority, AxisThickness);
+	DrawDebugDirectionalArrow(World, Pivot, Pivot + YAxis * AxisLength, ArrowSize, FColor::Green, false, 0.0f, DepthPriority, AxisThickness);
+	DrawDebugDirectionalArrow(World, Pivot, Pivot + ZAxis * AxisLength, ArrowSize, FColor::Blue, false, 0.0f, DepthPriority, AxisThickness);
+
+	const int32 RingSegments = 48;
+	DrawDebugCircle(World, Pivot, RingRadius, RingSegments, FColor::Red, false, 0.0f, DepthPriority, RingThickness, YAxis, ZAxis, false);
+	DrawDebugCircle(World, Pivot, RingRadius, RingSegments, FColor::Green, false, 0.0f, DepthPriority, RingThickness, XAxis, ZAxis, false);
+	DrawDebugCircle(World, Pivot, RingRadius, RingSegments, FColor::Blue, false, 0.0f, DepthPriority, RingThickness, XAxis, YAxis, false);
+
+	DrawDebugSphere(World, Pivot, CenterRadius, 16, FColor::Yellow, false, 0.0f, DepthPriority, AxisThickness);
 }
 
 ABezierCurve2DActor::ABezierCurve2DActor()
@@ -173,12 +204,17 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			const FVector2D Average = Sum / static_cast<float>(Control.Num());
 			Pivot = Xf.TransformPosition(FVector(Average.X * Scale, Average.Y * Scale, 0.0f));
 		}
-		const FVector XAxis = Xf.GetUnitAxis(EAxis::X);
-		const FVector YAxis = Xf.GetUnitAxis(EAxis::Y);
-		const FVector ZAxis = Xf.GetUnitAxis(EAxis::Z);
-		DrawDebugLine(GetWorld(), Pivot, Pivot + XAxis * PivotAxisLength, FColor::Red, false, 0.0f, 0, PivotAxisThickness);
-		DrawDebugLine(GetWorld(), Pivot, Pivot + YAxis * PivotAxisLength, FColor::Green, false, 0.0f, 0, PivotAxisThickness);
-		DrawDebugLine(GetWorld(), Pivot, Pivot + ZAxis * PivotAxisLength, FColor::Blue, false, 0.0f, 0, PivotAxisThickness);
+		DrawPivotGizmo2D(
+			GetWorld(),
+			Pivot,
+			Xf,
+			PivotAxisLength,
+			PivotAxisThickness,
+			PivotAxisArrowSize,
+			PivotAxisRotateRadius,
+			PivotAxisRotateThickness,
+			PivotAxisCenterRadius
+		);
 	}
 
 	if (bShowLevelsAtT && Control.Num() >= 2)
