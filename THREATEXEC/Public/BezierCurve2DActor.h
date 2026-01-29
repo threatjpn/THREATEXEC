@@ -203,10 +203,22 @@ public:
 	bool bShowPivotAxes = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "1.0"))
-	float PivotAxisLength = 60.0f;
+	float PivotAxisLength = 40.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
-	float PivotAxisThickness = 1.5f;
+	float PivotAxisThickness = 1.25f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
+	float PivotAxisArrowSize = 8.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "1.0"))
+	float PivotAxisRotateRadius = 28.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
+	float PivotAxisRotateThickness = 1.25f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
+	float PivotAxisCenterRadius = 4.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
 	bool bPulseDebugLines = true;
@@ -401,6 +413,9 @@ public:
 	bool UI_GetControlPointWorld(int32 Index, FVector& OutWorld) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	int32 UI_GetSelectedControlPointIndex() const { return SelectedControlPointIndex; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	bool UI_SetControlPointWorld(int32 Index, const FVector& WorldPos);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
@@ -420,6 +435,24 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	bool UI_SetAllControlPointsWorld(const TArray<FVector>& WorldPositions);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_GetPivotWorld(FVector& OutPivot) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_FindPivotHandleFromRay(const FVector& RayOrigin, const FVector& RayDirection, EBezierPivotHandle& OutHandle) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	void UI_SetHoveredPivotHandle(EBezierPivotHandle InHandle);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	EBezierPivotHandle UI_GetHoveredPivotHandle() const { return HoveredPivotHandle; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_ApplyPivotTranslation(const FVector& DeltaWorld);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_ApplyPivotRotation(const FVector& PivotWorld, const FVector& AxisWorld, float AngleRadians);
 
 	// --------------------------------------------------------------------
 	// Core operations (used by tests and tools)
@@ -471,6 +504,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Bezier2D|RuntimeEdit")
 	bool bSelectAllControlPoints = false;
+
+	UPROPERTY(Transient)
+	EBezierPivotHandle HoveredPivotHandle = EBezierPivotHandle::None;
 
 private:
 	UPROPERTY()
