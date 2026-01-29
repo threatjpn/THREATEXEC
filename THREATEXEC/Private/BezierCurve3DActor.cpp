@@ -32,7 +32,7 @@ static void SetInstanceColorRGB3D(UInstancedStaticMeshComponent* ISM, int32 Inst
 	ISM->SetCustomDataValue(InstanceIndex, 3, Alpha, true);
 }
 
-static FColor PivotHandleColor(EBezierTransformHandle Handle, EBezierTransformHandle Hovered, EBezierTransformHandle Active, const FColor& Base)
+static FColor PivotHandleColor3D(EBezierTransformHandle Handle, EBezierTransformHandle Hovered, EBezierTransformHandle Active, const FColor& Base)
 {
 	if (Handle == Active)
 	{
@@ -47,7 +47,7 @@ static FColor PivotHandleColor(EBezierTransformHandle Handle, EBezierTransformHa
 	return Bright.ToFColor(true);
 }
 
-static float GetGizmoViewScale(const FVector& Pivot, const FBezierTransformGizmoSettings& Settings, const UWorld* World)
+static float GetGizmoViewScale3D(const FVector& Pivot, const FBezierTransformGizmoSettings& Settings, const UWorld* World)
 {
 	if (!World || Settings.ViewScaleDistance <= 0.0f)
 	{
@@ -66,7 +66,7 @@ static float GetGizmoViewScale(const FVector& Pivot, const FBezierTransformGizmo
 	return FMath::Clamp(RawScale, Settings.MinViewScale, Settings.MaxViewScale);
 }
 
-static bool ClosestPointRayLine(const FVector& RayOrigin, const FVector& RayDir, const FVector& LineOrigin, const FVector& LineDir, float& OutRayT, float& OutLineT)
+static bool ClosestPointRayLine3D(const FVector& RayOrigin, const FVector& RayDir, const FVector& LineOrigin, const FVector& LineDir, float& OutRayT, float& OutLineT)
 {
 	const float A = FVector::DotProduct(RayDir, RayDir);
 	const float B = FVector::DotProduct(RayDir, LineDir);
@@ -84,7 +84,7 @@ static bool ClosestPointRayLine(const FVector& RayOrigin, const FVector& RayDir,
 	return true;
 }
 
-static bool RayPlaneIntersection(const FVector& RayOrigin, const FVector& RayDir, const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutPoint)
+static bool RayPlaneIntersection3D(const FVector& RayOrigin, const FVector& RayDir, const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutPoint)
 {
 	const float Denom = FVector::DotProduct(RayDir, PlaneNormal);
 	if (FMath::IsNearlyZero(Denom))
@@ -111,7 +111,7 @@ static void DrawTransformGizmo3D(
 {
 	if (!World) return;
 
-	const float ViewScale = GetGizmoViewScale(Pivot, Settings, World);
+	const float ViewScale = GetGizmoViewScale3D(Pivot, Settings, World);
 	const float AxisLength = Settings.AxisLength * ViewScale;
 	const float AxisThickness = Settings.AxisThickness * ViewScale;
 	const float ArrowSize = Settings.ArrowSize * ViewScale;
@@ -132,33 +132,33 @@ static void DrawTransformGizmo3D(
 	if (Mode == EBezierTransformGizmoMode::Translate || Mode == EBezierTransformGizmoMode::Pivot)
 	{
 		DrawDebugDirectionalArrow(World, Pivot, Pivot + XAxis * AxisLength, ArrowSize,
-			PivotHandleColor(EBezierTransformHandle::TranslateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, AxisThickness);
+			PivotHandleColor3D(EBezierTransformHandle::TranslateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, AxisThickness);
 		DrawDebugDirectionalArrow(World, Pivot, Pivot + YAxis * AxisLength, ArrowSize,
-			PivotHandleColor(EBezierTransformHandle::TranslateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, AxisThickness);
+			PivotHandleColor3D(EBezierTransformHandle::TranslateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, AxisThickness);
 		DrawDebugDirectionalArrow(World, Pivot, Pivot + ZAxis * AxisLength, ArrowSize,
-			PivotHandleColor(EBezierTransformHandle::TranslateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, AxisThickness);
+			PivotHandleColor3D(EBezierTransformHandle::TranslateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, AxisThickness);
 
 		const FVector PlaneXY = Pivot + (XAxis + YAxis) * PlaneOffset;
 		const FVector PlaneXZ = Pivot + (XAxis + ZAxis) * PlaneOffset;
 		const FVector PlaneYZ = Pivot + (YAxis + ZAxis) * PlaneOffset;
 		const FVector PlaneExtent(PlaneHandleSize * 0.5f);
 		DrawDebugSolidBox(World, PlaneXY, PlaneExtent, FRotationMatrix::MakeFromXY(XAxis, YAxis).ToQuat(),
-			PivotHandleColor(EBezierTransformHandle::TranslateXY, HoveredHandle, ActiveHandle, FColor::Yellow), false, 0.0f, DepthPriority);
+			PivotHandleColor3D(EBezierTransformHandle::TranslateXY, HoveredHandle, ActiveHandle, FColor::Yellow), false, 0.0f, DepthPriority);
 		DrawDebugSolidBox(World, PlaneXZ, PlaneExtent, FRotationMatrix::MakeFromXZ(XAxis, ZAxis).ToQuat(),
-			PivotHandleColor(EBezierTransformHandle::TranslateXZ, HoveredHandle, ActiveHandle, FColor::Magenta), false, 0.0f, DepthPriority);
+			PivotHandleColor3D(EBezierTransformHandle::TranslateXZ, HoveredHandle, ActiveHandle, FColor::Magenta), false, 0.0f, DepthPriority);
 		DrawDebugSolidBox(World, PlaneYZ, PlaneExtent, FRotationMatrix::MakeFromYZ(YAxis, ZAxis).ToQuat(),
-			PivotHandleColor(EBezierTransformHandle::TranslateYZ, HoveredHandle, ActiveHandle, FColor::Cyan), false, 0.0f, DepthPriority);
+			PivotHandleColor3D(EBezierTransformHandle::TranslateYZ, HoveredHandle, ActiveHandle, FColor::Cyan), false, 0.0f, DepthPriority);
 	}
 
 	if (Mode == EBezierTransformGizmoMode::Rotate)
 	{
 		const int32 RingSegments = 48;
 		DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-			PivotHandleColor(EBezierTransformHandle::RotateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, RingThickness, YAxis, ZAxis, false);
+			PivotHandleColor3D(EBezierTransformHandle::RotateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, RingThickness, YAxis, ZAxis, false);
 		DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-			PivotHandleColor(EBezierTransformHandle::RotateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, RingThickness, XAxis, ZAxis, false);
+			PivotHandleColor3D(EBezierTransformHandle::RotateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, RingThickness, XAxis, ZAxis, false);
 		DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-			PivotHandleColor(EBezierTransformHandle::RotateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, RingThickness, XAxis, YAxis, false);
+			PivotHandleColor3D(EBezierTransformHandle::RotateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, RingThickness, XAxis, YAxis, false);
 	}
 
 	if (Mode == EBezierTransformGizmoMode::Scale)
@@ -169,14 +169,14 @@ static void DrawTransformGizmo3D(
 
 		const FVector ScaleExtent(ScaleHandleSize * 0.5f);
 		DrawDebugBox(World, Pivot + XAxis * (AxisLength + ScaleHandleOffset), ScaleExtent, FRotationMatrix::MakeFromX(XAxis).ToQuat(),
-			PivotHandleColor(EBezierTransformHandle::ScaleX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority);
+			PivotHandleColor3D(EBezierTransformHandle::ScaleX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority);
 		DrawDebugBox(World, Pivot + YAxis * (AxisLength + ScaleHandleOffset), ScaleExtent, FRotationMatrix::MakeFromY(YAxis).ToQuat(),
-			PivotHandleColor(EBezierTransformHandle::ScaleY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority);
+			PivotHandleColor3D(EBezierTransformHandle::ScaleY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority);
 		DrawDebugBox(World, Pivot + ZAxis * (AxisLength + ScaleHandleOffset), ScaleExtent, FRotationMatrix::MakeFromZ(ZAxis).ToQuat(),
-			PivotHandleColor(EBezierTransformHandle::ScaleZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority);
+			PivotHandleColor3D(EBezierTransformHandle::ScaleZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority);
 
 		DrawDebugSphere(World, Pivot, UniformScaleRadius, 12,
-			PivotHandleColor(EBezierTransformHandle::ScaleUniform, HoveredHandle, ActiveHandle, FColor::White), false, 0.0f, DepthPriority, AxisThickness);
+			PivotHandleColor3D(EBezierTransformHandle::ScaleUniform, HoveredHandle, ActiveHandle, FColor::White), false, 0.0f, DepthPriority, AxisThickness);
 	}
 
 	if (Mode == EBezierTransformGizmoMode::Pivot)
@@ -1628,7 +1628,7 @@ bool ABezierCurve3DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 	{
 		float RayT = 0.0f;
 		float LineT = 0.0f;
-		if (!ClosestPointRayLine(RayOrigin, RayDirection, Pivot, AxisDir, RayT, LineT))
+		if (!ClosestPointRayLine3D(RayOrigin, RayDirection, Pivot, AxisDir, RayT, LineT))
 		{
 			return;
 		}
@@ -1651,7 +1651,7 @@ bool ABezierCurve3DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 	auto ConsiderRing = [&](const FVector& AxisDir, EBezierTransformHandle Handle)
 	{
 		FVector PlanePoint;
-		if (!RayPlaneIntersection(RayOrigin, RayDirection, Pivot, AxisDir, PlanePoint))
+		if (!RayPlaneIntersection3D(RayOrigin, RayDirection, Pivot, AxisDir, PlanePoint))
 		{
 			return;
 		}
@@ -1675,7 +1675,7 @@ bool ABezierCurve3DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 		auto ConsiderPlane = [&](const FVector& AxisA, const FVector& AxisB, const FVector& PlaneNormal, EBezierTransformHandle Handle)
 		{
 			FVector PlanePoint;
-			if (!RayPlaneIntersection(RayOrigin, RayDirection, Pivot, PlaneNormal, PlanePoint))
+			if (!RayPlaneIntersection3D(RayOrigin, RayDirection, Pivot, PlaneNormal, PlanePoint))
 			{
 				return;
 			}
