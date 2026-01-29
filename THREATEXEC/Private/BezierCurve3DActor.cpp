@@ -273,12 +273,12 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 			GetWorld(),
 			Pivot,
 			Xf,
-			PivotAxisLength,
-			PivotAxisThickness,
-			PivotAxisArrowSize,
-			PivotAxisRotateRadius,
-			PivotAxisRotateThickness,
-			PivotAxisCenterRadius,
+			PivotGizmo.AxisLength,
+			PivotGizmo.AxisThickness,
+			PivotGizmo.ArrowSize,
+			PivotGizmo.RotateRadius,
+			PivotGizmo.RotateThickness,
+			PivotGizmo.CenterRadius,
 			HoveredPivotHandle
 		);
 	}
@@ -1518,8 +1518,8 @@ bool ABezierCurve3DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 	const FVector YAxis = Xf.GetUnitAxis(EAxis::Y);
 	const FVector ZAxis = Xf.GetUnitAxis(EAxis::Z);
 
-	const float AxisHitRadius = FMath::Max(6.0f, PivotAxisThickness * 6.0f);
-	const float RingHitTolerance = FMath::Max(6.0f, PivotAxisRotateThickness * 6.0f);
+	const float AxisHitRadius = FMath::Max(6.0f, PivotGizmo.AxisThickness * 6.0f);
+	const float RingHitTolerance = FMath::Max(6.0f, PivotGizmo.RotateThickness * 6.0f);
 
 	struct FHandleCandidate
 	{
@@ -1538,7 +1538,7 @@ bool ABezierCurve3DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 			return;
 		}
 
-		if (LineT < 0.0f || LineT > PivotAxisLength)
+		if (LineT < 0.0f || LineT > PivotGizmo.AxisLength)
 		{
 			return;
 		}
@@ -1562,7 +1562,7 @@ bool ABezierCurve3DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 		}
 
 		const float Radius = FVector::Distance(PlanePoint, Pivot);
-		const float Dist = FMath::Abs(Radius - PivotAxisRotateRadius);
+		const float Dist = FMath::Abs(Radius - PivotGizmo.RotateRadius);
 		if (Dist <= RingHitTolerance && Dist < Best.Distance)
 		{
 			Best.Handle = Handle;

@@ -203,34 +203,7 @@ public:
 	bool bShowPivotAxes = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "1.0"))
-	float PivotAxisLength = 40.0f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
-	float PivotAxisThickness = 1.25f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
-	float PivotAxisArrowSize = 8.0f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "1.0"))
-	float PivotAxisRotateRadius = 28.0f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
-	float PivotAxisRotateThickness = 1.25f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
-	float PivotAxisCenterRadius = 4.0f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
-	float PivotAxisArrowSize = 12.0f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "1.0"))
-	float PivotAxisRotateRadius = 45.0f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
-	float PivotAxisRotateThickness = 1.5f;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
-	float PivotAxisCenterRadius = 6.0f;
+	FBezierPivotGizmoSettings PivotGizmo;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
 	bool bPulseDebugLines = true;

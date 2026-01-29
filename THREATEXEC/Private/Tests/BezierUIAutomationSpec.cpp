@@ -332,7 +332,7 @@ bool FBezier_UI_PivotGizmo3D::RunTest(const FString&)
 	FVector Pivot = FVector::ZeroVector;
 	TestTrue(TEXT("Pivot world available"), A->UI_GetPivotWorld(Pivot));
 
-	const FVector RayOriginAxis = Pivot + FVector(A->PivotAxisLength * 0.5f, 2.0f, 0.0f);
+	const FVector RayOriginAxis = Pivot + FVector(A->PivotGizmo.AxisLength * 0.5f, 2.0f, 0.0f);
 	const FVector RayDirAxis = FVector(0.0f, -1.0f, 0.0f);
 	EBezierPivotHandle Handle = EBezierPivotHandle::None;
 	TestTrue(TEXT("Find translate X handle"), A->UI_FindPivotHandleFromRay(RayOriginAxis, RayDirAxis, Handle));
@@ -353,7 +353,7 @@ bool FBezier_UI_PivotGizmo3D::RunTest(const FString&)
 	A->SelectedControlPointIndex = -1;
 	TestTrue(TEXT("Pivot world for all selected"), A->UI_GetPivotWorld(Pivot));
 
-	const FVector RayOriginRing = Pivot + FVector(A->PivotAxisRotateRadius, 0.0f, 50.0f);
+	const FVector RayOriginRing = Pivot + FVector(A->PivotGizmo.RotateRadius, 0.0f, 50.0f);
 	const FVector RayDirRing = FVector(0.0f, 0.0f, -1.0f);
 	Handle = EBezierPivotHandle::None;
 	TestTrue(TEXT("Find rotate Z handle"), A->UI_FindPivotHandleFromRay(RayOriginRing, RayDirRing, Handle));
@@ -399,7 +399,7 @@ bool FBezier_UI_PivotGizmo2D::RunTest(const FString&)
 	FVector Pivot = FVector::ZeroVector;
 	TestTrue(TEXT("Pivot world available 2D"), A->UI_GetPivotWorld(Pivot));
 
-	const FVector RayOriginAxis = Pivot + FVector(A->PivotAxisLength * 0.5f, 2.0f, 0.0f);
+	const FVector RayOriginAxis = Pivot + FVector(A->PivotGizmo.AxisLength * 0.5f, 2.0f, 0.0f);
 	const FVector RayDirAxis = FVector(0.0f, -1.0f, 0.0f);
 	EBezierPivotHandle Handle = EBezierPivotHandle::None;
 	TestTrue(TEXT("Find translate X handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginAxis, RayDirAxis, Handle));
@@ -417,7 +417,7 @@ bool FBezier_UI_PivotGizmo2D::RunTest(const FString&)
 	A->SelectedControlPointIndex = -1;
 	TestTrue(TEXT("Pivot world for all selected 2D"), A->UI_GetPivotWorld(Pivot));
 
-	const FVector RayOriginRing = Pivot + FVector(A->PivotAxisRotateRadius, 0.0f, 50.0f);
+	const FVector RayOriginRing = Pivot + FVector(A->PivotGizmo.RotateRadius, 0.0f, 50.0f);
 	const FVector RayDirRing = FVector(0.0f, 0.0f, -1.0f);
 	Handle = EBezierPivotHandle::None;
 	TestTrue(TEXT("Find rotate Z handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginRing, RayDirRing, Handle));

@@ -19,6 +19,30 @@ enum class EBezierPlanarAxis : uint8
 	YZ   UMETA(DisplayName = "YZ (X = 0)")
 };
 
+USTRUCT(BlueprintType)
+struct FBezierPivotGizmoSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Pivot", meta = (ClampMin = "1.0"))
+	float AxisLength = 40.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Pivot", meta = (ClampMin = "0.1"))
+	float AxisThickness = 1.25f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Pivot", meta = (ClampMin = "0.1"))
+	float ArrowSize = 8.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Pivot", meta = (ClampMin = "1.0"))
+	float RotateRadius = 28.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Pivot", meta = (ClampMin = "0.1"))
+	float RotateThickness = 1.25f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Pivot", meta = (ClampMin = "0.1"))
+	float CenterRadius = 4.0f;
+};
+
 UENUM(BlueprintType)
 enum class EBezierPivotHandle : uint8
 {

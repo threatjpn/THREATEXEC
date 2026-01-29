@@ -125,8 +125,8 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		}
 		It->bShowControlPolygon = bShowControlPolygon;
 		It->bShowPivotAxes = bShowPivotAxes;
-		It->PivotAxisLength = PivotAxisLength;
-		It->PivotAxisThickness = PivotAxisThickness;
+		It->PivotGizmo.AxisLength = PivotAxisLength;
+		It->PivotGizmo.AxisThickness = PivotAxisThickness;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
@@ -181,8 +181,8 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->UI_SetForcePlanar(bForcePlanar);
 		It->bShowControlPolygon = bShowControlPolygon;
 		It->bShowPivotAxes = bShowPivotAxes;
-		It->PivotAxisLength = PivotAxisLength;
-		It->PivotAxisThickness = PivotAxisThickness;
+		It->PivotGizmo.AxisLength = PivotAxisLength;
+		It->PivotGizmo.AxisThickness = PivotAxisThickness;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
