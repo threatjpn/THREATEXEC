@@ -379,6 +379,12 @@ public:
 	EBezierPivotHandle UI_GetHoveredPivotHandle() const { return HoveredPivotHandle; }
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	void UI_SetActivePivotHandle(EBezierPivotHandle InHandle);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
+	EBezierPivotHandle UI_GetActivePivotHandle() const { return ActivePivotHandle; }
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	bool UI_ApplyPivotTranslation(const FVector& DeltaWorld);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
@@ -465,6 +471,9 @@ public:
 
 	UPROPERTY(Transient)
 	EBezierPivotHandle HoveredPivotHandle = EBezierPivotHandle::None;
+
+	UPROPERTY(Transient)
+	EBezierPivotHandle ActivePivotHandle = EBezierPivotHandle::None;
 
 	// Debug
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")

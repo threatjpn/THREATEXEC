@@ -338,8 +338,20 @@ bool FBezier_UI_PivotGizmo3D::RunTest(const FString&)
 	TestTrue(TEXT("Find translate X handle"), A->UI_FindPivotHandleFromRay(RayOriginAxis, RayDirAxis, Handle));
 	TestEqual(TEXT("Translate X handle"), Handle, EBezierPivotHandle::TranslateX);
 
-	A->UI_SetHoveredPivotHandle(Handle);
+	A->UI_SetHoveredPivotHandle(EBezierPivotHandle::TranslateX);
 	TestEqual(TEXT("Hovered handle stored"), A->UI_GetHoveredPivotHandle(), EBezierPivotHandle::TranslateX);
+
+	const FVector RayOriginAxisY = Pivot + FVector(2.0f, A->PivotGizmo.AxisLength + A->PivotGizmo.ArrowSize * 0.5f, 0.0f);
+	const FVector RayDirAxisY = FVector(-1.0f, 0.0f, 0.0f);
+	Handle = EBezierPivotHandle::None;
+	TestTrue(TEXT("Find translate Y handle"), A->UI_FindPivotHandleFromRay(RayOriginAxisY, RayDirAxisY, Handle));
+	TestEqual(TEXT("Translate Y handle"), Handle, EBezierPivotHandle::TranslateY);
+
+	const FVector RayOriginAxisZ = Pivot + FVector(2.0f, 0.0f, A->PivotGizmo.AxisLength + A->PivotGizmo.ArrowSize * 0.5f);
+	const FVector RayDirAxisZ = FVector(-1.0f, 0.0f, 0.0f);
+	Handle = EBezierPivotHandle::None;
+	TestTrue(TEXT("Find translate Z handle"), A->UI_FindPivotHandleFromRay(RayOriginAxisZ, RayDirAxisZ, Handle));
+	TestEqual(TEXT("Translate Z handle"), Handle, EBezierPivotHandle::TranslateZ);
 
 	FVector WorldPoint = FVector::ZeroVector;
 	TestTrue(TEXT("Get control point world"), A->UI_GetControlPointWorld(0, WorldPoint));
@@ -404,6 +416,12 @@ bool FBezier_UI_PivotGizmo2D::RunTest(const FString&)
 	EBezierPivotHandle Handle = EBezierPivotHandle::None;
 	TestTrue(TEXT("Find translate X handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginAxis, RayDirAxis, Handle));
 	TestEqual(TEXT("Translate X handle 2D"), Handle, EBezierPivotHandle::TranslateX);
+
+	const FVector RayOriginAxisY = Pivot + FVector(2.0f, A->PivotGizmo.AxisLength + A->PivotGizmo.ArrowSize * 0.5f, 0.0f);
+	const FVector RayDirAxisY = FVector(-1.0f, 0.0f, 0.0f);
+	Handle = EBezierPivotHandle::None;
+	TestTrue(TEXT("Find translate Y handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginAxisY, RayDirAxisY, Handle));
+	TestEqual(TEXT("Translate Y handle 2D"), Handle, EBezierPivotHandle::TranslateY);
 
 	FVector WorldPoint = FVector::ZeroVector;
 	TestTrue(TEXT("Get control point world 2D"), A->UI_GetControlPointWorld(0, WorldPoint));

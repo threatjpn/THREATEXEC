@@ -45,7 +45,7 @@ protected:
 	void UpdateHover();
 	bool TraceUnderCursor(FHitResult& OutHit) const;
 	bool GetMouseRay(FVector& OutOrigin, FVector& OutDirection) const;
-	void UpdatePivotHover();
+	bool UpdatePivotHover();
 	void ClearPivotHover();
 
 	// Drag
