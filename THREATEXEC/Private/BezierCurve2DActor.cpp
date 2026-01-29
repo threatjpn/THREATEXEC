@@ -29,8 +29,13 @@ static void SetInstanceColorRGB2D(UInstancedStaticMeshComponent* ISM, int32 Inst
 	ISM->SetCustomDataValue(InstanceIndex, 3, Alpha, true);
 }
 
-static FColor PivotHandleColor(EBezierPivotHandle Handle, EBezierPivotHandle Hovered, const FColor& Base)
+static FColor PivotHandleColor(EBezierPivotHandle Handle, EBezierPivotHandle Hovered, EBezierPivotHandle Active, const FColor& Base)
 {
+	if (Handle == Active)
+	{
+		const FLinearColor ActiveColor = FLinearColor(Base) * 1.8f;
+		return ActiveColor.ToFColor(true);
+	}
 	if (Handle != Hovered)
 	{
 		return Base;
@@ -83,7 +88,8 @@ static void DrawPivotGizmo2D(
 	float RingRadius,
 	float RingThickness,
 	float CenterRadius,
-	EBezierPivotHandle HoveredHandle)
+	EBezierPivotHandle HoveredHandle,
+	EBezierPivotHandle ActiveHandle)
 {
 	if (!World) return;
 
@@ -93,19 +99,19 @@ static void DrawPivotGizmo2D(
 	const uint8 DepthPriority = SDPG_Foreground;
 
 	DrawDebugDirectionalArrow(World, Pivot, Pivot + XAxis * AxisLength, ArrowSize,
-		PivotHandleColor(EBezierPivotHandle::TranslateX, HoveredHandle, FColor::Red), false, 0.0f, DepthPriority, AxisThickness);
+		PivotHandleColor(EBezierPivotHandle::TranslateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, AxisThickness);
 	DrawDebugDirectionalArrow(World, Pivot, Pivot + YAxis * AxisLength, ArrowSize,
-		PivotHandleColor(EBezierPivotHandle::TranslateY, HoveredHandle, FColor::Green), false, 0.0f, DepthPriority, AxisThickness);
+		PivotHandleColor(EBezierPivotHandle::TranslateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, AxisThickness);
 	DrawDebugDirectionalArrow(World, Pivot, Pivot + ZAxis * AxisLength, ArrowSize,
-		PivotHandleColor(EBezierPivotHandle::TranslateZ, HoveredHandle, FColor::Blue), false, 0.0f, DepthPriority, AxisThickness);
+		PivotHandleColor(EBezierPivotHandle::TranslateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, AxisThickness);
 
 	const int32 RingSegments = 48;
 	DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-		PivotHandleColor(EBezierPivotHandle::RotateX, HoveredHandle, FColor::Red), false, 0.0f, DepthPriority, RingThickness, YAxis, ZAxis, false);
+		PivotHandleColor(EBezierPivotHandle::RotateX, HoveredHandle, ActiveHandle, FColor::Red), false, 0.0f, DepthPriority, RingThickness, YAxis, ZAxis, false);
 	DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-		PivotHandleColor(EBezierPivotHandle::RotateY, HoveredHandle, FColor::Green), false, 0.0f, DepthPriority, RingThickness, XAxis, ZAxis, false);
+		PivotHandleColor(EBezierPivotHandle::RotateY, HoveredHandle, ActiveHandle, FColor::Green), false, 0.0f, DepthPriority, RingThickness, XAxis, ZAxis, false);
 	DrawDebugCircle(World, Pivot, RingRadius, RingSegments,
-		PivotHandleColor(EBezierPivotHandle::RotateZ, HoveredHandle, FColor::Blue), false, 0.0f, DepthPriority, RingThickness, XAxis, YAxis, false);
+		PivotHandleColor(EBezierPivotHandle::RotateZ, HoveredHandle, ActiveHandle, FColor::Blue), false, 0.0f, DepthPriority, RingThickness, XAxis, YAxis, false);
 
 	DrawDebugSphere(World, Pivot, CenterRadius, 16, FColor::Yellow, false, 0.0f, DepthPriority, AxisThickness);
 }
@@ -265,7 +271,8 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			PivotGizmo.RotateRadius,
 			PivotGizmo.RotateThickness,
 			PivotGizmo.CenterRadius,
-			HoveredPivotHandle
+			HoveredPivotHandle,
+			ActivePivotHandle
 		);
 	}
 
@@ -1252,8 +1259,8 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 	const FVector YAxis = Xf.GetUnitAxis(EAxis::Y);
 	const FVector ZAxis = Xf.GetUnitAxis(EAxis::Z);
 
-	const float AxisHitRadius = FMath::Max(6.0f, PivotGizmo.AxisThickness * 6.0f);
-	const float RingHitTolerance = FMath::Max(6.0f, PivotGizmo.RotateThickness * 6.0f);
+	const float AxisHitRadius = FMath::Max(6.0f, FMath::Max(PivotGizmo.AxisThickness * 6.0f, PivotGizmo.ArrowSize * 0.6f));
+	const float RingHitTolerance = FMath::Max(6.0f, PivotGizmo.RotateThickness * 8.0f);
 
 	struct FHandleCandidate
 	{
@@ -1272,7 +1279,7 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 			return;
 		}
 
-		if (LineT < 0.0f || LineT > PivotGizmo.AxisLength)
+		if (LineT < 0.0f || LineT > (PivotGizmo.AxisLength + PivotGizmo.ArrowSize))
 		{
 			return;
 		}
@@ -1324,6 +1331,11 @@ bool ABezierCurve2DActor::UI_FindPivotHandleFromRay(const FVector& RayOrigin, co
 void ABezierCurve2DActor::UI_SetHoveredPivotHandle(EBezierPivotHandle InHandle)
 {
 	HoveredPivotHandle = InHandle;
+}
+
+void ABezierCurve2DActor::UI_SetActivePivotHandle(EBezierPivotHandle InHandle)
+{
+	ActivePivotHandle = InHandle;
 }
 
 bool ABezierCurve2DActor::UI_ApplyPivotTranslation(const FVector& DeltaWorld)

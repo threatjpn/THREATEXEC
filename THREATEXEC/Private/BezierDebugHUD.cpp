@@ -46,7 +46,14 @@ void ABezierDebugHUD::DrawHUD()
 	DrawLineText(Y, FString::Printf(TEXT("H: Cycle Grid Size (Current %.1f)"), Debug->GridSizeCm));
 	DrawLineText(Y, FString::Printf(TEXT("L: Lock To XY [%s]"), Debug->bLockToLocalXY ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("P: Force Planar [%s]"), Debug->bForcePlanar ? TEXT("ON") : TEXT("OFF")));
-	DrawLineText(Y, FString::Printf(TEXT("V: Pivot Axes [%s]"), Debug->bShowPivotAxes ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("V: Pivot Axes [%s] (Len %.1f Thick %.2f Arrow %.1f RotR %.1f RotT %.2f Center %.1f)"),
+		Debug->bShowPivotAxes ? TEXT("ON") : TEXT("OFF"),
+		Debug->PivotAxisLength,
+		Debug->PivotAxisThickness,
+		Debug->PivotArrowSizeDebug,
+		Debug->PivotRotateRadiusDebug,
+		Debug->PivotRotateThicknessDebug,
+		Debug->PivotCenterRadiusDebug));
 	DrawLineText(Y, FString::Printf(TEXT("D: Pulse Debug Lines [%s]"), Debug->bPulseDebugLines ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("U: Pulse Control Points [%s]"), Debug->bPulseControlPoints ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("I: Pulse Strip [%s]"), Debug->bPulseStrip ? TEXT("ON") : TEXT("OFF")));

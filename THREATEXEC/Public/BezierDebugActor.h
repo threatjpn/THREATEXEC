@@ -101,10 +101,22 @@ public:
 	bool bShowPivotAxes = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="1.0"))
-	float PivotAxisLength = 60.0f;
+	float PivotAxisLength = 40.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
-	float PivotAxisThickness = 1.5f;
+	float PivotAxisThickness = 1.25f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
+	float PivotArrowSizeDebug = 8.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="1.0"))
+	float PivotRotateRadiusDebug = 28.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
+	float PivotRotateThicknessDebug = 1.25f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.1"))
+	float PivotCenterRadiusDebug = 4.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	bool bPulseDebugLines = true;

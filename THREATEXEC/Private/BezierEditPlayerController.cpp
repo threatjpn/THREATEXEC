@@ -10,8 +10,29 @@
 #include "Engine/Engine.h"
 #include "Camera/PlayerCameraManager.h"
 
-namespace
+namespace BezierEditPlayerControllerHelpers
 {
+	const TCHAR* PivotHandleLabel(EBezierPivotHandle Handle)
+	{
+		switch (Handle)
+		{
+		case EBezierPivotHandle::TranslateX:
+			return TEXT("Translate X");
+		case EBezierPivotHandle::TranslateY:
+			return TEXT("Translate Y");
+		case EBezierPivotHandle::TranslateZ:
+			return TEXT("Translate Z");
+		case EBezierPivotHandle::RotateX:
+			return TEXT("Rotate X");
+		case EBezierPivotHandle::RotateY:
+			return TEXT("Rotate Y");
+		case EBezierPivotHandle::RotateZ:
+			return TEXT("Rotate Z");
+		default:
+			return TEXT("None");
+		}
+	}
+
 	bool ClosestPointRayLine(const FVector& RayOrigin, const FVector& RayDir, const FVector& LineOrigin, const FVector& LineDir, float& OutRayT, float& OutLineT)
 	{
 		const float A = FVector::DotProduct(RayDir, RayDir);
@@ -164,7 +185,7 @@ bool ABezierEditPlayerController::UpdatePivotHover()
 	HoveredPivotActor = Focused;
 	HoveredPivotHandle = Handle;
 	ClearHovered();
-	ReportDebugMessage(TEXT("Hover: pivot handle"));
+	ReportDebugMessage(FString::Printf(TEXT("Hover: pivot handle %s"), BezierEditPlayerControllerHelpers::PivotHandleLabel(Handle)));
 	return true;
 }
 
@@ -504,13 +525,22 @@ void ABezierEditPlayerController::StartPivotDrag(AActor* TargetActor, EBezierPiv
 	DraggedActor = TargetActor;
 	bLastPressWasDoubleClick = false;
 
+	if (A3)
+	{
+		A3->UI_SetActivePivotHandle(Handle);
+	}
+	else if (A2)
+	{
+		A2->UI_SetActivePivotHandle(Handle);
+	}
+
 	if (Handle == EBezierPivotHandle::TranslateX
 		|| Handle == EBezierPivotHandle::TranslateY
 		|| Handle == EBezierPivotHandle::TranslateZ)
 	{
 		float RayT = 0.0f;
 		float LineT = 0.0f;
-		if (!ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
+		if (!BezierEditPlayerControllerHelpers::ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
 		{
 			StopDrag();
 			return;
@@ -542,6 +572,7 @@ void ABezierEditPlayerController::StartPivotDrag(AActor* TargetActor, EBezierPiv
 	}
 
 	ClearHovered();
+	ReportDebugMessage(FString::Printf(TEXT("Pivot drag start: %s"), BezierEditPlayerControllerHelpers::PivotHandleLabel(Handle)));
 }
 
 void ABezierEditPlayerController::UpdateDrag()
@@ -627,7 +658,7 @@ void ABezierEditPlayerController::UpdatePivotDrag(const FVector& RayOrigin, cons
 	{
 		float RayT = 0.0f;
 		float LineT = 0.0f;
-		if (!ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
+		if (!BezierEditPlayerControllerHelpers::ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
 		{
 			return;
 		}
@@ -692,6 +723,19 @@ void ABezierEditPlayerController::UpdatePivotDrag(const FVector& RayOrigin, cons
 
 void ABezierEditPlayerController::StopDrag()
 {
+	AActor* Dragged = DraggedActor.Get();
+	if (Dragged)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Dragged))
+		{
+			A3->UI_SetActivePivotHandle(EBezierPivotHandle::None);
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Dragged))
+		{
+			A2->UI_SetActivePivotHandle(EBezierPivotHandle::None);
+		}
+	}
+
 	bDragging = false;
 	bDraggingPivot = false;
 	DraggedActor = nullptr;
