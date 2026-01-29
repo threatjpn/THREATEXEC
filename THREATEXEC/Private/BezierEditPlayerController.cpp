@@ -525,6 +525,15 @@ void ABezierEditPlayerController::StartPivotDrag(AActor* TargetActor, EBezierPiv
 	DraggedActor = TargetActor;
 	bLastPressWasDoubleClick = false;
 
+	if (A3)
+	{
+		A3->UI_SetActivePivotHandle(Handle);
+	}
+	else if (A2)
+	{
+		A2->UI_SetActivePivotHandle(Handle);
+	}
+
 	if (Handle == EBezierPivotHandle::TranslateX
 		|| Handle == EBezierPivotHandle::TranslateY
 		|| Handle == EBezierPivotHandle::TranslateZ)
@@ -714,6 +723,19 @@ void ABezierEditPlayerController::UpdatePivotDrag(const FVector& RayOrigin, cons
 
 void ABezierEditPlayerController::StopDrag()
 {
+	AActor* Dragged = DraggedActor.Get();
+	if (Dragged)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Dragged))
+		{
+			A3->UI_SetActivePivotHandle(EBezierPivotHandle::None);
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Dragged))
+		{
+			A2->UI_SetActivePivotHandle(EBezierPivotHandle::None);
+		}
+	}
+
 	bDragging = false;
 	bDraggingPivot = false;
 	DraggedActor = nullptr;
