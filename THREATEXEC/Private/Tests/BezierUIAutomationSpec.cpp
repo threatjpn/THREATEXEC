@@ -304,6 +304,137 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_PivotGizmo3D,
+	"Bezier/UI/PivotGizmo3D",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+
+bool FBezier_UI_PivotGizmo3D::RunTest(const FString&)
+{
+	UWorld* World = GetEditorWorldChecked_UI();
+
+	FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	ABezierCurve3DActor* A = World->SpawnActor<ABezierCurve3DActor>(P);
+	if (!TestNotNull(TEXT("Spawn 3D"), A)) return false;
+
+	A->bEnableRuntimeEditing = true;
+	A->bEditMode = true;
+	A->bActorVisibleInGame = true;
+	A->bSnapToGrid = false;
+	A->bForcePlanar = false;
+	A->Scale = 1.0;
+
+	A->Control = { FVector(1, 0, 0), FVector(0, 1, 0) };
+	A->OverwriteSplineFromControl();
+
+	A->SelectedControlPointIndex = 0;
+	A->bSelectAllControlPoints = false;
+
+	FVector Pivot = FVector::ZeroVector;
+	TestTrue(TEXT("Pivot world available"), A->UI_GetPivotWorld(Pivot));
+
+	const FVector RayOriginAxis = Pivot + FVector(A->PivotAxisLength * 0.5f, 2.0f, 0.0f);
+	const FVector RayDirAxis = FVector(0.0f, -1.0f, 0.0f);
+	EBezierPivotHandle Handle = EBezierPivotHandle::None;
+	TestTrue(TEXT("Find translate X handle"), A->UI_FindPivotHandleFromRay(RayOriginAxis, RayDirAxis, Handle));
+	TestEqual(TEXT("Translate X handle"), Handle, EBezierPivotHandle::TranslateX);
+
+	A->UI_SetHoveredPivotHandle(Handle);
+	TestEqual(TEXT("Hovered handle stored"), A->UI_GetHoveredPivotHandle(), EBezierPivotHandle::TranslateX);
+
+	FVector WorldPoint = FVector::ZeroVector;
+	TestTrue(TEXT("Get control point world"), A->UI_GetControlPointWorld(0, WorldPoint));
+	TestTrue(TEXT("Apply pivot translation"), A->UI_ApplyPivotTranslation(FVector(10.0f, 0.0f, 0.0f)));
+
+	FVector WorldPointAfter = FVector::ZeroVector;
+	TestTrue(TEXT("Get control point world after"), A->UI_GetControlPointWorld(0, WorldPointAfter));
+	TestTrue(TEXT("Translation applied"), WorldPointAfter.Equals(WorldPoint + FVector(10.0f, 0.0f, 0.0f), 0.01f));
+
+	A->bSelectAllControlPoints = true;
+	A->SelectedControlPointIndex = -1;
+	TestTrue(TEXT("Pivot world for all selected"), A->UI_GetPivotWorld(Pivot));
+
+	const FVector RayOriginRing = Pivot + FVector(A->PivotAxisRotateRadius, 0.0f, 50.0f);
+	const FVector RayDirRing = FVector(0.0f, 0.0f, -1.0f);
+	Handle = EBezierPivotHandle::None;
+	TestTrue(TEXT("Find rotate Z handle"), A->UI_FindPivotHandleFromRay(RayOriginRing, RayDirRing, Handle));
+	TestEqual(TEXT("Rotate Z handle"), Handle, EBezierPivotHandle::RotateZ);
+
+	TestTrue(TEXT("Apply pivot rotation"), A->UI_ApplyPivotRotation(Pivot, FVector::UpVector, PI / 2.0f));
+
+	TArray<FVector> WorldPoints;
+	TestTrue(TEXT("Get all control points"), A->UI_GetAllControlPointsWorld(WorldPoints));
+	TestEqual(TEXT("Two control points after rotate"), WorldPoints.Num(), 2);
+	TestTrue(TEXT("Rotate point 0"), WorldPoints[0].Equals(FVector(1.0f, 1.0f, 0.0f), 0.05f));
+	TestTrue(TEXT("Rotate point 1"), WorldPoints[1].Equals(FVector(0.0f, 0.0f, 0.0f), 0.05f));
+
+	A->Destroy();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_PivotGizmo2D,
+	"Bezier/UI/PivotGizmo2D",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+
+bool FBezier_UI_PivotGizmo2D::RunTest(const FString&)
+{
+	UWorld* World = GetEditorWorldChecked_UI();
+
+	FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	ABezierCurve2DActor* A = World->SpawnActor<ABezierCurve2DActor>(P);
+	if (!TestNotNull(TEXT("Spawn 2D"), A)) return false;
+
+	A->bEnableRuntimeEditing = true;
+	A->bEditMode = true;
+	A->bActorVisibleInGame = true;
+	A->bSnapToGrid = false;
+	A->bForcePlanar = false;
+	A->Scale = 1.0;
+
+	A->Control = { FVector2D(1, 0), FVector2D(0, 1) };
+	A->OverwriteSplineFromControl();
+
+	A->SelectedControlPointIndex = 0;
+	A->bSelectAllControlPoints = false;
+
+	FVector Pivot = FVector::ZeroVector;
+	TestTrue(TEXT("Pivot world available 2D"), A->UI_GetPivotWorld(Pivot));
+
+	const FVector RayOriginAxis = Pivot + FVector(A->PivotAxisLength * 0.5f, 2.0f, 0.0f);
+	const FVector RayDirAxis = FVector(0.0f, -1.0f, 0.0f);
+	EBezierPivotHandle Handle = EBezierPivotHandle::None;
+	TestTrue(TEXT("Find translate X handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginAxis, RayDirAxis, Handle));
+	TestEqual(TEXT("Translate X handle 2D"), Handle, EBezierPivotHandle::TranslateX);
+
+	FVector WorldPoint = FVector::ZeroVector;
+	TestTrue(TEXT("Get control point world 2D"), A->UI_GetControlPointWorld(0, WorldPoint));
+	TestTrue(TEXT("Apply pivot translation 2D"), A->UI_ApplyPivotTranslation(FVector(10.0f, 0.0f, 0.0f)));
+
+	FVector WorldPointAfter = FVector::ZeroVector;
+	TestTrue(TEXT("Get control point world after 2D"), A->UI_GetControlPointWorld(0, WorldPointAfter));
+	TestTrue(TEXT("Translation applied 2D"), WorldPointAfter.Equals(WorldPoint + FVector(10.0f, 0.0f, 0.0f), 0.01f));
+
+	A->bSelectAllControlPoints = true;
+	A->SelectedControlPointIndex = -1;
+	TestTrue(TEXT("Pivot world for all selected 2D"), A->UI_GetPivotWorld(Pivot));
+
+	const FVector RayOriginRing = Pivot + FVector(A->PivotAxisRotateRadius, 0.0f, 50.0f);
+	const FVector RayDirRing = FVector(0.0f, 0.0f, -1.0f);
+	Handle = EBezierPivotHandle::None;
+	TestTrue(TEXT("Find rotate Z handle 2D"), A->UI_FindPivotHandleFromRay(RayOriginRing, RayDirRing, Handle));
+	TestEqual(TEXT("Rotate Z handle 2D"), Handle, EBezierPivotHandle::RotateZ);
+
+	TestTrue(TEXT("Apply pivot rotation 2D"), A->UI_ApplyPivotRotation(Pivot, FVector::UpVector, PI / 2.0f));
+
+	TArray<FVector> WorldPoints;
+	TestTrue(TEXT("Get all control points 2D"), A->UI_GetAllControlPointsWorld(WorldPoints));
+	TestEqual(TEXT("Two control points after rotate 2D"), WorldPoints.Num(), 2);
+	TestTrue(TEXT("Rotate point 0 2D"), WorldPoints[0].Equals(FVector(1.0f, 1.0f, 0.0f), 0.05f));
+	TestTrue(TEXT("Rotate point 1 2D"), WorldPoints[1].Equals(FVector(0.0f, 0.0f, 0.0f), 0.05f));
+
+	A->Destroy();
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_Focused_PointOps,
 	"Bezier/UI/Focused_PointOps",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
