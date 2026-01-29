@@ -220,6 +220,18 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
 	float PivotAxisCenterRadius = 4.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
+	float PivotAxisArrowSize = 12.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "1.0"))
+	float PivotAxisRotateRadius = 45.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
+	float PivotAxisRotateThickness = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.1"))
+	float PivotAxisCenterRadius = 6.0f;
+
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
 	bool bPulseDebugLines = true;
 
