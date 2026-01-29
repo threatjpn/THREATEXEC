@@ -10,7 +10,7 @@
 #include "Engine/Engine.h"
 #include "Camera/PlayerCameraManager.h"
 
-namespace
+namespace BezierEditPlayerControllerHelpers
 {
 	bool ClosestPointRayLine(const FVector& RayOrigin, const FVector& RayDir, const FVector& LineOrigin, const FVector& LineDir, float& OutRayT, float& OutLineT)
 	{
@@ -510,7 +510,7 @@ void ABezierEditPlayerController::StartPivotDrag(AActor* TargetActor, EBezierPiv
 	{
 		float RayT = 0.0f;
 		float LineT = 0.0f;
-		if (!ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
+		if (!BezierEditPlayerControllerHelpers::ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
 		{
 			StopDrag();
 			return;
@@ -627,7 +627,7 @@ void ABezierEditPlayerController::UpdatePivotDrag(const FVector& RayOrigin, cons
 	{
 		float RayT = 0.0f;
 		float LineT = 0.0f;
-		if (!ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
+		if (!BezierEditPlayerControllerHelpers::ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
 		{
 			return;
 		}
