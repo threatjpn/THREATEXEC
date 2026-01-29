@@ -10,6 +10,27 @@
 #include "Engine/Engine.h"
 #include "Camera/PlayerCameraManager.h"
 
+namespace
+{
+	bool ClosestPointRayLine(const FVector& RayOrigin, const FVector& RayDir, const FVector& LineOrigin, const FVector& LineDir, float& OutRayT, float& OutLineT)
+	{
+		const float A = FVector::DotProduct(RayDir, RayDir);
+		const float B = FVector::DotProduct(RayDir, LineDir);
+		const float C = FVector::DotProduct(LineDir, LineDir);
+		const FVector W0 = RayOrigin - LineOrigin;
+		const float D = FVector::DotProduct(RayDir, W0);
+		const float E = FVector::DotProduct(LineDir, W0);
+		const float Denom = A * C - B * B;
+		if (FMath::IsNearlyZero(Denom))
+		{
+			return false;
+		}
+		OutRayT = (B * E - C * D) / Denom;
+		OutLineT = (A * E - B * D) / Denom;
+		return true;
+	}
+}
+
 ABezierEditPlayerController::ABezierEditPlayerController()
 {
 	bShowMouseCursor = true;
@@ -79,8 +100,99 @@ bool ABezierEditPlayerController::TraceUnderCursor(FHitResult& OutHit) const
 	return GetHitResultUnderCursor(ECC_Visibility, true, OutHit);
 }
 
+bool ABezierEditPlayerController::GetMouseRay(FVector& OutOrigin, FVector& OutDirection) const
+{
+	float ScreenX = 0.0f;
+	float ScreenY = 0.0f;
+	if (!GetMousePosition(ScreenX, ScreenY))
+	{
+		return false;
+	}
+
+	return DeprojectScreenPositionToWorld(ScreenX, ScreenY, OutOrigin, OutDirection);
+}
+
+bool ABezierEditPlayerController::UpdatePivotHover()
+{
+	if (!GetWorld())
+	{
+		return false;
+	}
+
+	FVector RayOrigin;
+	FVector RayDirection;
+	if (!GetMouseRay(RayOrigin, RayDirection))
+	{
+		ClearPivotHover();
+		return false;
+	}
+
+	AActor* Focused = nullptr;
+	if (UBezierEditSubsystem* Sub = GetWorld()->GetSubsystem<UBezierEditSubsystem>())
+	{
+		Focused = Sub->GetFocused();
+	}
+
+	ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Focused);
+	ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Focused);
+	if (!A3 && !A2)
+	{
+		ClearPivotHover();
+		return false;
+	}
+
+	EBezierPivotHandle Handle = EBezierPivotHandle::None;
+	const bool bHasHandle = A3
+		? A3->UI_FindPivotHandleFromRay(RayOrigin, RayDirection, Handle)
+		: A2->UI_FindPivotHandleFromRay(RayOrigin, RayDirection, Handle);
+
+	if (!bHasHandle)
+	{
+		ClearPivotHover();
+		return false;
+	}
+
+	if (A3)
+	{
+		A3->UI_SetHoveredPivotHandle(Handle);
+	}
+	else if (A2)
+	{
+		A2->UI_SetHoveredPivotHandle(Handle);
+	}
+
+	HoveredPivotActor = Focused;
+	HoveredPivotHandle = Handle;
+	ClearHovered();
+	ReportDebugMessage(TEXT("Hover: pivot handle"));
+	return true;
+}
+
+void ABezierEditPlayerController::ClearPivotHover()
+{
+	if (AActor* A = HoveredPivotActor.Get())
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			A3->UI_SetHoveredPivotHandle(EBezierPivotHandle::None);
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			A2->UI_SetHoveredPivotHandle(EBezierPivotHandle::None);
+		}
+	}
+
+	HoveredPivotActor = nullptr;
+	HoveredPivotHandle = EBezierPivotHandle::None;
+}
+
 void ABezierEditPlayerController::UpdateHover()
 {
+	if (UpdatePivotHover())
+	{
+		return;
+	}
+
 	FHitResult Hit;
 	const bool bHit = TraceUnderCursor(Hit);
 
@@ -131,10 +243,12 @@ void ABezierEditPlayerController::ClearHovered()
 		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
 		{
 			A3->UI_ClearHoveredControlPoint();
+			A3->UI_SetHoveredPivotHandle(EBezierPivotHandle::None);
 		}
 		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
 		{
 			A2->UI_ClearHoveredControlPoint();
+			A2->UI_SetHoveredPivotHandle(EBezierPivotHandle::None);
 		}
 	}
 
@@ -161,6 +275,15 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 	FHitResult Hit;
 	if (!TraceUnderCursor(Hit))
 	{
+		FVector RayOrigin;
+		FVector RayDirection;
+		if (HoveredPivotHandle != EBezierPivotHandle::None && HoveredPivotActor.IsValid()
+			&& GetMouseRay(RayOrigin, RayDirection))
+		{
+			StartPivotDrag(HoveredPivotActor.Get(), HoveredPivotHandle, RayOrigin, RayDirection);
+			return;
+		}
+
 		if (UWorld* W = GetWorld())
 		{
 			if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
@@ -224,6 +347,7 @@ void ABezierEditPlayerController::Input_Cancel()
 {
 	StopDrag();
 	ClearHovered();
+	ClearPivotHover();
 
 	if (UWorld* W = GetWorld())
 	{
@@ -253,6 +377,17 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 {
 	AActor* HitActor = Hit.GetActor();
 	if (!HitActor) return;
+
+	if (HoveredPivotHandle != EBezierPivotHandle::None && HoveredPivotActor.Get() == HitActor)
+	{
+		FVector RayOrigin;
+		FVector RayDirection;
+		if (GetMouseRay(RayOrigin, RayDirection))
+		{
+			StartPivotDrag(HitActor, HoveredPivotHandle, RayOrigin, RayDirection);
+			return;
+		}
+	}
 
 	const int32 CPIndex = Hit.Item;
 	if (CPIndex == INDEX_NONE) return;
@@ -315,8 +450,113 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 	ClearHovered();
 }
 
+void ABezierEditPlayerController::StartPivotDrag(AActor* TargetActor, EBezierPivotHandle Handle, const FVector& RayOrigin, const FVector& RayDirection)
+{
+	if (!TargetActor || Handle == EBezierPivotHandle::None)
+	{
+		return;
+	}
+
+	ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(TargetActor);
+	ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(TargetActor);
+	if (!A3 && !A2)
+	{
+		return;
+	}
+
+	FVector Pivot;
+	const bool bHasPivot = A3 ? A3->UI_GetPivotWorld(Pivot) : A2->UI_GetPivotWorld(Pivot);
+	if (!bHasPivot)
+	{
+		return;
+	}
+
+	const FTransform Xf = TargetActor->GetActorTransform();
+	FVector AxisDir = FVector::ZeroVector;
+	switch (Handle)
+	{
+	case EBezierPivotHandle::TranslateX:
+	case EBezierPivotHandle::RotateX:
+		AxisDir = Xf.GetUnitAxis(EAxis::X);
+		break;
+	case EBezierPivotHandle::TranslateY:
+	case EBezierPivotHandle::RotateY:
+		AxisDir = Xf.GetUnitAxis(EAxis::Y);
+		break;
+	case EBezierPivotHandle::TranslateZ:
+	case EBezierPivotHandle::RotateZ:
+		AxisDir = Xf.GetUnitAxis(EAxis::Z);
+		break;
+	default:
+		break;
+	}
+
+	if (AxisDir.IsNearlyZero())
+	{
+		return;
+	}
+
+	PivotDragOrigin = Pivot;
+	PivotDragAxis = AxisDir.GetSafeNormal();
+	ActivePivotHandle = Handle;
+	bDraggingPivot = true;
+	bDragging = true;
+	DraggedActor = TargetActor;
+	bLastPressWasDoubleClick = false;
+
+	if (Handle == EBezierPivotHandle::TranslateX
+		|| Handle == EBezierPivotHandle::TranslateY
+		|| Handle == EBezierPivotHandle::TranslateZ)
+	{
+		float RayT = 0.0f;
+		float LineT = 0.0f;
+		if (!ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
+		{
+			StopDrag();
+			return;
+		}
+		PivotDragStartAxisParam = LineT;
+	}
+	else
+	{
+		const float Denom = FVector::DotProduct(RayDirection, PivotDragAxis);
+		if (FMath::IsNearlyZero(Denom))
+		{
+			StopDrag();
+			return;
+		}
+
+		const float T = FVector::DotProduct(PivotDragOrigin - RayOrigin, PivotDragAxis) / Denom;
+		if (T < 0.0f)
+		{
+			StopDrag();
+			return;
+		}
+
+		PivotDragStartVector = (RayOrigin + RayDirection * T) - PivotDragOrigin;
+		if (PivotDragStartVector.IsNearlyZero())
+		{
+			StopDrag();
+			return;
+		}
+	}
+
+	ClearHovered();
+}
+
 void ABezierEditPlayerController::UpdateDrag()
 {
+	if (bDraggingPivot)
+	{
+		FVector RayOrigin;
+		FVector RayDirection;
+		if (GetMouseRay(RayOrigin, RayDirection))
+		{
+			UpdatePivotDrag(RayOrigin, RayDirection);
+		}
+		return;
+	}
+
 	AActor* A = DraggedActor.Get();
 	if (!A || (!bDragAllControlPoints && DraggedIndex < 0))
 	{
@@ -364,13 +604,106 @@ void ABezierEditPlayerController::UpdateDrag()
 	}
 }
 
+void ABezierEditPlayerController::UpdatePivotDrag(const FVector& RayOrigin, const FVector& RayDirection)
+{
+	AActor* TargetActor = DraggedActor.Get();
+	if (!TargetActor)
+	{
+		StopDrag();
+		return;
+	}
+
+	ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(TargetActor);
+	ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(TargetActor);
+	if (!A3 && !A2)
+	{
+		StopDrag();
+		return;
+	}
+
+	if (ActivePivotHandle == EBezierPivotHandle::TranslateX
+		|| ActivePivotHandle == EBezierPivotHandle::TranslateY
+		|| ActivePivotHandle == EBezierPivotHandle::TranslateZ)
+	{
+		float RayT = 0.0f;
+		float LineT = 0.0f;
+		if (!ClosestPointRayLine(RayOrigin, RayDirection, PivotDragOrigin, PivotDragAxis, RayT, LineT))
+		{
+			return;
+		}
+
+		const float DeltaParam = LineT - PivotDragStartAxisParam;
+		if (FMath::IsNearlyZero(DeltaParam))
+		{
+			return;
+		}
+
+		const FVector Delta = PivotDragAxis * DeltaParam;
+		const bool bApplied = A3 ? A3->UI_ApplyPivotTranslation(Delta) : A2->UI_ApplyPivotTranslation(Delta);
+		if (!bApplied)
+		{
+			StopDrag();
+			return;
+		}
+
+		PivotDragStartAxisParam = LineT;
+		return;
+	}
+
+	const float Denom = FVector::DotProduct(RayDirection, PivotDragAxis);
+	if (FMath::IsNearlyZero(Denom))
+	{
+		return;
+	}
+
+	const float T = FVector::DotProduct(PivotDragOrigin - RayOrigin, PivotDragAxis) / Denom;
+	if (T < 0.0f)
+	{
+		return;
+	}
+
+	const FVector CurrentVector = (RayOrigin + RayDirection * T) - PivotDragOrigin;
+	if (CurrentVector.IsNearlyZero() || PivotDragStartVector.IsNearlyZero())
+	{
+		return;
+	}
+
+	const FVector Axis = PivotDragAxis.GetSafeNormal();
+	const FVector V0 = PivotDragStartVector.GetSafeNormal();
+	const FVector V1 = CurrentVector.GetSafeNormal();
+	const float Angle = FMath::Atan2(FVector::DotProduct(Axis, FVector::CrossProduct(V0, V1)), FVector::DotProduct(V0, V1));
+
+	if (FMath::IsNearlyZero(Angle))
+	{
+		return;
+	}
+
+	const bool bApplied = A3
+		? A3->UI_ApplyPivotRotation(PivotDragOrigin, Axis, Angle)
+		: A2->UI_ApplyPivotRotation(PivotDragOrigin, Axis, Angle);
+	if (!bApplied)
+	{
+		StopDrag();
+		return;
+	}
+
+	PivotDragStartVector = CurrentVector;
+}
+
 void ABezierEditPlayerController::StopDrag()
 {
 	bDragging = false;
+	bDraggingPivot = false;
 	DraggedActor = nullptr;
 	DraggedIndex = -1;
 	bDragAllControlPoints = false;
 	DragStartWorldPoints.Reset();
+	ActivePivotHandle = EBezierPivotHandle::None;
+	PivotDragAxis = FVector::ZeroVector;
+	PivotDragOrigin = FVector::ZeroVector;
+	PivotDragStartAxisParam = 0.0f;
+	PivotDragStartVector = FVector::ZeroVector;
+	ClearPivotHover();
 }
 
 bool ABezierEditPlayerController::DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const

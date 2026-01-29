@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "BezierRuntimeTypes.h"
 #include "BezierEditPlayerController.generated.h"
 
 UCLASS()
@@ -43,11 +44,16 @@ protected:
 	// Hover + trace
 	void UpdateHover();
 	bool TraceUnderCursor(FHitResult& OutHit) const;
+	bool GetMouseRay(FVector& OutOrigin, FVector& OutDirection) const;
+	void UpdatePivotHover();
+	void ClearPivotHover();
 
 	// Drag
 	void StartDrag(const FHitResult& Hit);
 	void UpdateDrag();
 	void StopDrag();
+	void StartPivotDrag(AActor* TargetActor, EBezierPivotHandle Handle, const FVector& RayOrigin, const FVector& RayDirection);
+	void UpdatePivotDrag(const FVector& RayOrigin, const FVector& RayDirection);
 
 	bool DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const;
 
@@ -83,6 +89,30 @@ private:
 
 	UPROPERTY(Transient)
 	bool bDragging = false;
+
+	UPROPERTY(Transient)
+	bool bDraggingPivot = false;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AActor> HoveredPivotActor;
+
+	UPROPERTY(Transient)
+	EBezierPivotHandle HoveredPivotHandle = EBezierPivotHandle::None;
+
+	UPROPERTY(Transient)
+	EBezierPivotHandle ActivePivotHandle = EBezierPivotHandle::None;
+
+	UPROPERTY(Transient)
+	FVector PivotDragOrigin = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	FVector PivotDragAxis = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	float PivotDragStartAxisParam = 0.0f;
+
+	UPROPERTY(Transient)
+	FVector PivotDragStartVector = FVector::ZeroVector;
 
 	UPROPERTY(Transient)
 	FVector DragPlanePoint = FVector::ZeroVector;
