@@ -14,6 +14,8 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Engine/EngineTypes.h"
+#include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
 #include "HAL/PlatformFilemanager.h"
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
