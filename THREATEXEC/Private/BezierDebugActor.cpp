@@ -124,14 +124,6 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 			It->UI_SetForcePlanarAxis(EBezierPlanarAxis::None);
 		}
 		It->bShowControlPolygon = bShowControlPolygon;
-		It->bShowTransformGizmo = bShowTransformGizmo;
-		It->TransformGizmo = GizmoSettings;
-		It->GizmoMode = GizmoMode;
-		It->GizmoSpace = GizmoSpace;
-		It->bSnapRotation = bSnapRotation;
-		It->RotationSnapDegrees = RotationSnapDegrees;
-		It->bSnapScale = bSnapScale;
-		It->ScaleSnapIncrement = ScaleSnapIncrement;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
@@ -185,14 +177,6 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->UI_SetLockToLocalXY(bLockToLocalXY);
 		It->UI_SetForcePlanar(bForcePlanar);
 		It->bShowControlPolygon = bShowControlPolygon;
-		It->bShowTransformGizmo = bShowTransformGizmo;
-		It->TransformGizmo = GizmoSettings;
-		It->GizmoMode = GizmoMode;
-		It->GizmoSpace = GizmoSpace;
-		It->bSnapRotation = bSnapRotation;
-		It->RotationSnapDegrees = RotationSnapDegrees;
-		It->bSnapScale = bSnapScale;
-		It->ScaleSnapIncrement = ScaleSnapIncrement;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;

@@ -98,30 +98,6 @@ public:
 	bool bShowControlPolygon = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	bool bShowTransformGizmo = true;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	EBezierTransformGizmoMode GizmoMode = EBezierTransformGizmoMode::Translate;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	EBezierTransformGizmoSpace GizmoSpace = EBezierTransformGizmoSpace::Local;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="1.0"))
-	FBezierTransformGizmoSettings GizmoSettings;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
-	bool bSnapRotation = false;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.1"))
-	float RotationSnapDegrees = 15.0f;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
-	bool bSnapScale = false;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.01"))
-	float ScaleSnapIncrement = 0.1f;
-
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	bool bPulseDebugLines = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.0", ClampMax="1.0"))
