@@ -9,31 +9,6 @@
 #include "EngineUtils.h"
 #include "InputCoreTypes.h"
 
-namespace
-{
-	const TCHAR* GizmoModeLabel(EBezierTransformGizmoMode Mode)
-	{
-		switch (Mode)
-		{
-		case EBezierTransformGizmoMode::Translate:
-			return TEXT("Translate");
-		case EBezierTransformGizmoMode::Rotate:
-			return TEXT("Rotate");
-		case EBezierTransformGizmoMode::Scale:
-			return TEXT("Scale");
-		case EBezierTransformGizmoMode::Pivot:
-			return TEXT("Pivot");
-		default:
-			return TEXT("Unknown");
-		}
-	}
-
-	const TCHAR* GizmoSpaceLabel(EBezierTransformGizmoSpace Space)
-	{
-		return Space == EBezierTransformGizmoSpace::World ? TEXT("World") : TEXT("Local");
-	}
-}
-
 ABezierDebugHUD::ABezierDebugHUD()
 {
 }
