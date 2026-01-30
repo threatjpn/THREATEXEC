@@ -124,13 +124,6 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 			It->UI_SetForcePlanarAxis(EBezierPlanarAxis::None);
 		}
 		It->bShowControlPolygon = bShowControlPolygon;
-		It->bShowPivotAxes = bShowPivotAxes;
-		It->PivotGizmo.AxisLength = PivotAxisLength;
-		It->PivotGizmo.AxisThickness = PivotAxisThickness;
-		It->PivotGizmo.ArrowSize = PivotArrowSizeDebug;
-		It->PivotGizmo.RotateRadius = PivotRotateRadiusDebug;
-		It->PivotGizmo.RotateThickness = PivotRotateThicknessDebug;
-		It->PivotGizmo.CenterRadius = PivotCenterRadiusDebug;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
@@ -184,13 +177,6 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->UI_SetLockToLocalXY(bLockToLocalXY);
 		It->UI_SetForcePlanar(bForcePlanar);
 		It->bShowControlPolygon = bShowControlPolygon;
-		It->bShowPivotAxes = bShowPivotAxes;
-		It->PivotGizmo.AxisLength = PivotAxisLength;
-		It->PivotGizmo.AxisThickness = PivotAxisThickness;
-		It->PivotGizmo.ArrowSize = PivotArrowSizeDebug;
-		It->PivotGizmo.RotateRadius = PivotRotateRadiusDebug;
-		It->PivotGizmo.RotateThickness = PivotRotateThicknessDebug;
-		It->PivotGizmo.CenterRadius = PivotCenterRadiusDebug;
 		It->bPulseDebugLines = bPulseDebugLines;
 		It->DebugPulseMinAlpha = DebugPulseMinAlpha;
 		It->DebugPulseMaxAlpha = DebugPulseMaxAlpha;

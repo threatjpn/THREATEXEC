@@ -366,30 +366,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	bool UI_SetAllControlPointsWorld(const TArray<FVector>& WorldPositions);
 
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	bool UI_GetPivotWorld(FVector& OutPivot) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	bool UI_FindPivotHandleFromRay(const FVector& RayOrigin, const FVector& RayDirection, EBezierPivotHandle& OutHandle) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	void UI_SetHoveredPivotHandle(EBezierPivotHandle InHandle);
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	EBezierPivotHandle UI_GetHoveredPivotHandle() const { return HoveredPivotHandle; }
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	void UI_SetActivePivotHandle(EBezierPivotHandle InHandle);
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	EBezierPivotHandle UI_GetActivePivotHandle() const { return ActivePivotHandle; }
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	bool UI_ApplyPivotTranslation(const FVector& DeltaWorld);
-
-	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
-	bool UI_ApplyPivotRotation(const FVector& PivotWorld, const FVector& AxisWorld, float AngleRadians);
-
 	// --------------------------------------------------------------------
 	// Core operations (used by tests and tools)
 	// --------------------------------------------------------------------
@@ -469,21 +445,9 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Bezier3D|RuntimeEdit")
 	bool bSelectAllControlPoints = false;
 
-	UPROPERTY(Transient)
-	EBezierPivotHandle HoveredPivotHandle = EBezierPivotHandle::None;
-
-	UPROPERTY(Transient)
-	EBezierPivotHandle ActivePivotHandle = EBezierPivotHandle::None;
-
 	// Debug
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bShowControlPolygon = true;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
-	bool bShowPivotAxes = true;
-
-	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "1.0"))
-	FBezierPivotGizmoSettings PivotGizmo;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bPulseDebugLines = true;
