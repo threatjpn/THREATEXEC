@@ -181,7 +181,6 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 				ClearSelectedOnActor(Focused);
 			}
 		}
-		bLastPressWasDoubleClick = false;
 		return;
 	}
 
@@ -210,7 +209,6 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 			A2->UI_SelectAllControlPoints();
 		}
 	}
-	bLastPressWasDoubleClick = bIsDoubleClick;
 
 	// Focus editable actor on click.
 	if (UWorld* W = GetWorld())
@@ -274,24 +272,17 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 	if (!A3 && !A2) return;
 
 	const bool bAllSelected = A3 ? A3->UI_AreAllControlPointsSelected() : A2->UI_AreAllControlPointsSelected();
-	const bool bAllowAllDrag = bAllSelected && bLastPressWasDoubleClick;
+	const bool bAllowAllDrag = bAllSelected;
 	if (!bAllSelected)
 	{
 		const bool bSelected = (A3 ? A3->UI_SelectFromHit(Hit) : A2->UI_SelectFromHit(Hit));
 		if (!bSelected) return;
 	}
-	else if (!bAllowAllDrag)
-	{
-		const bool bSelected = (A3 ? A3->UI_SelectFromHit(Hit) : A2->UI_SelectFromHit(Hit));
-		if (!bSelected) return;
-	}
-
 	DraggedActor = HitActor;
 	DraggedIndex = CPIndex;
 	bDragging = true;
 	bDragAllControlPoints = false;
 	DragStartWorldPoints.Reset();
-	bLastPressWasDoubleClick = false;
 
 	DragPlanePoint = Hit.ImpactPoint;
 
