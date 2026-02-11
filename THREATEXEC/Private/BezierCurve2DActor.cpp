@@ -838,14 +838,9 @@ void ABezierCurve2DActor::UI_CenterCurve()
 
 void ABezierCurve2DActor::UI_MirrorCurveX()
 {
-	const FTransform ActorXf = GetActorTransform();
-	const float PivotX = ActorXf.GetLocation().X;
 	for (FVector2D& P : Control)
 	{
-		const FVector World = ActorXf.TransformPosition(FVector(P.X * Scale, P.Y * Scale, 0.0f));
-		const FVector Mirrored(2.0f * PivotX - World.X, World.Y, World.Z);
-		const FVector Local = ActorXf.InverseTransformPosition(Mirrored);
-		P = FVector2D(Local.X / Scale, Local.Y / Scale);
+		P.X *= -1.0f;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
@@ -854,14 +849,9 @@ void ABezierCurve2DActor::UI_MirrorCurveX()
 
 void ABezierCurve2DActor::UI_MirrorCurveY()
 {
-	const FTransform ActorXf = GetActorTransform();
-	const float PivotY = ActorXf.GetLocation().Y;
 	for (FVector2D& P : Control)
 	{
-		const FVector World = ActorXf.TransformPosition(FVector(P.X * Scale, P.Y * Scale, 0.0f));
-		const FVector Mirrored(World.X, 2.0f * PivotY - World.Y, World.Z);
-		const FVector Local = ActorXf.InverseTransformPosition(Mirrored);
-		P = FVector2D(Local.X / Scale, Local.Y / Scale);
+		P.Y *= -1.0f;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();

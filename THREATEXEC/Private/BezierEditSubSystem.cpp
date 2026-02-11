@@ -394,13 +394,35 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 
 		AActor* Owner = Actor->GetOwner();
 		FActorSpawnParameters Params;
-		Params.Template = Actor;
 		Params.Owner = Owner;
 		Params.OverrideLevel = Actor->GetLevel();
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 		AActor* NewActor = World->SpawnActor<AActor>(Actor->GetClass(), Actor->GetActorTransform(), Params);
 		if (NewActor)
 		{
+			if (const ABezierCurve2DActor* Source2D = Cast<ABezierCurve2DActor>(Actor))
+			{
+				if (ABezierCurve2DActor* New2D = Cast<ABezierCurve2DActor>(NewActor))
+				{
+					New2D->Scale = Source2D->Scale;
+					New2D->Control = Source2D->Control;
+					New2D->UI_SetClosedLoop(Source2D->UI_IsClosedLoop());
+					New2D->UI_OverwriteSplineFromControl();
+					New2D->UI_SetInitialControlFromCurrent();
+				}
+			}
+			else if (const ABezierCurve3DActor* Source3D = Cast<ABezierCurve3DActor>(Actor))
+			{
+				if (ABezierCurve3DActor* New3D = Cast<ABezierCurve3DActor>(NewActor))
+				{
+					New3D->Scale = Source3D->Scale;
+					New3D->Control = Source3D->Control;
+					New3D->UI_SetClosedLoop(Source3D->UI_IsClosedLoop());
+					New3D->UI_OverwriteSplineFromControl();
+					New3D->UI_SetInitialControlFromCurrent();
+				}
+			}
+
 			if (ABezierCurveSetActor* CurveSet = Cast<ABezierCurveSetActor>(Owner))
 			{
 				CurveSet->UI_RegisterSpawned(NewActor);

@@ -436,6 +436,9 @@ public:
 	UPROPERTY(Transient)
 	bool bForcePlanarHasBase = false;
 
+	UPROPERTY(Transient)
+	float ForcePlanarPlaneOffsetLocal = 0.0f;
+
 	UPROPERTY(VisibleAnywhere, Category = "Bezier3D|RuntimeEdit")
 	int32 SelectedControlPointIndex = -1;
 

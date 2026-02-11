@@ -822,13 +822,9 @@ void ABezierCurve3DActor::UI_CenterCurve()
 
 void ABezierCurve3DActor::UI_MirrorCurveX()
 {
-	const FTransform ActorXf = GetActorTransform();
-	const float PivotX = ActorXf.GetLocation().X;
 	for (FVector& P : Control)
 	{
-		const FVector World = ActorXf.TransformPosition(P * Scale);
-		const FVector Mirrored(2.0f * PivotX - World.X, World.Y, World.Z);
-		P = ActorXf.InverseTransformPosition(Mirrored) / Scale;
+		P.X *= -1.0f;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
@@ -837,13 +833,9 @@ void ABezierCurve3DActor::UI_MirrorCurveX()
 
 void ABezierCurve3DActor::UI_MirrorCurveY()
 {
-	const FTransform ActorXf = GetActorTransform();
-	const float PivotY = ActorXf.GetLocation().Y;
 	for (FVector& P : Control)
 	{
-		const FVector World = ActorXf.TransformPosition(P * Scale);
-		const FVector Mirrored(World.X, 2.0f * PivotY - World.Y, World.Z);
-		P = ActorXf.InverseTransformPosition(Mirrored) / Scale;
+		P.Y *= -1.0f;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
@@ -852,13 +844,9 @@ void ABezierCurve3DActor::UI_MirrorCurveY()
 
 void ABezierCurve3DActor::UI_MirrorCurveZ()
 {
-	const FTransform ActorXf = GetActorTransform();
-	const float PivotZ = ActorXf.GetLocation().Z;
 	for (FVector& P : Control)
 	{
-		const FVector World = ActorXf.TransformPosition(P * Scale);
-		const FVector Mirrored(World.X, World.Y, 2.0f * PivotZ - World.Z);
-		P = ActorXf.InverseTransformPosition(Mirrored) / Scale;
+		P.Z *= -1.0f;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
@@ -940,6 +928,7 @@ void ABezierCurve3DActor::UI_SetForcePlanar(bool bInForce)
 	bForcePlanar = false;
 	ForcePlanarAxis = EBezierPlanarAxis::None;
 	bForcePlanarHasBase = false;
+	ForcePlanarPlaneOffsetLocal = 0.0f;
 	ForcePlanarBaseControl.Reset();
 }
 
@@ -952,6 +941,7 @@ void ABezierCurve3DActor::UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis)
 	if (!bForcePlanar)
 	{
 		bForcePlanarHasBase = false;
+		ForcePlanarPlaneOffsetLocal = 0.0f;
 		ForcePlanarBaseControl.Reset();
 		return;
 	}
@@ -963,31 +953,52 @@ void ABezierCurve3DActor::UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis)
 	}
 
 	const TArray<FVector>& SourceControl = bForcePlanarHasBase ? ForcePlanarBaseControl : Control;
+	if (SourceControl.Num() > 0)
+	{
+		double Sum = 0.0;
+		for (const FVector& P : SourceControl)
+		{
+			switch (ForcePlanarAxis)
+			{
+			case EBezierPlanarAxis::XY:
+				Sum += P.Z;
+				break;
+			case EBezierPlanarAxis::XZ:
+				Sum += P.Y;
+				break;
+			case EBezierPlanarAxis::YZ:
+				Sum += P.X;
+				break;
+			default:
+				break;
+			}
+		}
+		ForcePlanarPlaneOffsetLocal = static_cast<float>(Sum / static_cast<double>(SourceControl.Num()));
+	}
 	if (SourceControl.Num() == 0)
 	{
 		return;
 	}
 
-	const FTransform ActorTransform = GetActorTransform();
 	const int32 Count = FMath::Min(SourceControl.Num(), Control.Num());
 	for (int32 Index = 0; Index < Count; ++Index)
 	{
-		FVector WorldPos = ActorTransform.TransformPosition(SourceControl[Index] * Scale);
+		FVector LocalPos = SourceControl[Index];
 		switch (ForcePlanarAxis)
 		{
 		case EBezierPlanarAxis::XY:
-			WorldPos.Z = GridOriginWorld.Z;
+			LocalPos.Z = ForcePlanarPlaneOffsetLocal;
 			break;
 		case EBezierPlanarAxis::XZ:
-			WorldPos.Y = GridOriginWorld.Y;
+			LocalPos.Y = ForcePlanarPlaneOffsetLocal;
 			break;
 		case EBezierPlanarAxis::YZ:
-			WorldPos.X = GridOriginWorld.X;
+			LocalPos.X = ForcePlanarPlaneOffsetLocal;
 			break;
 		default:
 			break;
 		}
-		Control[Index] = ActorTransform.InverseTransformPosition(WorldPos) / Scale;
+		Control[Index] = LocalPos;
 	}
 
 	WriteControlToSpline();
@@ -1215,25 +1226,25 @@ bool ABezierCurve3DActor::UI_SetControlPointWorld(int32 Index, const FVector& Wo
 
 	W += GridOriginWorld;
 
+	FVector Local = GetActorTransform().InverseTransformPosition(W) / Scale;
+
 	if (bForcePlanar)
 	{
 		switch (ForcePlanarAxis)
 		{
 		case EBezierPlanarAxis::XY:
-			W.Z = GridOriginWorld.Z;
+			Local.Z = ForcePlanarPlaneOffsetLocal;
 			break;
 		case EBezierPlanarAxis::XZ:
-			W.Y = GridOriginWorld.Y;
+			Local.Y = ForcePlanarPlaneOffsetLocal;
 			break;
 		case EBezierPlanarAxis::YZ:
-			W.X = GridOriginWorld.X;
+			Local.X = ForcePlanarPlaneOffsetLocal;
 			break;
 		default:
 			break;
 		}
 	}
-
-	FVector Local = GetActorTransform().InverseTransformPosition(W) / Scale;
 	const FVector CurrentLocal = Control[Index];
 	if (bLockPlanar)
 	{
@@ -1313,25 +1324,25 @@ bool ABezierCurve3DActor::UI_SetAllControlPointsWorld(const TArray<FVector>& Wor
 
 		W += GridOriginWorld;
 
+		FVector Local = ActorXf.InverseTransformPosition(W) / Scale;
+
 		if (bForcePlanar)
 		{
 			switch (ForcePlanarAxis)
 			{
 			case EBezierPlanarAxis::XY:
-				W.Z = GridOriginWorld.Z;
+				Local.Z = ForcePlanarPlaneOffsetLocal;
 				break;
 			case EBezierPlanarAxis::XZ:
-				W.Y = GridOriginWorld.Y;
+				Local.Y = ForcePlanarPlaneOffsetLocal;
 				break;
 			case EBezierPlanarAxis::YZ:
-				W.X = GridOriginWorld.X;
+				Local.X = ForcePlanarPlaneOffsetLocal;
 				break;
 			default:
 				break;
 			}
 		}
-
-		FVector Local = ActorXf.InverseTransformPosition(W) / Scale;
 		const FVector CurrentLocal = Control[i];
 		if (bLockPlanar)
 		{

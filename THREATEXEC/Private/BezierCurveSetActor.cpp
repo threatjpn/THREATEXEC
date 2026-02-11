@@ -794,6 +794,214 @@ void ABezierCurveSetActor::UI_SetEditInteractionEnabledForAll(bool bEnabled, boo
 	UI_SetShowStripForAll(bEnabled && bShowStrip);
 }
 
+void ABezierCurveSetActor::UI_SetSamplingModeForAll(EBezierSamplingMode InMode)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetSamplingMode(InMode); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetSamplingMode(InMode); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetSampleCountForAll(int32 InCount)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetSampleCount(InCount); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetSampleCount(InCount); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetProofTForAll(double InT)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetProofT(InT); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetProofT(InT); }
+	}
+}
+
+void ABezierCurveSetActor::UI_SetShowSamplePointsForAll(bool bInShow)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetShowSamplePoints(bInShow); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetShowSamplePoints(bInShow); }
+	}
+}
+
+bool ABezierCurveSetActor::UI_ToggleShowSamplePointsForAll()
+{
+	bool bCurrent = false;
+	bool bFound = false;
+	for (AActor* A : Spawned)
+	{
+		if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			bCurrent = A3->UI_GetShowSamplePoints();
+			bFound = true;
+			break;
+		}
+		if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			bCurrent = A2->UI_GetShowSamplePoints();
+			bFound = true;
+			break;
+		}
+	}
+	if (!bFound)
+	{
+		return false;
+	}
+	const bool bNext = !bCurrent;
+	UI_SetShowSamplePointsForAll(bNext);
+	return bNext;
+}
+
+void ABezierCurveSetActor::UI_SetShowDeCasteljauLevelsForAll(bool bInShow)
+{
+	for (AActor* A : Spawned)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetShowDeCasteljauLevels(bInShow); }
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetShowDeCasteljauLevels(bInShow); }
+	}
+}
+
+bool ABezierCurveSetActor::UI_ToggleShowDeCasteljauLevelsForAll()
+{
+	bool bCurrent = false;
+	bool bFound = false;
+	for (AActor* A : Spawned)
+	{
+		if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			bCurrent = A3->UI_GetShowDeCasteljauLevels();
+			bFound = true;
+			break;
+		}
+		if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			bCurrent = A2->UI_GetShowDeCasteljauLevels();
+			bFound = true;
+			break;
+		}
+	}
+	if (!bFound)
+	{
+		return false;
+	}
+	const bool bNext = !bCurrent;
+	UI_SetShowDeCasteljauLevelsForAll(bNext);
+	return bNext;
+}
+
+void ABezierCurveSetActor::UI_FocusSetSamplingMode(EBezierSamplingMode InMode)
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		Subsystem->Focus_SetSamplingMode(InMode);
+	}
+}
+
+EBezierSamplingMode ABezierCurveSetActor::UI_FocusGetSamplingMode()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_GetSamplingMode();
+	}
+	return EBezierSamplingMode::Parametric;
+}
+
+void ABezierCurveSetActor::UI_FocusSetSampleCount(int32 InCount)
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		Subsystem->Focus_SetSampleCount(InCount);
+	}
+}
+
+int32 ABezierCurveSetActor::UI_FocusGetSampleCount()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_GetSampleCount();
+	}
+	return 0;
+}
+
+void ABezierCurveSetActor::UI_FocusSetProofT(double InT)
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		Subsystem->Focus_SetProofT(InT);
+	}
+}
+
+double ABezierCurveSetActor::UI_FocusGetProofT()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_GetProofT();
+	}
+	return 0.0;
+}
+
+void ABezierCurveSetActor::UI_FocusSetShowSamplePoints(bool bInShow)
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		Subsystem->Focus_SetShowSamplePoints(bInShow);
+	}
+}
+
+bool ABezierCurveSetActor::UI_FocusToggleShowSamplePoints()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		const bool bNext = !Subsystem->Focus_GetShowSamplePoints();
+		Subsystem->Focus_SetShowSamplePoints(bNext);
+		return bNext;
+	}
+	return false;
+}
+
+bool ABezierCurveSetActor::UI_FocusGetShowSamplePoints()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_GetShowSamplePoints();
+	}
+	return false;
+}
+
+void ABezierCurveSetActor::UI_FocusSetShowDeCasteljauLevels(bool bInShow)
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		Subsystem->Focus_SetShowDeCasteljauLevels(bInShow);
+	}
+}
+
+bool ABezierCurveSetActor::UI_FocusToggleShowDeCasteljauLevels()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		const bool bNext = !Subsystem->Focus_GetShowDeCasteljauLevels();
+		Subsystem->Focus_SetShowDeCasteljauLevels(bNext);
+		return bNext;
+	}
+	return false;
+}
+
+bool ABezierCurveSetActor::UI_FocusGetShowDeCasteljauLevels()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Subsystem->Focus_GetShowDeCasteljauLevels();
+	}
+	return false;
+}
+
 bool ABezierCurveSetActor::UI_FocusAddControlPointAfterSelected()
 {
 	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
