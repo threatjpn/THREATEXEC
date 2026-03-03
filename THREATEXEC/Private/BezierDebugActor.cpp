@@ -94,6 +94,19 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 
 	for (TActorIterator<ABezierCurve3DActor> It(GetWorld()); It; ++It)
 	{
+		ApplyToCurveActor(*It);
+	}
+
+	for (TActorIterator<ABezierCurve2DActor> It(GetWorld()); It; ++It)
+	{
+		ApplyToCurveActor(*It);
+	}
+}
+
+void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
+{
+	if (ABezierCurve3DActor* It = Cast<ABezierCurve3DActor>(CurveActor))
+	{
 		It->UI_SetEditMode(bEnableEditMode);
 		It->UI_SetShowControlPoints(bShowControlPoints);
 		It->UI_SetShowStrip(bShowStrip);
@@ -102,6 +115,11 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		{
 			It->UI_SetControlPointSize(ControlPointSize);
 			It->UI_SetStripSize(StripWidth, StripThickness);
+		}
+		if (bOverrideControlPointMaterial && ControlPointMaterial)
+		{
+			It->ControlPointMaterial = ControlPointMaterial;
+			It->UI_SetControlPointSize(It->ControlPointVisualScale);
 		}
 		It->UI_SetControlPointColors(ControlPointNormal, ControlPointHover, ControlPointSelected);
 		It->UI_SetSnapToGrid(bSnapToGrid);
@@ -150,11 +168,16 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->GridPulseSpeed = GridPulseSpeed;
 		It->GridPulseMinThickness = GridPulseMinThickness;
 		It->GridPulseMaxThickness = GridPulseMaxThickness;
+		It->GridThicknessScale = GridThicknessScale;
+		It->DebugThicknessScale = DebugThicknessScale;
+		It->bForceVisualsOnTop = bForceVisualsOnTop;
+		It->VisualTranslucencySortPriority = VisualTranslucencySortPriority;
 		It->bEnableVisualFade = bEnableVisualFade;
 		It->VisualFadeSpeed = VisualFadeSpeed;
+		return;
 	}
 
-	for (TActorIterator<ABezierCurve2DActor> It(GetWorld()); It; ++It)
+	if (ABezierCurve2DActor* It = Cast<ABezierCurve2DActor>(CurveActor))
 	{
 		It->UI_SetEditMode(bEnableEditMode);
 		It->UI_SetShowControlPoints(bShowControlPoints);
@@ -164,6 +187,11 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		{
 			It->UI_SetControlPointSize(ControlPointSize);
 			It->UI_SetStripSize(StripWidth, StripThickness);
+		}
+		if (bOverrideControlPointMaterial && ControlPointMaterial)
+		{
+			It->ControlPointMaterial = ControlPointMaterial;
+			It->UI_SetControlPointSize(It->ControlPointVisualScale);
 		}
 		It->UI_SetControlPointColors(ControlPointNormal, ControlPointHover, ControlPointSelected);
 		It->UI_SetSnapToGrid(bSnapToGrid);
@@ -203,6 +231,10 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->GridPulseSpeed = GridPulseSpeed;
 		It->GridPulseMinThickness = GridPulseMinThickness;
 		It->GridPulseMaxThickness = GridPulseMaxThickness;
+		It->GridThicknessScale = GridThicknessScale;
+		It->DebugThicknessScale = DebugThicknessScale;
+		It->bForceVisualsOnTop = bForceVisualsOnTop;
+		It->VisualTranslucencySortPriority = VisualTranslucencySortPriority;
 		It->bEnableVisualFade = bEnableVisualFade;
 		It->VisualFadeSpeed = VisualFadeSpeed;
 	}

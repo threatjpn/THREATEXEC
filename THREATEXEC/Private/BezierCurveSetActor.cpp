@@ -1,6 +1,7 @@
 #include "BezierCurveSetActor.h"
 #include "BezierCurve2DActor.h"
 #include "BezierCurve3DActor.h"
+#include "BezierDebugActor.h"
 #include "BezierEditSubsystem.h"
 
 #include "Engine/World.h"
@@ -404,6 +405,15 @@ void ABezierCurveSetActor::UI_RegisterSpawned(AActor* Actor)
 	if (Actor->GetOwner() != this)
 	{
 		Actor->SetOwner(this);
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<ABezierDebugActor> It(World); It; ++It)
+		{
+			It->ApplyDebugSettings();
+			break;
+		}
 	}
 }
 

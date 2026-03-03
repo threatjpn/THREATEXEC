@@ -418,6 +418,14 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 					New2D->UI_SetActorVisibleInGame(Source2D->bActorVisibleInGame);
 					New2D->UI_SetShowControlPoints(Source2D->bShowControlPoints);
 					New2D->UI_SetShowStrip(Source2D->bShowStripMesh);
+					New2D->ControlPointMaterial = Source2D->ControlPointMaterial;
+					New2D->StripMaterial = Source2D->StripMaterial;
+					New2D->ControlPointVisualScale = Source2D->ControlPointVisualScale;
+					New2D->ControlPointColor = Source2D->ControlPointColor;
+					New2D->ControlPointHoverColor = Source2D->ControlPointHoverColor;
+					New2D->ControlPointSelectedColor = Source2D->ControlPointSelectedColor;
+					New2D->UI_SetControlPointSize(New2D->ControlPointVisualScale);
+					New2D->UI_SetControlPointColors(New2D->ControlPointColor, New2D->ControlPointHoverColor, New2D->ControlPointSelectedColor);
 					New2D->UI_SetEditMode(Source2D->UI_GetEditMode());
 					New2D->UI_SetInitialControlFromCurrent();
 				}
@@ -435,6 +443,14 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 					New3D->UI_SetActorVisibleInGame(Source3D->bActorVisibleInGame);
 					New3D->UI_SetShowControlPoints(Source3D->bShowControlPoints);
 					New3D->UI_SetShowStrip(Source3D->bShowStripMesh);
+					New3D->ControlPointMaterial = Source3D->ControlPointMaterial;
+					New3D->StripMaterial = Source3D->StripMaterial;
+					New3D->ControlPointVisualScale = Source3D->ControlPointVisualScale;
+					New3D->ControlPointColor = Source3D->ControlPointColor;
+					New3D->ControlPointHoverColor = Source3D->ControlPointHoverColor;
+					New3D->ControlPointSelectedColor = Source3D->ControlPointSelectedColor;
+					New3D->UI_SetControlPointSize(New3D->ControlPointVisualScale);
+					New3D->UI_SetControlPointColors(New3D->ControlPointColor, New3D->ControlPointHoverColor, New3D->ControlPointSelectedColor);
 					New3D->UI_SetEditMode(Source3D->UI_GetEditMode());
 					New3D->UI_SetInitialControlFromCurrent();
 				}
