@@ -166,6 +166,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Fade", meta=(ClampMin="0.01"))
 	float VisualFadeSpeed = 6.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render")
+	bool bForceVisualsOnTop = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render")
+	int32 VisualTranslucencySortPriority = 100;
+
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetShowControlPoints(bool bInShow);
 
@@ -468,6 +474,9 @@ public:
 	float DebugPulseMaxThickness = 1.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
+	float DebugThicknessScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
 	float DebugPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
@@ -487,6 +496,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
 	float GridPulseMaxThickness = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
+	float GridThicknessScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bShowLevelsAtT = false;

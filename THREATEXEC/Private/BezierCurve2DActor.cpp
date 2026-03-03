@@ -143,6 +143,9 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	const float GridThickness = bPulseGrid
 		? FMath::Lerp(GridPulseMinThickness, GridPulseMaxThickness, (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f)
 		: GridPulseMaxThickness;
+	const float FinalDebugThickness = FMath::Max(0.01f, DebugThickness * DebugThicknessScale);
+	const float FinalGridThickness = FMath::Max(0.01f, GridThickness * GridThicknessScale);
+	const uint8 DebugDepthPriority = bForceVisualsOnTop ? SDPG_Foreground : SDPG_World;
 
 	if (bShowControlPolygon && Control.Num() >= 2)
 	{
@@ -152,8 +155,8 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
 				Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
-				FColor(255, 255, 255, DebugAlpha), false, 0.f, 0, DebugThickness
-			);
+					FColor(255, 255, 255, DebugAlpha), false, 0.f, DebugDepthPriority, FinalDebugThickness
+				);
 		}
 	}
 
@@ -170,8 +173,8 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 					GetWorld(),
 					Xf.TransformPosition(FVector(Levels[L][i].X * Scale, Levels[L][i].Y * Scale, 0.0f)),
 					Xf.TransformPosition(FVector(Levels[L][i + 1].X * Scale, Levels[L][i + 1].Y * Scale, 0.0f)),
-					FColor(C.R, C.G, C.B, DebugAlpha), false, 0.f, 0, DebugThickness
-				);
+						FColor(C.R, C.G, C.B, DebugAlpha), false, 0.f, DebugDepthPriority, FinalDebugThickness
+					);
 			}
 		}
 	}
@@ -189,8 +192,9 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				6.0f,
 				FColor(64, 220, 255, DebugAlpha),
 				false,
-				0.0f
-			);
+					0.0f,
+					DebugDepthPriority
+				);
 		}
 	}
 
@@ -215,11 +219,11 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				const float Offset = i * G;
 				const FVector A(-Extent, Offset, 0.0f);
 				const FVector B(Extent, Offset, 0.0f);
-				DrawDebugLine(GetWorld(), A + Origin, B + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+					DrawDebugLine(GetWorld(), A + Origin, B + Origin, GridLineColor, false, 0.f, DebugDepthPriority, FinalGridThickness);
 
 				const FVector C(Offset, -Extent, 0.0f);
 				const FVector D(Offset, Extent, 0.0f);
-				DrawDebugLine(GetWorld(), C + Origin, D + Origin, GridLineColor, false, 0.f, 0, GridThickness);
+					DrawDebugLine(GetWorld(), C + Origin, D + Origin, GridLineColor, false, 0.f, DebugDepthPriority, FinalGridThickness);
 			}
 		}
 	}
@@ -243,6 +247,8 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		ControlPointISM->SetHiddenInGame(!bVisible);
 		ControlPointISM->SetVisibility(bVisible, true);
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
+		ControlPointISM->SetTranslucencySortPriority(bForceVisualsOnTop ? VisualTranslucencySortPriority : 0);
 	}
 
 	if (StripMeshComponent)
@@ -250,6 +256,8 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		const bool bShowProc = bShowStrip && bShowStripVisual && !bUseCubeStrip;
 		StripMeshComponent->SetHiddenInGame(!bShowProc);
 		StripMeshComponent->SetVisibility(bShowProc, true);
+		StripMeshComponent->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
+		StripMeshComponent->SetTranslucencySortPriority(bForceVisualsOnTop ? VisualTranslucencySortPriority : 0);
 	}
 
 	if (CubeStripISM)
@@ -257,6 +265,8 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		const bool bShowCube = bShowStrip && bShowStripVisual && bUseCubeStrip;
 		CubeStripISM->SetHiddenInGame(!bShowCube);
 		CubeStripISM->SetVisibility(bShowCube, true);
+		CubeStripISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
+		CubeStripISM->SetTranslucencySortPriority(bForceVisualsOnTop ? VisualTranslucencySortPriority : 0);
 	}
 }
 

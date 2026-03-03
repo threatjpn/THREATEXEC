@@ -413,6 +413,12 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 					New2D->Control = Source2D->Control;
 					New2D->UI_SetClosedLoop(Source2D->UI_IsClosedLoop());
 					New2D->OverwriteSplineFromControl();
+					New2D->bEnableRuntimeEditing = Source2D->bEnableRuntimeEditing;
+					New2D->bHideVisualsWhenNotEditing = Source2D->bHideVisualsWhenNotEditing;
+					New2D->UI_SetActorVisibleInGame(Source2D->bActorVisibleInGame);
+					New2D->UI_SetShowControlPoints(Source2D->bShowControlPoints);
+					New2D->UI_SetShowStrip(Source2D->bShowStripMesh);
+					New2D->UI_SetEditMode(Source2D->UI_GetEditMode());
 					New2D->UI_SetInitialControlFromCurrent();
 				}
 			}
@@ -424,6 +430,12 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 					New3D->Control = Source3D->Control;
 					New3D->UI_SetClosedLoop(Source3D->UI_IsClosedLoop());
 					New3D->UI_OverwriteSplineFromControl();
+					New3D->bEnableRuntimeEditing = Source3D->bEnableRuntimeEditing;
+					New3D->bHideVisualsWhenNotEditing = Source3D->bHideVisualsWhenNotEditing;
+					New3D->UI_SetActorVisibleInGame(Source3D->bActorVisibleInGame);
+					New3D->UI_SetShowControlPoints(Source3D->bShowControlPoints);
+					New3D->UI_SetShowStrip(Source3D->bShowStripMesh);
+					New3D->UI_SetEditMode(Source3D->UI_GetEditMode());
 					New3D->UI_SetInitialControlFromCurrent();
 				}
 			}
@@ -433,34 +445,8 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 				CurveSet->UI_RegisterSpawned(NewActor);
 			}
 
-			FBox Bounds(EForceInit::ForceInit);
-			const FTransform ActorXf = Actor->GetActorTransform();
-			if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
-			{
-				for (const FVector2D& P : A2->Control)
-				{
-					Bounds += ActorXf.TransformPosition(FVector(P.X * A2->Scale, P.Y * A2->Scale, 0.0f));
-				}
-			}
-			else if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Actor))
-			{
-				for (const FVector& P : A3->Control)
-				{
-					Bounds += ActorXf.TransformPosition(P * A3->Scale);
-				}
-			}
-			else
-			{
-				FVector Origin = FVector::ZeroVector;
-				FVector Extents = FVector::ZeroVector;
-				Actor->GetActorBounds(true, Origin, Extents);
-				Bounds += Origin - Extents;
-				Bounds += Origin + Extents;
-			}
-
-			const float BoundsSize = Bounds.IsValid ? Bounds.GetSize().Size() : 0.0f;
-			const float OffsetDistance = FMath::Max(100.0f, BoundsSize * 0.25f);
-			const FVector Offset = (Actor->GetActorRightVector() + Actor->GetActorForwardVector() * 0.5f) * OffsetDistance;
+			constexpr float DuplicateOffsetCm = 5.0f; // 0.05m
+			const FVector Offset = Actor->GetActorRightVector().GetSafeNormal() * DuplicateOffsetCm;
 			NewActor->AddActorWorldOffset(Offset, false, nullptr, ETeleportType::TeleportPhysics);
 		}
 		if (IsEditable(NewActor))

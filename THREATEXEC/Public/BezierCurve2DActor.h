@@ -158,6 +158,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Fade", meta = (ClampMin = "0.01"))
 	float VisualFadeSpeed = 6.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Render")
+	bool bForceVisualsOnTop = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Render")
+	int32 VisualTranslucencySortPriority = 100;
+
 	// --- Constraints & Snapping ---
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
 	bool bSnapToGrid = false;
@@ -215,6 +221,9 @@ public:
 	float DebugPulseMaxThickness = 1.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
+	float DebugThicknessScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
 	float DebugPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug")
@@ -234,6 +243,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
 	float GridPulseMaxThickness = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.01"))
+	float GridThicknessScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	double ProofT = 0.5;
