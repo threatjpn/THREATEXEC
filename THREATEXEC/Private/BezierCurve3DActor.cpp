@@ -290,7 +290,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		// Important: do NOT block mouse traces unless editing and CP are visible
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		ControlPointISM->SetTranslucencySortPriority(bForceVisualsOnTop ? VisualTranslucencySortPriority : 0);
+		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
 	}
 
 	if (StripMeshComponent)
@@ -299,7 +299,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		StripMeshComponent->SetHiddenInGame(!bShowProc);
 		StripMeshComponent->SetVisibility(bShowProc, true);
 		StripMeshComponent->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		StripMeshComponent->SetTranslucencySortPriority(bForceVisualsOnTop ? VisualTranslucencySortPriority : 0);
+		StripMeshComponent->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
 	}
 
 	if (CubeStripISM)
@@ -308,7 +308,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		CubeStripISM->SetHiddenInGame(!bShowCube);
 		CubeStripISM->SetVisibility(bShowCube, true);
 		CubeStripISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		CubeStripISM->SetTranslucencySortPriority(bForceVisualsOnTop ? VisualTranslucencySortPriority : 0);
+		CubeStripISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
 	}
 }
 
