@@ -384,6 +384,11 @@ bool UBezierEditSubsystem::Focus_IsClosedLoop()
 
 void UBezierEditSubsystem::Focus_DuplicateCurve()
 {
+	if (!Focus_EnsureFocused())
+	{
+		return;
+	}
+
 	UWorld* World = GetWorld();
 	if (!World) return;
 
@@ -407,7 +412,7 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 					New2D->Scale = Source2D->Scale;
 					New2D->Control = Source2D->Control;
 					New2D->UI_SetClosedLoop(Source2D->UI_IsClosedLoop());
-					New2D->UI_OverwriteSplineFromControl();
+					New2D->OverwriteSplineFromControl();
 					New2D->UI_SetInitialControlFromCurrent();
 				}
 			}
@@ -842,6 +847,36 @@ void UBezierEditSubsystem::All_ToggleSnapToGrid()
 void UBezierEditSubsystem::All_SetGridSize(float InGridSizeCm)
 {
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetGridSize(Obj, InGridSizeCm); });
+}
+
+void UBezierEditSubsystem::All_SetSampleCount(int32 InCount)
+{
+	ForAll([&](UObject* Obj)
+	{
+		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
+		{
+			A2->UI_SetSampleCount(InCount);
+		}
+		else if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Obj))
+		{
+			A3->UI_SetSampleCount(InCount);
+		}
+	});
+}
+
+void UBezierEditSubsystem::All_SetProofT(double InT)
+{
+	ForAll([&](UObject* Obj)
+	{
+		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
+		{
+			A2->UI_SetProofT(InT);
+		}
+		else if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Obj))
+		{
+			A3->UI_SetProofT(InT);
+		}
+	});
 }
 
 void UBezierEditSubsystem::All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints, bool bShowStrip)
