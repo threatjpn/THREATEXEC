@@ -638,6 +638,12 @@ void ABezierCurve3DActor::UI_SetShowControlPoints(bool bInShow)
 	ApplyRuntimeEditVisibility();
 }
 
+void ABezierCurve3DActor::UI_SetSamplingMode(EBezierSamplingMode InMode)
+{
+	SamplingMode = InMode;
+	UpdateStripMesh();
+}
+
 void ABezierCurve3DActor::UI_SetSampleCount(int32 InCount)
 {
 	StripSegments = FMath::Clamp(InCount, 2, 512);

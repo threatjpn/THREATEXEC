@@ -131,6 +131,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") bool UI_FocusAddControlPointAfterSelected();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") bool UI_FocusDeleteSelectedControlPoint();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") bool UI_FocusDuplicateSelectedControlPoint();
+	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") void UI_FocusDuplicateCurve();
 	UFUNCTION(BlueprintCallable, Category="BezierSet|RuntimeEdit") EBezierPlanarAxis UI_FocusCycleForcePlanarAxis();
 
 protected:

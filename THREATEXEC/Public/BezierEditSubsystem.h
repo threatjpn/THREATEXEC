@@ -109,6 +109,8 @@ UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowD
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ToggleSnapToGrid();
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetGridSize(float InGridSizeCm);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetSampleCount(int32 InCount);
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetProofT(double InT);
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints = true, bool bShowStrip = true);
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ExportCurveSetJson();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|All") void All_ImportCurveSetJson();

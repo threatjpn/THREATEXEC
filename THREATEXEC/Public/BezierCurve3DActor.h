@@ -204,7 +204,7 @@ public:
 	void UI_ReverseControlOrder();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
-	void UI_SetSamplingMode(EBezierSamplingMode InMode) { SamplingMode = InMode; }
+	void UI_SetSamplingMode(EBezierSamplingMode InMode);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
 	EBezierSamplingMode UI_GetSamplingMode() const { return SamplingMode; }

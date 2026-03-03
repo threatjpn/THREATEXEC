@@ -1029,6 +1029,15 @@ bool ABezierCurveSetActor::UI_FocusDuplicateSelectedControlPoint()
 	return false;
 }
 
+void ABezierCurveSetActor::UI_FocusDuplicateCurve()
+{
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		Subsystem->Focus_EnsureFocused();
+		Subsystem->Focus_DuplicateCurve();
+	}
+}
+
 EBezierPlanarAxis ABezierCurveSetActor::UI_FocusCycleForcePlanarAxis()
 {
 	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
