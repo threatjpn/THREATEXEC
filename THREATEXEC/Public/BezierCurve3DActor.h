@@ -100,7 +100,7 @@ public:
 	int32 StripSegments = 64;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
-	float StripWidth = 10.0f;
+	float StripWidth = 0.005f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
 	float StripThickness = 0.005f;

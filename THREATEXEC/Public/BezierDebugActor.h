@@ -37,11 +37,11 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bUseCubeStrip = true;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.001"))
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.0001"))
 	float ControlPointSize = 0.0003f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.001"))
-	float StripWidth = 10.0f;
+	float StripWidth = 0.005f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.001"))
 	float StripThickness = 0.005f;
@@ -202,6 +202,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	UMaterialInterface* ControlPointMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	bool bOverrideStripMaterial = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	UMaterialInterface* StripMaterial = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
 	void ApplyDebugSettings();

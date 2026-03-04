@@ -286,9 +286,27 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 	A->VisualFadeSpeed = 4.0f;
 	TestTrue(TEXT("Visual fade params"), A->bEnableVisualFade && FMath::IsNearlyEqual(A->VisualFadeSpeed, 4.0f));
 
+	A->Control = { FVector(1,2,3), FVector(3,4,5), FVector(5,6,7) };
+	A->OverwriteSplineFromControl();
 	A->UI_MirrorCurveX();
+	TestTrue(TEXT("Mirror X keeps centroid"), A->Control[1].Equals(FVector(3,4,5), 1e-6));
 	A->UI_MirrorCurveY();
+	TestTrue(TEXT("Mirror Y keeps centroid"), A->Control[1].Equals(FVector(3,4,5), 1e-6));
 	A->UI_MirrorCurveZ();
+	TestTrue(TEXT("Mirror Z keeps centroid"), A->Control[1].Equals(FVector(3,4,5), 1e-6));
+
+	A->Control = { FVector(0,0,1), FVector(2,3,4), FVector(5,8,13) };
+	A->OverwriteSplineFromControl();
+	A->UI_SetForcePlanarAxis(EBezierPlanarAxis::XY);
+	const EBezierPlanarAxis Cycle1 = A->UI_CycleForcePlanarAxis();
+	const EBezierPlanarAxis Cycle2 = A->UI_CycleForcePlanarAxis();
+	const EBezierPlanarAxis Cycle3 = A->UI_CycleForcePlanarAxis();
+	TestTrue(TEXT("Force planar cycle includes None"), Cycle1 == EBezierPlanarAxis::XZ && Cycle2 == EBezierPlanarAxis::YZ && Cycle3 == EBezierPlanarAxis::None);
+	TestTrue(TEXT("Force planar none restores original control"),
+		A->Control.Num() == 3 &&
+		A->Control[0].Equals(FVector(0,0,1), 1e-6) &&
+		A->Control[1].Equals(FVector(2,3,4), 1e-6) &&
+		A->Control[2].Equals(FVector(5,8,13), 1e-6));
 
 	A->IOPathAbsolute = OutDir;
 	A->UI_ExportAllJson();

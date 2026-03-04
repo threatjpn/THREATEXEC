@@ -662,7 +662,7 @@ void ABezierCurve3DActor::UI_SetSampleCount(int32 InCount)
 
 void ABezierCurve3DActor::UI_SetControlPointSize(float InVisualScale)
 {
-	ControlPointVisualScale = FMath::Max(0.001f, InVisualScale);
+	ControlPointVisualScale = FMath::Max(0.0001f, InVisualScale);
 	RefreshControlPointVisuals();
 }
 
@@ -838,9 +838,13 @@ void ABezierCurve3DActor::UI_CenterCurve()
 
 void ABezierCurve3DActor::UI_MirrorCurveX()
 {
+	if (Control.Num() == 0) return;
+	FVector Pivot = FVector::ZeroVector;
+	for (const FVector& P : Control) Pivot += P;
+	Pivot /= static_cast<double>(Control.Num());
 	for (FVector& P : Control)
 	{
-		P.X *= -1.0f;
+		P.X = (2.0 * Pivot.X) - P.X;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
@@ -849,9 +853,13 @@ void ABezierCurve3DActor::UI_MirrorCurveX()
 
 void ABezierCurve3DActor::UI_MirrorCurveY()
 {
+	if (Control.Num() == 0) return;
+	FVector Pivot = FVector::ZeroVector;
+	for (const FVector& P : Control) Pivot += P;
+	Pivot /= static_cast<double>(Control.Num());
 	for (FVector& P : Control)
 	{
-		P.Y *= -1.0f;
+		P.Y = (2.0 * Pivot.Y) - P.Y;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
@@ -860,9 +868,13 @@ void ABezierCurve3DActor::UI_MirrorCurveY()
 
 void ABezierCurve3DActor::UI_MirrorCurveZ()
 {
+	if (Control.Num() == 0) return;
+	FVector Pivot = FVector::ZeroVector;
+	for (const FVector& P : Control) Pivot += P;
+	Pivot /= static_cast<double>(Control.Num());
 	for (FVector& P : Control)
 	{
-		P.Z *= -1.0f;
+		P.Z = (2.0 * Pivot.Z) - P.Z;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
@@ -943,6 +955,13 @@ void ABezierCurve3DActor::UI_SetForcePlanar(bool bInForce)
 
 	bForcePlanar = false;
 	ForcePlanarAxis = EBezierPlanarAxis::None;
+	if (bForcePlanarHasBase && ForcePlanarBaseControl.Num() == Control.Num())
+	{
+		Control = ForcePlanarBaseControl;
+		WriteControlToSpline();
+		RefreshControlPointVisuals();
+		UpdateStripMesh();
+	}
 	bForcePlanarHasBase = false;
 	ForcePlanarPlaneOffsetLocal = 0.0f;
 	ForcePlanarBaseControl.Reset();
@@ -956,6 +975,13 @@ void ABezierCurve3DActor::UI_SetForcePlanarAxis(EBezierPlanarAxis InAxis)
 
 	if (!bForcePlanar)
 	{
+		if (bForcePlanarHasBase && ForcePlanarBaseControl.Num() == Control.Num())
+		{
+			Control = ForcePlanarBaseControl;
+			WriteControlToSpline();
+			RefreshControlPointVisuals();
+			UpdateStripMesh();
+		}
 		bForcePlanarHasBase = false;
 		ForcePlanarPlaneOffsetLocal = 0.0f;
 		ForcePlanarBaseControl.Reset();
