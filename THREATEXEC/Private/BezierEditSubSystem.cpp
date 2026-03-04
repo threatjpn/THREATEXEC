@@ -2,6 +2,7 @@
 #include "BezierCurve2DActor.h"
 #include "BezierCurve3DActor.h"
 #include "BezierCurveSetActor.h"
+#include "BezierDebugActor.h"
 #include "BezierEditable.h"
 
 #include "Engine/World.h"
@@ -463,6 +464,15 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 			if (ABezierCurveSetActor* CurveSet = Cast<ABezierCurveSetActor>(Owner))
 			{
 				CurveSet->UI_RegisterSpawned(NewActor);
+			}
+
+			if (UWorld* LocalWorld = NewActor->GetWorld())
+			{
+				for (TActorIterator<ABezierDebugActor> DebugIt(LocalWorld); DebugIt; ++DebugIt)
+				{
+					DebugIt->ApplyDebugToCurve(NewActor);
+					break;
+				}
 			}
 
 			constexpr float DuplicateOffsetCm = 5.0f; // 0.05m

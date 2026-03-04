@@ -662,7 +662,7 @@ void ABezierCurve3DActor::UI_SetSampleCount(int32 InCount)
 
 void ABezierCurve3DActor::UI_SetControlPointSize(float InVisualScale)
 {
-	ControlPointVisualScale = FMath::Max(0.001f, InVisualScale);
+	ControlPointVisualScale = FMath::Max(0.0001f, InVisualScale);
 	RefreshControlPointVisuals();
 }
 
