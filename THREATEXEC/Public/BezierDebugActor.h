@@ -38,13 +38,13 @@ public:
 	bool bUseCubeStrip = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.001"))
-	float ControlPointSize = 0.06f;
+	float ControlPointSize = 0.0003f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.001"))
 	float StripWidth = 10.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit", meta=(ClampMin="0.001"))
-	float StripThickness = 2.0f;
+	float StripThickness = 0.005f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	FLinearColor ControlPointNormal = FLinearColor(0.9f, 0.9f, 0.9f, 1.0f);
@@ -162,7 +162,7 @@ public:
 	bool bPulseGrid = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	bool bOverrideVisualSizes = false;
+	bool bOverrideVisualSizes = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	bool bEnableVisualFade = true;
@@ -192,10 +192,10 @@ public:
 	float DebugThicknessScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	bool bForceVisualsOnTop = false;
+	bool bForceVisualsOnTop = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	int32 VisualTranslucencySortPriority = 100;
+	int32 VisualTranslucencySortPriority = 1000;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bOverrideControlPointMaterial = false;

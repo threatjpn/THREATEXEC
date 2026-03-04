@@ -97,7 +97,7 @@ public:
 	float StripWidth = 10.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip")
-	float StripThickness = 2.0f;
+	float StripThickness = 0.005f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip")
 	UMaterialInterface* StripMaterial = nullptr;
@@ -137,7 +137,7 @@ public:
 	float ControlPointPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints")
-	float ControlPointVisualScale = 0.06f;
+	float ControlPointVisualScale = 0.0003f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints")
 	UMaterialInterface* ControlPointMaterial = nullptr;
@@ -159,10 +159,10 @@ public:
 	float VisualFadeSpeed = 6.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Render")
-	bool bForceVisualsOnTop = false;
+	bool bForceVisualsOnTop = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Render")
-	int32 VisualTranslucencySortPriority = 100;
+	int32 VisualTranslucencySortPriority = 1000;
 
 	// --- Constraints & Snapping ---
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|RuntimeEdit")
