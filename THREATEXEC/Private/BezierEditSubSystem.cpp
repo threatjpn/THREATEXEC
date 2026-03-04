@@ -418,6 +418,9 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 					New2D->UI_SetActorVisibleInGame(Source2D->bActorVisibleInGame);
 					New2D->UI_SetShowControlPoints(Source2D->bShowControlPoints);
 					New2D->UI_SetShowStrip(Source2D->bShowStripMesh);
+					New2D->UI_SetShowCubeStrip(Source2D->bUseCubeStrip);
+					New2D->UI_SetStripSize(Source2D->StripWidth, Source2D->StripThickness);
+					New2D->StripSegments = Source2D->StripSegments;
 					New2D->ControlPointMaterial = Source2D->ControlPointMaterial;
 					New2D->StripMaterial = Source2D->StripMaterial;
 					New2D->ControlPointVisualScale = Source2D->ControlPointVisualScale;
@@ -443,6 +446,9 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 					New3D->UI_SetActorVisibleInGame(Source3D->bActorVisibleInGame);
 					New3D->UI_SetShowControlPoints(Source3D->bShowControlPoints);
 					New3D->UI_SetShowStrip(Source3D->bShowStripMesh);
+					New3D->UI_SetShowCubeStrip(Source3D->bUseCubeStrip);
+					New3D->UI_SetStripSize(Source3D->StripWidth, Source3D->StripThickness);
+					New3D->StripSegments = Source3D->StripSegments;
 					New3D->ControlPointMaterial = Source3D->ControlPointMaterial;
 					New3D->StripMaterial = Source3D->StripMaterial;
 					New3D->ControlPointVisualScale = Source3D->ControlPointVisualScale;
