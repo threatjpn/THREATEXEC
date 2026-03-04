@@ -35,6 +35,8 @@ void ABezierDebugHUD::DrawHUD()
 		return;
 	}
 
+	Debug->SyncFromWorldState();
+
 	float Y = 20.0f;
 	DrawLineText(Y, TEXT("Bezier Debug HUD (F7 to toggle overlay)"));
 	DrawLineText(Y, FString::Printf(TEXT("E: EditMode [%s]"), Debug->bEnableEditMode ? TEXT("ON") : TEXT("OFF")));

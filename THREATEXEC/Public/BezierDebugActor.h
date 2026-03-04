@@ -206,6 +206,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
 	void ApplyDebugSettings();
 
+	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
+	void SyncFromWorldState();
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
+	void ApplyDebugToCurve(AActor* CurveActor);
+
 protected:
 	virtual void BeginPlay() override;
 
