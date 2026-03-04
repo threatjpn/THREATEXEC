@@ -177,6 +177,11 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 			It->ControlPointMaterial = ControlPointMaterial;
 			It->UI_SetControlPointSize(It->ControlPointVisualScale);
 		}
+		if (bOverrideStripMaterial && StripMaterial)
+		{
+			It->StripMaterial = StripMaterial;
+			It->UI_SetShowCubeStrip(It->bUseCubeStrip);
+		}
 		It->UI_SetControlPointColors(ControlPointNormal, ControlPointHover, ControlPointSelected);
 		It->UI_SetSnapToGrid(bSnapToGrid);
 		It->UI_SetShowGrid(bShowGrid);
@@ -248,6 +253,11 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 		{
 			It->ControlPointMaterial = ControlPointMaterial;
 			It->UI_SetControlPointSize(It->ControlPointVisualScale);
+		}
+		if (bOverrideStripMaterial && StripMaterial)
+		{
+			It->StripMaterial = StripMaterial;
+			It->UI_SetShowCubeStrip(It->bUseCubeStrip);
 		}
 		It->UI_SetControlPointColors(ControlPointNormal, ControlPointHover, ControlPointSelected);
 		It->UI_SetSnapToGrid(bSnapToGrid);

@@ -854,9 +854,13 @@ void ABezierCurve2DActor::UI_CenterCurve()
 
 void ABezierCurve2DActor::UI_MirrorCurveX()
 {
+	if (Control.Num() == 0) return;
+	FVector2D Pivot = FVector2D::ZeroVector;
+	for (const FVector2D& P : Control) Pivot += P;
+	Pivot /= static_cast<double>(Control.Num());
 	for (FVector2D& P : Control)
 	{
-		P.X *= -1.0f;
+		P.X = (2.0 * Pivot.X) - P.X;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
@@ -865,9 +869,13 @@ void ABezierCurve2DActor::UI_MirrorCurveX()
 
 void ABezierCurve2DActor::UI_MirrorCurveY()
 {
+	if (Control.Num() == 0) return;
+	FVector2D Pivot = FVector2D::ZeroVector;
+	for (const FVector2D& P : Control) Pivot += P;
+	Pivot /= static_cast<double>(Control.Num());
 	for (FVector2D& P : Control)
 	{
-		P.Y *= -1.0f;
+		P.Y = (2.0 * Pivot.Y) - P.Y;
 	}
 	WriteControlToSpline();
 	RefreshControlPointVisuals();

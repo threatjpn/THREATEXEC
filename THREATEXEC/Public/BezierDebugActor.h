@@ -203,6 +203,12 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	UMaterialInterface* ControlPointMaterial = nullptr;
 
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	bool bOverrideStripMaterial = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	UMaterialInterface* StripMaterial = nullptr;
+
 	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
 	void ApplyDebugSettings();
 
