@@ -137,7 +137,7 @@ public:
 	float ControlPointPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints")
-	float ControlPointVisualScale = 0.0003f;
+	float ControlPointVisualScale = 0.003f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|ControlPoints")
 	UMaterialInterface* ControlPointMaterial = nullptr;
