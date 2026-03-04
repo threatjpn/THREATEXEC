@@ -7,6 +7,7 @@
 #include "BezierDebugActor.generated.h"
 
 class ABezierCurveSetActor;
+class UMaterialInterface;
 
 UCLASS()
 class THREATEXEC_API ABezierDebugActor : public AActor
@@ -184,8 +185,32 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
 	float GridPulseMaxThickness = 1.5f;
 
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
+	float GridThicknessScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0.01"))
+	float DebugThicknessScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
+	bool bForceVisualsOnTop = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
+	int32 VisualTranslucencySortPriority = 100;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	bool bOverrideControlPointMaterial = false;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	UMaterialInterface* ControlPointMaterial = nullptr;
+
 	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
 	void ApplyDebugSettings();
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
+	void SyncFromWorldState();
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
+	void ApplyDebugToCurve(AActor* CurveActor);
 
 protected:
 	virtual void BeginPlay() override;
@@ -194,5 +219,6 @@ private:
 	void ApplyControllerDebug() const;
 	void ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const;
 	void ApplyCurveSetDebugAll() const;
+	void ApplyToCurveActor(AActor* CurveActor) const;
 	void ApplyCurveActorDebug() const;
 };
