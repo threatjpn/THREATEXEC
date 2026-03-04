@@ -681,7 +681,7 @@ void ABezierCurve2DActor::UI_CycleGridSize()
 
 void ABezierCurve2DActor::UI_SetControlPointSize(float InVisualScale)
 {
-	ControlPointVisualScale = FMath::Max(0.001f, InVisualScale);
+	ControlPointVisualScale = FMath::Max(0.0001f, InVisualScale);
 	RefreshControlPointVisuals();
 }
 

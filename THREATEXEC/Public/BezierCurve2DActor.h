@@ -94,7 +94,7 @@ public:
 	bool bUseCubeStrip = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip")
-	float StripWidth = 10.0f;
+	float StripWidth = 0.005f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Strip")
 	float StripThickness = 0.005f;
