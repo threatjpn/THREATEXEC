@@ -103,7 +103,7 @@ public:
 	float StripWidth = 10.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
-	float StripThickness = 2.0f;
+	float StripThickness = 0.005f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Strip")
 	UMaterialInterface* StripMaterial = nullptr;
@@ -142,7 +142,7 @@ public:
 	float ControlPointPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
-	float ControlPointVisualScale = 0.06f;
+	float ControlPointVisualScale = 0.0003f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|ControlPoints")
 	UMaterialInterface* ControlPointMaterial = nullptr;
@@ -165,6 +165,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Fade", meta=(ClampMin="0.01"))
 	float VisualFadeSpeed = 6.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render")
+	bool bForceVisualsOnTop = true;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render")
+	int32 VisualTranslucencySortPriority = 1000;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetShowControlPoints(bool bInShow);
@@ -204,7 +210,7 @@ public:
 	void UI_ReverseControlOrder();
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
-	void UI_SetSamplingMode(EBezierSamplingMode InMode) { SamplingMode = InMode; }
+	void UI_SetSamplingMode(EBezierSamplingMode InMode);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|Sampling")
 	EBezierSamplingMode UI_GetSamplingMode() const { return SamplingMode; }
@@ -468,6 +474,9 @@ public:
 	float DebugPulseMaxThickness = 1.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
+	float DebugThicknessScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
 	float DebugPulseSpeed = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
@@ -487,6 +496,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
 	float GridPulseMaxThickness = 1.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.01"))
+	float GridThicknessScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bShowLevelsAtT = false;

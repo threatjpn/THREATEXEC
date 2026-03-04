@@ -31,6 +31,62 @@ void ABezierDebugActor::ApplyDebugSettings()
 	ApplyCurveSetDebugAll();
 }
 
+void ABezierDebugActor::ApplyDebugToCurve(AActor* CurveActor)
+{
+	ApplyToCurveActor(CurveActor);
+}
+
+void ABezierDebugActor::SyncFromWorldState()
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	AActor* SourceActor = nullptr;
+	if (UBezierEditSubsystem* Subsystem = GetWorld()->GetSubsystem<UBezierEditSubsystem>())
+	{
+		SourceActor = Subsystem->GetFocused();
+	}
+
+	if (!SourceActor)
+	{
+		if (TActorIterator<ABezierCurve3DActor> It(GetWorld()); It)
+		{
+			SourceActor = *It;
+		}
+		else if (TActorIterator<ABezierCurve2DActor> It2(GetWorld()); It2)
+		{
+			SourceActor = *It2;
+		}
+	}
+
+	if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(SourceActor))
+	{
+		bEnableEditMode = A3->UI_GetEditMode();
+		bShowControlPoints = A3->bShowControlPoints;
+		bShowStrip = A3->bShowStripMesh;
+		bSnapToGrid = A3->bSnapToGrid;
+		bShowGrid = A3->bShowGrid;
+		GridSizeCm = A3->GridSizeCm;
+		bLockToLocalXY = A3->bLockToLocalXY;
+		bForcePlanar = A3->bForcePlanar;
+		ForcePlanarAxis = A3->ForcePlanarAxis;
+	}
+	else if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(SourceActor))
+	{
+		bEnableEditMode = A2->UI_GetEditMode();
+		bShowControlPoints = A2->bShowControlPoints;
+		bShowStrip = A2->bShowStripMesh;
+		bSnapToGrid = A2->bSnapToGrid;
+		bShowGrid = A2->bShowGrid;
+		GridSizeCm = A2->GridSizeCm;
+		bLockToLocalXY = A2->bLockToLocalXY;
+		bForcePlanar = A2->bForcePlanar;
+		ForcePlanarAxis = bForcePlanar ? EBezierPlanarAxis::XY : EBezierPlanarAxis::None;
+	}
+}
+
 void ABezierDebugActor::ApplyControllerDebug() const
 {
 	if (!GetWorld()) return;
@@ -94,6 +150,19 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 
 	for (TActorIterator<ABezierCurve3DActor> It(GetWorld()); It; ++It)
 	{
+		ApplyToCurveActor(*It);
+	}
+
+	for (TActorIterator<ABezierCurve2DActor> It(GetWorld()); It; ++It)
+	{
+		ApplyToCurveActor(*It);
+	}
+}
+
+void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
+{
+	if (ABezierCurve3DActor* It = Cast<ABezierCurve3DActor>(CurveActor))
+	{
 		It->UI_SetEditMode(bEnableEditMode);
 		It->UI_SetShowControlPoints(bShowControlPoints);
 		It->UI_SetShowStrip(bShowStrip);
@@ -102,6 +171,11 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		{
 			It->UI_SetControlPointSize(ControlPointSize);
 			It->UI_SetStripSize(StripWidth, StripThickness);
+		}
+		if (bOverrideControlPointMaterial && ControlPointMaterial)
+		{
+			It->ControlPointMaterial = ControlPointMaterial;
+			It->UI_SetControlPointSize(It->ControlPointVisualScale);
 		}
 		It->UI_SetControlPointColors(ControlPointNormal, ControlPointHover, ControlPointSelected);
 		It->UI_SetSnapToGrid(bSnapToGrid);
@@ -150,11 +224,16 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->GridPulseSpeed = GridPulseSpeed;
 		It->GridPulseMinThickness = GridPulseMinThickness;
 		It->GridPulseMaxThickness = GridPulseMaxThickness;
+		It->GridThicknessScale = GridThicknessScale;
+		It->DebugThicknessScale = DebugThicknessScale;
+		It->bForceVisualsOnTop = bForceVisualsOnTop;
+		It->VisualTranslucencySortPriority = VisualTranslucencySortPriority;
 		It->bEnableVisualFade = bEnableVisualFade;
 		It->VisualFadeSpeed = VisualFadeSpeed;
+		return;
 	}
 
-	for (TActorIterator<ABezierCurve2DActor> It(GetWorld()); It; ++It)
+	if (ABezierCurve2DActor* It = Cast<ABezierCurve2DActor>(CurveActor))
 	{
 		It->UI_SetEditMode(bEnableEditMode);
 		It->UI_SetShowControlPoints(bShowControlPoints);
@@ -164,6 +243,11 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		{
 			It->UI_SetControlPointSize(ControlPointSize);
 			It->UI_SetStripSize(StripWidth, StripThickness);
+		}
+		if (bOverrideControlPointMaterial && ControlPointMaterial)
+		{
+			It->ControlPointMaterial = ControlPointMaterial;
+			It->UI_SetControlPointSize(It->ControlPointVisualScale);
 		}
 		It->UI_SetControlPointColors(ControlPointNormal, ControlPointHover, ControlPointSelected);
 		It->UI_SetSnapToGrid(bSnapToGrid);
@@ -203,6 +287,10 @@ void ABezierDebugActor::ApplyCurveActorDebug() const
 		It->GridPulseSpeed = GridPulseSpeed;
 		It->GridPulseMinThickness = GridPulseMinThickness;
 		It->GridPulseMaxThickness = GridPulseMaxThickness;
+		It->GridThicknessScale = GridThicknessScale;
+		It->DebugThicknessScale = DebugThicknessScale;
+		It->bForceVisualsOnTop = bForceVisualsOnTop;
+		It->VisualTranslucencySortPriority = VisualTranslucencySortPriority;
 		It->bEnableVisualFade = bEnableVisualFade;
 		It->VisualFadeSpeed = VisualFadeSpeed;
 	}
