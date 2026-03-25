@@ -128,7 +128,8 @@ void ABezierCurveSetActor::RefreshSpawnedFromWorld()
 void ABezierCurveSetActor::ImportCurveSetJson()
 {
 	FString JsonText;
-	const FString AbsPath = MakeAbs(CurveSetFile);
+	// Prototype behavior: always load the canonical base curve set file.
+	const FString AbsPath = MakeAbs(TEXT("curve_set.json"));
 	if (!ReadText(AbsPath, JsonText))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to read %s"), *AbsPath);
@@ -243,6 +244,7 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 		FActorSpawnParameters Params;
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Params.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
 		if (!CurveName.IsEmpty())
 		{
 			Params.Name = MakeUniqueObjectName(World, bIs3D ? Curve3DClass : Curve2DClass, FName(*CurveName));
@@ -259,9 +261,17 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 			{
 				const TArray<TSharedPtr<FJsonValue>>* PointArray = nullptr;
 				if (!Entry.IsValid() || !Entry->TryGetArray(PointArray) || !PointArray || PointArray->Num() < 3) continue;
-				const double X = (*PointArray)[0]->AsNumber();
-				const double Y = (*PointArray)[1]->AsNumber();
-				const double Z = (*PointArray)[2]->AsNumber();
+
+				double X = 0.0;
+				double Y = 0.0;
+				double Z = 0.0;
+				if (!(*PointArray)[0].IsValid() || !(*PointArray)[0]->TryGetNumber(X)
+					|| !(*PointArray)[1].IsValid() || !(*PointArray)[1]->TryGetNumber(Y)
+					|| !(*PointArray)[2].IsValid() || !(*PointArray)[2]->TryGetNumber(Z))
+				{
+					continue;
+				}
+
 				A3->Control.Add(FVector(X, Y, Z));
 			}
 			if (A3->Control.Num() < 2)
@@ -286,8 +296,15 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 			{
 				const TArray<TSharedPtr<FJsonValue>>* PointArray = nullptr;
 				if (!Entry.IsValid() || !Entry->TryGetArray(PointArray) || !PointArray || PointArray->Num() < 2) continue;
-				const double X = (*PointArray)[0]->AsNumber();
-				const double Y = (*PointArray)[1]->AsNumber();
+
+				double X = 0.0;
+				double Y = 0.0;
+				if (!(*PointArray)[0].IsValid() || !(*PointArray)[0]->TryGetNumber(X)
+					|| !(*PointArray)[1].IsValid() || !(*PointArray)[1]->TryGetNumber(Y))
+				{
+					continue;
+				}
+
 				A2->Control.Add(FVector2D(X, Y));
 			}
 			if (A2->Control.Num() < 2)
