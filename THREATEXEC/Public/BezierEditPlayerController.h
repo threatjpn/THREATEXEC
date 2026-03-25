@@ -55,6 +55,7 @@ protected:
 	// Helpers
 	void ClearHovered();
 	void ClearSelectedOnActor(AActor* Actor) const;
+	void ClearSelectedOnAllActors() const;
 	void SetHoveredOnActor(AActor* Actor, int32 ControlPointIndex) const;
 
 	void ReportDebugMessage(const FString& Message)

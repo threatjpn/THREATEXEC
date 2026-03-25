@@ -128,7 +128,8 @@ void ABezierCurveSetActor::RefreshSpawnedFromWorld()
 void ABezierCurveSetActor::ImportCurveSetJson()
 {
 	FString JsonText;
-	const FString AbsPath = MakeAbs(CurveSetFile);
+	// Prototype behavior: always load the canonical base curve set file.
+	const FString AbsPath = MakeAbs(TEXT("curve_set.json"));
 	if (!ReadText(AbsPath, JsonText))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to read %s"), *AbsPath);

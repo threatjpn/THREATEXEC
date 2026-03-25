@@ -39,7 +39,7 @@ public:
 	FString IOPathAbsolute = TEXT("Content");
 
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO")
-	FString CurveSetFile = TEXT("curves.json");
+	FString CurveSetFile = TEXT("curve_set.json");
 
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO")
 	EBezierCurveSetImportMode ImportMode = EBezierCurveSetImportMode::ReplaceAll;

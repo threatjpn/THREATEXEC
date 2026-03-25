@@ -247,8 +247,8 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		ControlPointISM->SetHiddenInGame(!bVisible);
 		ControlPointISM->SetVisibility(bVisible, true);
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		ControlPointISM->SetDepthPriorityGroup(SDPG_Foreground);
+		ControlPointISM->TranslucencySortPriority = FMath::Max(VisualTranslucencySortPriority, 10000);
 	}
 
 	if (StripMeshComponent)
