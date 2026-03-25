@@ -985,6 +985,11 @@ bool ABezierCurve2DActor::UI_DeleteControlPoint(int32 Index)
 
 bool ABezierCurve2DActor::UI_DeleteSelectedControlPoint()
 {
+	if (bSelectAllControlPoints)
+	{
+		return Destroy();
+	}
+
 	return UI_DeleteControlPoint(SelectedControlPointIndex);
 }
 
