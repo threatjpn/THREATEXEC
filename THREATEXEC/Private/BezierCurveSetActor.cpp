@@ -244,6 +244,7 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 		FActorSpawnParameters Params;
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Params.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
 		if (!CurveName.IsEmpty())
 		{
 			Params.Name = MakeUniqueObjectName(World, bIs3D ? Curve3DClass : Curve2DClass, FName(*CurveName));

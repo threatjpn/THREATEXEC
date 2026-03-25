@@ -36,7 +36,7 @@ public:
 	TSubclassOf<ABezierCurve3DActor> Curve3DClass;
 
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO")
-	FString IOPathAbsolute = TEXT("Content");
+	FString IOPathAbsolute = TEXT("Saved/Bezier");
 
 	UPROPERTY(EditAnywhere, Category="BezierSet|IO")
 	FString CurveSetFile = TEXT("curve_set.json");
