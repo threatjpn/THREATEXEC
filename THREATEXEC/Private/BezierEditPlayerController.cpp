@@ -8,6 +8,7 @@
 
 #include "Engine/World.h"
 #include "Engine/Engine.h"
+#include "EngineUtils.h"
 #include "Camera/PlayerCameraManager.h"
 
 ABezierEditPlayerController::ABezierEditPlayerController()
@@ -173,14 +174,7 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 	FHitResult Hit;
 	if (!TraceUnderCursor(Hit))
 	{
-		if (UWorld* W = GetWorld())
-		{
-			if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
-			{
-				AActor* Focused = Sub->GetFocused();
-				ClearSelectedOnActor(Focused);
-			}
-		}
+		ClearSelectedOnAllActors();
 		return;
 	}
 
@@ -256,6 +250,25 @@ void ABezierEditPlayerController::ClearSelectedOnActor(AActor* Actor) const
 	else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
 	{
 		A2->UI_ClearSelectedControlPoint();
+	}
+}
+
+void ABezierEditPlayerController::ClearSelectedOnAllActors() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
+	{
+		It->UI_ClearSelectedControlPoint();
+	}
+
+	for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
+	{
+		It->UI_ClearSelectedControlPoint();
 	}
 }
 
