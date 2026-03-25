@@ -1219,7 +1219,15 @@ bool ABezierCurve3DActor::UI_DeleteControlPoint(int32 Index)
 	return true;
 }
 
-bool ABezierCurve3DActor::UI_DeleteSelectedControlPoint() { return UI_DeleteControlPoint(SelectedControlPointIndex); }
+bool ABezierCurve3DActor::UI_DeleteSelectedControlPoint()
+{
+	if (bSelectAllControlPoints)
+	{
+		return Destroy();
+	}
+
+	return UI_DeleteControlPoint(SelectedControlPointIndex);
+}
 
 bool ABezierCurve3DActor::UI_DuplicateControlPoint(int32 Index)
 {

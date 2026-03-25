@@ -351,17 +351,28 @@ bool FBezier_UI_Focused_PointOps::RunTest(const FString&)
 	TestTrue(TEXT("Focus delete selected 2D"), Subsystem->Focus_DeleteSelectedControlPoint());
 	TestEqual(TEXT("2D delete selected count"), A2->Control.Num(), 4);
 
+	A2->UI_SelectAllControlPoints();
+	TestTrue(TEXT("Focus delete selected all 2D destroys actor"), Subsystem->Focus_DeleteSelectedControlPoint());
+	TestTrue(TEXT("2D actor destroyed when all selected"), !IsValid(A2));
+
 	ABezierCurveSetActor* SetActor = World->SpawnActor<ABezierCurveSetActor>(P);
 	if (!TestNotNull(TEXT("Spawn set actor"), SetActor)) return false;
+	ABezierCurve2DActor* A2b = World->SpawnActor<ABezierCurve2DActor>(P);
+	if (!TestNotNull(TEXT("Respawn 2D"), A2b)) return false;
+	A2b->Control = { FVector2D(0,0), FVector2D(1,0), FVector2D(2,0) };
+	A2b->OverwriteSplineFromControl();
+	A2b->SelectedControlPointIndex = 0;
+	Subsystem->RegisterEditable(A2b);
+	Subsystem->SetFocused(A2b);
 	TestTrue(TEXT("Set actor add after selected 2D"), SetActor->UI_FocusAddControlPointAfterSelected());
-	TestEqual(TEXT("Set actor add count 2D"), A2->Control.Num(), 5);
+	TestEqual(TEXT("Set actor add count 2D"), A2b->Control.Num(), 4);
 
 	Subsystem->All_ToggleSnapToGrid();
-	TestTrue(TEXT("All toggle snap on 2D"), A2->bSnapToGrid);
+	TestTrue(TEXT("All toggle snap on 2D"), A2b->bSnapToGrid);
 	Subsystem->All_ToggleSnapToGrid();
-	TestTrue(TEXT("All toggle snap off 2D"), !A2->bSnapToGrid);
+	TestTrue(TEXT("All toggle snap off 2D"), !A2b->bSnapToGrid);
 
-	A2->Destroy();
+	A2b->Destroy();
 	SetActor->Destroy();
 
 	ABezierCurve3DActor* A3 = World->SpawnActor<ABezierCurve3DActor>(P);
@@ -381,7 +392,9 @@ bool FBezier_UI_Focused_PointOps::RunTest(const FString&)
 	TestTrue(TEXT("Focus delete selected 3D"), Subsystem->Focus_DeleteSelectedControlPoint());
 	TestEqual(TEXT("3D delete selected count"), A3->Control.Num(), 4);
 
-	A3->Destroy();
+	A3->UI_SelectAllControlPoints();
+	TestTrue(TEXT("Focus delete selected all 3D destroys actor"), Subsystem->Focus_DeleteSelectedControlPoint());
+	TestTrue(TEXT("3D actor destroyed when all selected"), !IsValid(A3));
 	return true;
 }
 
