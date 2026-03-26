@@ -489,14 +489,14 @@ private:
 	float ComputeAutoFocusDistance(float FallbackDistance) const;
 	float ApplyBoundaryDamping(float Value, float MinValue, float MaxValue) const;
 	float SmoothDampFloat(float Current, float Target, float& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed = 100000.0f) const;
-	FVector SmoothDampVector(const FVector& Current, const FVector& Target, FVector& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed = 100000.0f) const;
+	FVector SmoothDampVector(const FVector& Current, const FVector& Target, FVector3f& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed = 100000.0f) const;
 	void UpdateCollisionSoftSolve(float DeltaSeconds);
 
 	FOrbitCameraDefinition TransitionStart;
 	FOrbitCameraDefinition TransitionTarget;
 	FOrbitTransitionParams TransitionParams;
 	float TransitionElapsed = 0.0f;
-	FVector Internal_LocationVelocity = FVector::ZeroVector;
+	FVector3f Internal_LocationVelocity = FVector3f::ZeroVector;
 	float Internal_DistanceVelocity = 0.0f;
 	float Internal_FocalVelocity = 0.0f;
 	float Internal_FocusVelocity = 0.0f;

@@ -489,7 +489,7 @@ float AOrbitCameraBase::SmoothDampFloat(float Current, float Target, float& Curr
 	return Output;
 }
 
-FVector AOrbitCameraBase::SmoothDampVector(const FVector& Current, const FVector& Target, FVector& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed) const
+FVector AOrbitCameraBase::SmoothDampVector(const FVector& Current, const FVector& Target, FVector3f& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed) const
 {
 	FVector Result;
 	Result.X = SmoothDampFloat(Current.X, Target.X, CurrentVelocity.X, SmoothTime, DeltaSeconds, MaxSpeed);
