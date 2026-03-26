@@ -86,6 +86,15 @@ enum class EOrbitTransitionEasing : uint8
 	CustomCurve UMETA(DisplayName = "CustomCurve"),
 };
 
+UENUM(BlueprintType)
+enum class EOrbitComfortProfile : uint8
+{
+	Cinematic = 0 UMETA(DisplayName = "Cinematic"),
+	Comfort UMETA(DisplayName = "Comfort"),
+	Snappy UMETA(DisplayName = "Snappy"),
+	Custom UMETA(DisplayName = "Custom"),
+};
+
 USTRUCT(BlueprintType)
 struct FOrbitTransitionParams
 {
@@ -123,6 +132,18 @@ struct FOrbitInputTuning
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float BoundaryDampingStrength = 0.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float MaxAngularVelocity = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float AngularAcceleration = 540.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float LookAheadStrength = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float LookAheadMaxDistance = 45.0f;
 };
 
 /**
@@ -351,6 +372,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
 	bool bDrawDebugFocus = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusSwitchThreshold = 40.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusTargetHoldSeconds = 0.2f;
+
 	//
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
 	float Internal_TargetFocusDistance = 250.0f;
@@ -361,6 +388,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
 	FOrbitTransitionParams DefaultTransitionParams;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	EOrbitComfortProfile ComfortProfile = EOrbitComfortProfile::Comfort;
 
 	UPROPERTY(BlueprintReadOnly, Category = "OrbitCamera|Transition")
 	bool bTransitionInProgress = false;
@@ -416,6 +446,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
 	void CancelTransition(bool bSnapToTarget);
 
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
+	void ApplyComfortProfile(EOrbitComfortProfile NewProfile);
+
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|State")
 	FOrbitCameraDefinition GetCurrentDefinition() const;
 
@@ -455,9 +488,23 @@ private:
 	float EvaluateTransitionAlpha(float RawAlpha, const FOrbitTransitionParams& Params) const;
 	float ComputeAutoFocusDistance(float FallbackDistance) const;
 	float ApplyBoundaryDamping(float Value, float MinValue, float MaxValue) const;
+	float SmoothDampFloat(float Current, float Target, float& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed = 100000.0f) const;
+	FVector SmoothDampVector(const FVector& Current, const FVector& Target, FVector& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed = 100000.0f) const;
+	void UpdateCollisionSoftSolve(float DeltaSeconds);
 
 	FOrbitCameraDefinition TransitionStart;
 	FOrbitCameraDefinition TransitionTarget;
 	FOrbitTransitionParams TransitionParams;
 	float TransitionElapsed = 0.0f;
+	FVector Internal_LocationVelocity = FVector::ZeroVector;
+	float Internal_DistanceVelocity = 0.0f;
+	float Internal_FocalVelocity = 0.0f;
+	float Internal_FocusVelocity = 0.0f;
+	FVector Internal_LookAheadOffset = FVector::ZeroVector;
+	float Internal_YawVelocity = 0.0f;
+	float Internal_PitchVelocity = 0.0f;
+	float PendingYawInput = 0.0f;
+	float PendingPitchInput = 0.0f;
+	float LastStableAutoFocusDistance = 0.0f;
+	float FocusHoldTimer = 0.0f;
 };

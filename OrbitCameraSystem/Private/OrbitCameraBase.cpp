@@ -10,6 +10,7 @@
 #include "Engine/EngineTypes.h"
 #include "Components/BoxComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 DEFINE_LOG_CATEGORY(OrbitCamera);
 
@@ -33,6 +34,7 @@ void AOrbitCameraBase::BeginPlay()
 {
 	Super::BeginPlay();
 	ValidateAndNormalizeSettings();
+	ApplyComfortProfile(ComfortProfile);
 	InitializeRuntimeStateFromDefaults();
 	ClampOrbitRootToBounds();
 }
@@ -104,6 +106,7 @@ void AOrbitCameraBase::InitializeRuntimeStateFromDefaults()
 	CineCamRef->CurrentFocalLength = Internal_CurrentFocalLength;
 
 	Internal_TargetFocusDistance = InitialDistance;
+	LastStableAutoFocusDistance = Internal_TargetFocusDistance;
 	CineCamRef->FocusSettings.FocusMethod = ECameraFocusMethod::Manual;
 	CineCamRef->FocusSettings.ManualFocusDistance = Internal_TargetFocusDistance;
 }
@@ -138,17 +141,55 @@ void AOrbitCameraBase::UpdateRuntimeState(float DeltaSeconds)
 		}
 	}
 
-	Internal_CurrentLocation = FMath::VInterpTo(Internal_CurrentLocation, Internal_TargetLocation, DeltaSeconds, Internal_LocationInterpolationSpeed);
+	// velocity-based damping + jerk-limited angular response
+	const float DesiredYawVelocity = FMath::Clamp(PendingYawInput * InputTuning.OrbitSensitivityYaw, -InputTuning.MaxAngularVelocity, InputTuning.MaxAngularVelocity);
+	const float DesiredPitchVelocity = FMath::Clamp(PendingPitchInput * InputTuning.OrbitSensitivityPitch, -InputTuning.MaxAngularVelocity, InputTuning.MaxAngularVelocity);
+	const float MaxVelDelta = InputTuning.AngularAcceleration * DeltaSeconds;
+	Internal_YawVelocity = FMath::FInterpTo(Internal_YawVelocity, DesiredYawVelocity, DeltaSeconds, (MaxVelDelta <= KINDA_SMALL_NUMBER) ? 0.0f : 10.0f);
+	Internal_PitchVelocity = FMath::FInterpTo(Internal_PitchVelocity, DesiredPitchVelocity, DeltaSeconds, (MaxVelDelta <= KINDA_SMALL_NUMBER) ? 0.0f : 10.0f);
+	Internal_YawVelocity = FMath::Clamp(Internal_YawVelocity, DesiredYawVelocity - MaxVelDelta, DesiredYawVelocity + MaxVelDelta);
+	Internal_PitchVelocity = FMath::Clamp(Internal_PitchVelocity, DesiredPitchVelocity - MaxVelDelta, DesiredPitchVelocity + MaxVelDelta);
+	PendingYawInput = 0.0f;
+	PendingPitchInput = 0.0f;
+
+	Internal_TargetRotation.Yaw = FMath::Clamp(Internal_TargetRotation.Yaw + (Internal_YawVelocity * DeltaSeconds), MinYaw, MaxYaw);
+	Internal_TargetRotation.Pitch = FMath::Clamp(Internal_TargetRotation.Pitch + (Internal_PitchVelocity * DeltaSeconds), MinPitch, MaxPitch);
+
+	const FVector TargetWithLookAhead = Internal_TargetLocation + Internal_LookAheadOffset;
+	Internal_CurrentLocation = SmoothDampVector(
+		Internal_CurrentLocation,
+		TargetWithLookAhead,
+		Internal_LocationVelocity,
+		1.0f / FMath::Max(1.0f, Internal_LocationInterpolationSpeed),
+		DeltaSeconds);
 	OrbitRoot->SetWorldLocation(Internal_CurrentLocation);
 
 	Internal_CurrentRotation = FMath::RInterpTo(Internal_CurrentRotation, Internal_TargetRotation, DeltaSeconds, Internal_RotationInterpolationSpeed);
 	OrbitRoot->SetWorldRotation(Internal_CurrentRotation);
 
-	Internal_CurrentDistance = FMath::FInterpTo(Internal_CurrentDistance, Internal_TargetDistance, DeltaSeconds, Internal_DistanceInterpolationSpeed);
-	Internal_CurrentFocalLength = FMath::FInterpTo(Internal_CurrentFocalLength, Internal_TargetFocalLength, DeltaSeconds, Internal_ZoomInterpolationSpeed);
+	Internal_CurrentDistance = SmoothDampFloat(
+		Internal_CurrentDistance,
+		Internal_TargetDistance,
+		Internal_DistanceVelocity,
+		1.0f / FMath::Max(1.0f, Internal_DistanceInterpolationSpeed),
+		DeltaSeconds);
+	Internal_CurrentFocalLength = SmoothDampFloat(
+		Internal_CurrentFocalLength,
+		Internal_TargetFocalLength,
+		Internal_FocalVelocity,
+		1.0f / FMath::Max(1.0f, Internal_ZoomInterpolationSpeed),
+		DeltaSeconds);
+
+	UpdateCollisionSoftSolve(DeltaSeconds);
 
 	CineCamRef->SetRelativeLocation(FVector(-Internal_CurrentDistance, 0.0f, 0.0f));
 	CineCamRef->CurrentFocalLength = Internal_CurrentFocalLength;
+
+	const FVector DesiredLookAhead = OrbitRoot->GetForwardVector() * FMath::Clamp(
+		Internal_LocationVelocity.Size() * InputTuning.LookAheadStrength,
+		0.0f,
+		InputTuning.LookAheadMaxDistance);
+	Internal_LookAheadOffset = FMath::VInterpTo(Internal_LookAheadOffset, DesiredLookAhead, DeltaSeconds, 4.0f);
 
 	UpdateFocus(DeltaSeconds);
 }
@@ -182,6 +223,27 @@ void AOrbitCameraBase::UpdateFocus(float DeltaSeconds)
 	}
 
 	DesiredFocusDistance = FMath::Clamp(DesiredFocusDistance + FocusOffset, MinAutoFocusDistance, MaxAutoFocusDistance);
+	if (FocusBehavior == EOrbitCameraFocus::OC_AutoFocus)
+	{
+		if (FMath::Abs(DesiredFocusDistance - LastStableAutoFocusDistance) > FocusSwitchThreshold)
+		{
+			FocusHoldTimer += DeltaSeconds;
+			if (FocusHoldTimer < FocusTargetHoldSeconds)
+			{
+				DesiredFocusDistance = LastStableAutoFocusDistance;
+			}
+			else
+			{
+				LastStableAutoFocusDistance = DesiredFocusDistance;
+				FocusHoldTimer = 0.0f;
+			}
+		}
+		else
+		{
+			LastStableAutoFocusDistance = DesiredFocusDistance;
+			FocusHoldTimer = 0.0f;
+		}
+	}
 
 	const float Delta = DesiredFocusDistance - Internal_TargetFocusDistance;
 	if (FMath::Abs(Delta) <= FocusDeadzone)
@@ -190,7 +252,12 @@ void AOrbitCameraBase::UpdateFocus(float DeltaSeconds)
 	}
 
 	const float Speed = (Delta < 0.0f) ? AutoFocus_InterpolationSpeedIn : AutoFocus_InterpolationSpeedOut;
-	Internal_TargetFocusDistance = FMath::FInterpTo(Internal_TargetFocusDistance, DesiredFocusDistance, DeltaSeconds, FMath::Max(0.01f, Speed));
+	Internal_TargetFocusDistance = SmoothDampFloat(
+		Internal_TargetFocusDistance,
+		DesiredFocusDistance,
+		Internal_FocusVelocity,
+		1.0f / FMath::Max(1.0f, Speed),
+		DeltaSeconds);
 
 	CineCamRef->FocusSettings.FocusMethod = ECameraFocusMethod::Manual;
 	CineCamRef->FocusSettings.ManualFocusDistance = Internal_TargetFocusDistance;
@@ -279,15 +346,9 @@ float AOrbitCameraBase::ApplyBoundaryDamping(float Value, float MinValue, float 
 
 void AOrbitCameraBase::AddOrbitInput(float DeltaYaw, float DeltaPitch)
 {
-	const float RawYaw = Internal_TargetRotation.Yaw + (DeltaYaw * InputTuning.OrbitSensitivityYaw);
-	const float RawPitch = Internal_TargetRotation.Pitch + (DeltaPitch * InputTuning.OrbitSensitivityPitch);
-
-	Internal_TargetRotation.Yaw = ApplyBoundaryDamping(RawYaw, MinYaw, MaxYaw);
-	Internal_TargetRotation.Pitch = ApplyBoundaryDamping(RawPitch, MinPitch, MaxPitch);
+	PendingYawInput += DeltaYaw;
+	PendingPitchInput += DeltaPitch;
 	Internal_TargetRotation.Roll = InitialRoll;
-
-	Internal_TargetRotation.Yaw = FMath::Clamp(Internal_TargetRotation.Yaw, MinYaw, MaxYaw);
-	Internal_TargetRotation.Pitch = FMath::Clamp(Internal_TargetRotation.Pitch, MinPitch, MaxPitch);
 }
 
 void AOrbitCameraBase::AddPanInput(float Right, float Up)
@@ -344,6 +405,48 @@ void AOrbitCameraBase::CancelTransition(bool bSnapToTarget)
 	}
 }
 
+void AOrbitCameraBase::ApplyComfortProfile(EOrbitComfortProfile NewProfile)
+{
+	ComfortProfile = NewProfile;
+	if (ComfortProfile == EOrbitComfortProfile::Custom)
+	{
+		return;
+	}
+
+	switch (ComfortProfile)
+	{
+	case EOrbitComfortProfile::Cinematic:
+		DefaultTransitionParams.Duration = 0.65f;
+		DefaultTransitionParams.Easing = EOrbitTransitionEasing::CubicInOut;
+		Internal_LocationInterpolationSpeed = 4.0f;
+		Internal_RotationInterpolationSpeed = 5.0f;
+		Internal_DistanceInterpolationSpeed = 5.0f;
+		InputTuning.MaxAngularVelocity = 120.0f;
+		InputTuning.AngularAcceleration = 280.0f;
+		break;
+	case EOrbitComfortProfile::Comfort:
+		DefaultTransitionParams.Duration = 0.45f;
+		DefaultTransitionParams.Easing = EOrbitTransitionEasing::EaseInOut;
+		Internal_LocationInterpolationSpeed = 7.0f;
+		Internal_RotationInterpolationSpeed = 8.0f;
+		Internal_DistanceInterpolationSpeed = 8.0f;
+		InputTuning.MaxAngularVelocity = 160.0f;
+		InputTuning.AngularAcceleration = 440.0f;
+		break;
+	case EOrbitComfortProfile::Snappy:
+		DefaultTransitionParams.Duration = 0.25f;
+		DefaultTransitionParams.Easing = EOrbitTransitionEasing::Linear;
+		Internal_LocationInterpolationSpeed = 12.0f;
+		Internal_RotationInterpolationSpeed = 14.0f;
+		Internal_DistanceInterpolationSpeed = 12.0f;
+		InputTuning.MaxAngularVelocity = 240.0f;
+		InputTuning.AngularAcceleration = 720.0f;
+		break;
+	default:
+		break;
+	}
+}
+
 FOrbitCameraDefinition AOrbitCameraBase::GetCurrentDefinition() const
 {
 	FOrbitCameraDefinition Definition;
@@ -359,6 +462,60 @@ FOrbitCameraDefinition AOrbitCameraBase::GetCurrentDefinition() const
 void AOrbitCameraBase::SetFocusTargetActor(AActor* NewFocusTarget)
 {
 	FocusTargetActor = NewFocusTarget;
+}
+
+float AOrbitCameraBase::SmoothDampFloat(float Current, float Target, float& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed) const
+{
+	SmoothTime = FMath::Max(0.0001f, SmoothTime);
+	const float Omega = 2.0f / SmoothTime;
+	const float X = Omega * DeltaSeconds;
+	const float Exp = 1.0f / (1.0f + X + (0.48f * X * X) + (0.235f * X * X * X));
+	float Change = Current - Target;
+	const float OriginalTarget = Target;
+
+	const float MaxChange = MaxSpeed * SmoothTime;
+	Change = FMath::Clamp(Change, -MaxChange, MaxChange);
+	Target = Current - Change;
+
+	const float Temp = (CurrentVelocity + Omega * Change) * DeltaSeconds;
+	CurrentVelocity = (CurrentVelocity - Omega * Temp) * Exp;
+	float Output = Target + (Change + Temp) * Exp;
+
+	if (((OriginalTarget - Current) > 0.0f) == (Output > OriginalTarget))
+	{
+		Output = OriginalTarget;
+		CurrentVelocity = (Output - OriginalTarget) / DeltaSeconds;
+	}
+	return Output;
+}
+
+FVector AOrbitCameraBase::SmoothDampVector(const FVector& Current, const FVector& Target, FVector& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed) const
+{
+	FVector Result;
+	Result.X = SmoothDampFloat(Current.X, Target.X, CurrentVelocity.X, SmoothTime, DeltaSeconds, MaxSpeed);
+	Result.Y = SmoothDampFloat(Current.Y, Target.Y, CurrentVelocity.Y, SmoothTime, DeltaSeconds, MaxSpeed);
+	Result.Z = SmoothDampFloat(Current.Z, Target.Z, CurrentVelocity.Z, SmoothTime, DeltaSeconds, MaxSpeed);
+	return Result;
+}
+
+void AOrbitCameraBase::UpdateCollisionSoftSolve(float DeltaSeconds)
+{
+	if (!GetWorld() || !OrbitRoot || !CineCamRef)
+	{
+		return;
+	}
+
+	const FVector Start = OrbitRoot->GetComponentLocation();
+	const FVector DesiredCameraPos = OrbitRoot->GetComponentLocation() - (OrbitRoot->GetForwardVector() * Internal_TargetDistance);
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(OrbitCameraCollision), false, this);
+	const bool bBlockingHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, DesiredCameraPos, ECC_Camera, Params);
+
+	if (bBlockingHit)
+	{
+		const float SafeDistance = FMath::Max(MinDistance, Hit.Distance - 8.0f);
+		Internal_TargetDistance = FMath::FInterpTo(Internal_TargetDistance, SafeDistance, DeltaSeconds, 10.0f);
+	}
 }
 
 void AOrbitCameraBase::ClampOrbitRootToBounds()
