@@ -2,8 +2,6 @@
 
 #pragma once
 
-// OrbitCameraSystem includes
-
 // Unreal Includes
 #include "CoreMinimal.h"
 #include "CineCameraActor.h"
@@ -12,13 +10,13 @@
 
 #include "OrbitCameraBase.generated.h"
 
-class USpringArmComponent;
+class UBoxComponent;
 class UCineCameraComponent;
+class UCurveFloat;
 
 DECLARE_LOG_CATEGORY_EXTERN(OrbitCamera, Log, All);
 
 //////////////////////////////////////////////////////////////////////////
-
 
 // Defines a OrbitCamera. Holds Transformations, Zoom and FOV values
 USTRUCT(BlueprintType)
@@ -62,6 +60,9 @@ enum class EOrbitCameraFocus : uint8
 	//Automatically finds the nearest Surface
 	OC_AutoFocus UMETA(DisplayName = "AutoFocus"),
 
+	// Use explicit target actor/component if available
+	OC_TargetActor UMETA(DisplayName = "TargetActor"),
+
 	//Use CineCamera settings
 	Off UMETA(DisplayName = "Off"),
 };
@@ -75,8 +76,78 @@ enum class EEditorPositionPreview : uint8
 	OC_Max UMETA(DisplayName = "Max"),
 };
 
+UENUM(BlueprintType)
+enum class EOrbitTransitionEasing : uint8
+{
+	Linear = 0 UMETA(DisplayName = "Linear"),
+	EaseInOut UMETA(DisplayName = "EaseInOut"),
+	CubicInOut UMETA(DisplayName = "CubicInOut"),
+	ExpoInOut UMETA(DisplayName = "ExpoInOut"),
+	CustomCurve UMETA(DisplayName = "CustomCurve"),
+};
+
+UENUM(BlueprintType)
+enum class EOrbitComfortProfile : uint8
+{
+	Cinematic = 0 UMETA(DisplayName = "Cinematic"),
+	Comfort UMETA(DisplayName = "Comfort"),
+	Snappy UMETA(DisplayName = "Snappy"),
+	Custom UMETA(DisplayName = "Custom"),
+};
+
+USTRUCT(BlueprintType)
+struct FOrbitTransitionParams
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float Duration = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	EOrbitTransitionEasing Easing = EOrbitTransitionEasing::EaseInOut;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	TObjectPtr<UCurveFloat> CustomCurve = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	bool bBlendFocusDistance = true;
+};
+
+USTRUCT(BlueprintType)
+struct FOrbitInputTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float OrbitSensitivityYaw = 0.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float OrbitSensitivityPitch = 0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float PanSensitivity = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ZoomSensitivity = 40.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float BoundaryDampingStrength = 0.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float MaxAngularVelocity = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float AngularAcceleration = 540.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float LookAheadStrength = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float LookAheadMaxDistance = 45.0f;
+};
+
 /**
- *
+ * Orbit camera base actor with transition, focus and optional bounds clamping.
  */
 UCLASS()
 class ORBITCAMERASYSTEM_API AOrbitCameraBase : public ACineCameraActor
@@ -87,12 +158,14 @@ public:
 	// constructor
 	AOrbitCameraBase(const FObjectInitializer& ObjectInitializer);
 
-
 #pragma region Defaults
 
 	//Holds the Cameras Scenes Name
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Defaults")
 	FName CameraId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input")
+	FOrbitInputTuning InputTuning;
 
 #pragma endregion
 
@@ -124,7 +197,7 @@ public:
 
 	//Yaw Editor Preview
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "OrbitCamera|Rotation")
-	EEditorPositionPreview YawPreview;
+	EEditorPositionPreview YawPreview = EEditorPositionPreview::OC_Initial;
 
 	//Minimal Yaw Rotation Limit in Degrees
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Rotation",
@@ -143,12 +216,12 @@ public:
 
 	//Pitch  Editor Preview
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Rotation")
-	EEditorPositionPreview PitchPreview;
+	EEditorPositionPreview PitchPreview = EEditorPositionPreview::OC_Initial;
 
 	//Minimal Pitch Rotation Limit in Degrees
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Rotation",
 		meta = (ExposeOnSpawn = "true", ClampMin = "-90.0", ClampMax = "90.0", UIMin = "-90.0", UIMax = "90.0"))
-	float MinPitch = 90.0f;
+	float MinPitch = -90.0f;
 
 	//Initial Pitch Rotation in Degrees
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Rotation",
@@ -158,14 +231,12 @@ public:
 	//Maximal Pitch Rotation Limit in Degrees
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Rotation",
 		meta = (ExposeOnSpawn = "true", ClampMin = "-90.0", ClampMax = "90.0", UIMin = "-90.0", UIMax = "90.0"))
-	float MaxPitch = -90.0f;
+	float MaxPitch = 90.0f;
 
 	//Initial Roll in Degrees
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Rotation",
 		meta = (ExposeOnSpawn = "true", ClampMin = "-180.0", ClampMax = "180.0", UIMin = "-180.0", UIMax = "180.0"))
 	float InitialRoll = 0.0f;
-
-	// Internals
 
 	//Holds the rotation interpolation speed, this can change dynamically
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "OrbitCamera|Rotation",
@@ -186,7 +257,7 @@ public:
 
 	//Zoom Editor Preview. (for FocalLength preview is inverted Max <=> Min)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom")
-	EEditorPositionPreview ZoomPreview;
+	EEditorPositionPreview ZoomPreview = EEditorPositionPreview::OC_Initial;
 
 	//Minimal Distance Limit in Meters
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom",
@@ -203,7 +274,6 @@ public:
 		meta = (ExposeOnSpawn = "true", ClampMin = "0", UIMin = "0"))
 	float MaxDistance = 500.0f;
 
-
 	//Minimal FocalLength Limit
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom",
 		meta = (ExposeOnSpawn = "true", ClampMin = "0", UIMin = "0"))
@@ -219,31 +289,29 @@ public:
 		meta = (ExposeOnSpawn = "true", ClampMin = "0", UIMin = "0"))
 	float MaxFocalLength = 50.0f;
 
-	//internals
-
 	//Holds the Distance (Dolly) interpolation Speed, this can change dynamically
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "OrbitCamera|Zoom", meta = (ClampMin = "0", UIMin = "0"))
-	float Internal_DistanceInterpolationSpeed = 10.0;
+	float Internal_DistanceInterpolationSpeed = 10.0f;
 
 	//Holds the Zoom/FocalLength interpolation Speed, this can change dynamically
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "OrbitCamera|Zoom", meta = (ClampMin = "0", UIMin = "0"))
-	float Internal_ZoomInterpolationSpeed = 10.0;
+	float Internal_ZoomInterpolationSpeed = 10.0f;
 
 	//Holds the target Distance
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom", meta = (ClampMin = "0", UIMin = "0"))
-	float Internal_TargetDistance;
+	float Internal_TargetDistance = 300.0f;
 
 	//Holds current Distance
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom", meta = (ClampMin = "0", UIMin = "0"))
-	float Internal_CurrentDistance;
+	float Internal_CurrentDistance = 300.0f;
 
 	//Holds the target Distance
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom", meta = (ClampMin = "0", UIMin = "0"))
-	float Internal_TargetFocalLength;
+	float Internal_TargetFocalLength = 35.0f;
 
 	//Holds current FocalLength
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom", meta = (ClampMin = "0", UIMin = "0"))
-	float Internal_CurrentFocalLength;
+	float Internal_CurrentFocalLength = 35.0f;
 
 #pragma endregion
 
@@ -251,34 +319,49 @@ public:
 
 	//Sets the Focus behavior.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ExposeOnSpawn = "true"))
-	EOrbitCameraFocus FocusBehavior;
+	EOrbitCameraFocus FocusBehavior = EOrbitCameraFocus::OC_FocusOrigin;
 
 	//Will add this value to FocalDistance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
 		meta = (ExposeOnSpawn = "true", UIMin = "-100.0", UIMax = "100.0"))
-	float FocusOffset;
+	float FocusOffset = 0.0f;
 
 	//This defines the tolerance for finding objects to focus on
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
 		meta = (ClampMin = "0", UIMin = "0.0", UIMax = "25.0"))
 	float AutoFocus_TraceRadius = 10.0f;
 
-	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
 		meta = (ClampMin = "0", UIMin = "0.0", UIMax = "100.0"))
-	float MinAutoFocusDistance = 1.0f;
+	float MinAutoFocusDistance = 10.0f;
 
-	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
-		meta = (ClampMin = "0", UIMin = "0.0", UIMax = "1000.0"))
-	float MaxAutoFocusDistance = 1000.0f;
+		meta = (ClampMin = "0", UIMin = "0.0", UIMax = "100000.0"))
+	float MaxAutoFocusDistance = 10000.0f;
 
 	//Defines how fast the Focus can change. Higher values == faster
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
 		meta = (ClampMin = "0", ClampMax = "100", UIMin = "1", UIMax = "20"))
 	float AutoFocus_InterpolationSpeed = 5.0f;
 
-	//Sets the Objects to Focus on, only applies if FocusBehavior == AutoFocus. See ProjectSettings/Collisions for Object Types.
+	//Separate smoothing for reducing focus distance (helps avoid hunting when target comes closer quickly).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
+		meta = (ClampMin = "0", ClampMax = "100", UIMin = "1", UIMax = "20"))
+	float AutoFocus_InterpolationSpeedIn = 8.0f;
+
+	//Separate smoothing for extending focus distance.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
+		meta = (ClampMin = "0", ClampMax = "100", UIMin = "1", UIMax = "20"))
+	float AutoFocus_InterpolationSpeedOut = 4.0f;
+
+	//Focus deadzone in cm used to reduce micro jitter.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusDeadzone = 8.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
+	TObjectPtr<AActor> FocusTargetActor = nullptr;
+
+	//Sets the Objects to Focus on, only applies if FocusBehavior == AutoFocus.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "OrbitCamera|Focus")
 	TArray<TEnumAsByte<EObjectTypeQuery>> FocusOnObjectTypes;
 
@@ -286,11 +369,31 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, AdvancedDisplay, Category = "OrbitCamera|Focus")
 	bool bUseComplexCollisions = true;
 
-	// Internals
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
+	bool bDrawDebugFocus = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusSwitchThreshold = 40.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusTargetHoldSeconds = 0.2f;
 
 	//
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
-	float Internal_TargetFocusDistance;
+	float Internal_TargetFocusDistance = 250.0f;
+
+#pragma endregion
+
+#pragma region Transition
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	FOrbitTransitionParams DefaultTransitionParams;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	EOrbitComfortProfile ComfortProfile = EOrbitComfortProfile::Comfort;
+
+	UPROPERTY(BlueprintReadOnly, Category = "OrbitCamera|Transition")
+	bool bTransitionInProgress = false;
 
 #pragma endregion
 
@@ -324,9 +427,33 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Internal")
 	class USceneComponent* OrbitRoot;
 
-	// Will be ture if you are in Editor mode / not in any Play mode / not at runtime
+	// Will be true if you are in Editor mode / not in any Play mode / not at runtime
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Internal", meta = (WorldContext = "WorldContextObject"))
 	bool IsInEditorMode(UObject* WorldContextObject);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
+	void AddOrbitInput(float DeltaYaw, float DeltaPitch);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
+	void AddPanInput(float Right, float Up);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
+	void AddZoomInput(float DeltaZoom);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
+	void StartTransitionToDefinition(const FOrbitCameraDefinition& Definition, const FOrbitTransitionParams& Params);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
+	void CancelTransition(bool bSnapToTarget);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
+	void ApplyComfortProfile(EOrbitComfortProfile NewProfile);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|State")
+	FOrbitCameraDefinition GetCurrentDefinition() const;
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|State")
+	void SetFocusTargetActor(AActor* NewFocusTarget);
 
 #if WITH_EDITOR
 
@@ -354,4 +481,30 @@ protected:
 private:
 	void ClampOrbitRootToBounds();
 	void ClampCameraToBounds();
+	void ValidateAndNormalizeSettings();
+	void InitializeRuntimeStateFromDefaults();
+	void UpdateRuntimeState(float DeltaSeconds);
+	void UpdateFocus(float DeltaSeconds);
+	float EvaluateTransitionAlpha(float RawAlpha, const FOrbitTransitionParams& Params) const;
+	float ComputeAutoFocusDistance(float FallbackDistance) const;
+	float ApplyBoundaryDamping(float Value, float MinValue, float MaxValue) const;
+	float SmoothDampFloat(float Current, float Target, float& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed = 100000.0f) const;
+	FVector SmoothDampVector(const FVector& Current, const FVector& Target, FVector3f& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed = 100000.0f) const;
+	void UpdateCollisionSoftSolve(float DeltaSeconds);
+
+	FOrbitCameraDefinition TransitionStart;
+	FOrbitCameraDefinition TransitionTarget;
+	FOrbitTransitionParams TransitionParams;
+	float TransitionElapsed = 0.0f;
+	FVector3f Internal_LocationVelocity = FVector3f::ZeroVector;
+	float Internal_DistanceVelocity = 0.0f;
+	float Internal_FocalVelocity = 0.0f;
+	float Internal_FocusVelocity = 0.0f;
+	FVector Internal_LookAheadOffset = FVector::ZeroVector;
+	float Internal_YawVelocity = 0.0f;
+	float Internal_PitchVelocity = 0.0f;
+	float PendingYawInput = 0.0f;
+	float PendingPitchInput = 0.0f;
+	float LastStableAutoFocusDistance = 0.0f;
+	float FocusHoldTimer = 0.0f;
 };
