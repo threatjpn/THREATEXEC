@@ -9,6 +9,7 @@
 - `AOrbitCameraBase` - orbit/cinematic camera actor with runtime smoothing, transitions, DOF focus behaviors, and optional bounds clamping.
 - `AOrbitCameraManagerBase` - lightweight manager pawn for switching between orbit cameras and walking mode.
 - `AOrbitWalkingPawn` - simple movement pawn for walk/fly style exploration with optional bounds clamping.
+- `AOrbitCameraPlayerController` - optional drop-in player controller that auto-binds default orbit/pan/zoom/toggle-walk input names and removes most Blueprint input wiring.
 
 ---
 
@@ -47,6 +48,16 @@ For runtime camera control, set player view target to your orbit camera or use m
 - `TransitionToCamera(...)`
 - `EnterWalkingMode(...)`
 - `ExitWalkingMode(...)`
+
+### Optional: zero-graph input setup
+If you want default behavior without building your own input graph:
+
+1. Set GameMode PlayerController class to `AOrbitCameraPlayerController` (or BP child).
+2. Ensure input mapping names exist:
+   - Actions: `OrbitDrag`, `PanDrag`, `ToggleWalk`
+   - Axes: `OrbitYaw`, `OrbitPitch`, `PanX`, `PanY`, `Zoom`
+3. On BeginPlay the controller auto-finds camera/manager and sets view target.
+4. Drag/scroll/toggle are handled automatically by C++ bindings.
 
 ---
 
