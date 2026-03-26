@@ -11,6 +11,8 @@
 
 #include "OrbitCameraManagerBase.generated.h"
 
+class AOrbitWalkingPawn;
+
 //////////////////////////////////////////////////////////////////////////
 
 // Defines the Transition for selecting an OrbitCamera
@@ -33,6 +35,13 @@ enum class ETransitionState : uint8
 
 	//Transition is in Progress
 	Transition_InProgress UMETA(DisplayName = "InProgress"),
+};
+
+UENUM(BlueprintType)
+enum class EOrbitCameraMode : uint8
+{
+	Orbit = 0 UMETA(DisplayName = "Orbit"),
+	Walking UMETA(DisplayName = "Walking"),
 };
 
 // Holds OrbitCamera Tags
@@ -76,7 +85,31 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Internal|Transition")
 	FOrbitCameraDefinition CurrentCameraDefinition;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	FOrbitTransitionParams TransitionParams;
+
 #pragma endregion
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera")
+	TObjectPtr<AOrbitCameraBase> ActiveOrbitCamera = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Modes")
+	TSubclassOf<AOrbitWalkingPawn> WalkingPawnClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = "OrbitCamera|Modes")
+	TObjectPtr<AOrbitWalkingPawn> WalkingPawn = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "OrbitCamera|Modes")
+	EOrbitCameraMode ActiveMode = EOrbitCameraMode::Orbit;
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
+	bool TransitionToCamera(AOrbitCameraBase* TargetCamera, EOrbitCameraTransition TransitionType = EOrbitCameraTransition::OC_Transition);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Modes")
+	bool EnterWalkingMode(bool bMatchCurrentCamera = true);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Modes")
+	bool ExitWalkingMode(bool bMatchWalkCameraToOrbit = true);
 
 protected:
 	// Called when the game starts or when spawned
