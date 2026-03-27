@@ -14,6 +14,7 @@
 
 class USpringArmComponent;
 class UCineCameraComponent;
+struct FPropertyChangedEvent;
 
 DECLARE_LOG_CATEGORY_EXTERN(OrbitCamera, Log, All);
 
@@ -64,6 +65,40 @@ enum class EOrbitCameraFocus : uint8
 
 	//Use CineCamera settings
 	Off UMETA(DisplayName = "Off"),
+};
+
+// High-level depth of field presets for quick setup.
+UENUM(BlueprintType)
+enum class EOrbitCameraDOFPreset : uint8
+{
+	OC_DOF_Cinematic = 0 UMETA(DisplayName = "Cinematic"),
+	OC_DOF_Gameplay UMETA(DisplayName = "Gameplay"),
+	OC_DOF_Portrait UMETA(DisplayName = "Portrait"),
+	OC_DOF_Macro UMETA(DisplayName = "Macro"),
+	OC_DOF_Off UMETA(DisplayName = "Off"),
+	OC_DOF_Custom UMETA(DisplayName = "Custom"),
+};
+
+USTRUCT(BlueprintType)
+struct FOrbitCameraDOFSettings
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	float Aperture = 2.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	float FocalLength = 50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	float FocusOffset = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusSmoothing = 8.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bUseAutoFocus = true;
 };
 
 // Editor Preview Modes for Visualisation purposes
@@ -278,6 +313,47 @@ public:
 		meta = (ClampMin = "0", ClampMax = "100", UIMin = "1", UIMax = "20"))
 	float AutoFocus_InterpolationSpeed = 5.0f;
 
+	// Additional offset used from camera origin for autofocus traces.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (UIMin = "-100.0", UIMax = "100.0"))
+	FVector AutoFocus_TraceStartOffset = FVector::ZeroVector;
+
+	// If true, autofocus will sample additional nearby rays to reduce single-hit jitter.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
+	bool bUseAutoFocusMultiSample = true;
+
+	// Lateral spacing (in cm) between multi-sample autofocus traces.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
+		meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "50.0", EditCondition = "bUseAutoFocusMultiSample"))
+	float AutoFocus_MultiSampleSpread = 12.0f;
+
+	// If focus target distance changes less than this threshold, keep previous target to avoid micro-jitter.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
+		meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100.0"))
+	float AutoFocus_DeadZone = 2.5f;
+
+	// Hold the last valid hit distance for this long before falling back when traces miss.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
+		meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "2.0"))
+	float AutoFocus_LostTargetHoldTime = 0.2f;
+
+	// Enable adaptive interpolation speed based on how far the focus target moved.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
+	bool bUseAdaptiveAutoFocusSpeed = true;
+
+	// Minimum interpolation speed used by adaptive autofocus.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
+		meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100.0", EditCondition = "bUseAdaptiveAutoFocusSpeed"))
+	float AutoFocus_MinInterpolationSpeed = 3.0f;
+
+	// Maximum interpolation speed used by adaptive autofocus.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus",
+		meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "200.0", EditCondition = "bUseAdaptiveAutoFocusSpeed"))
+	float AutoFocus_MaxInterpolationSpeed = 14.0f;
+
+	// If true autofocus will fallback to current distance when no hit is found.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
+	bool bAutoFocusFallbackToDistance = true;
+
 	//Sets the Objects to Focus on, only applies if FocusBehavior == AutoFocus. See ProjectSettings/Collisions for Object Types.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "OrbitCamera|Focus")
 	TArray<TEnumAsByte<EObjectTypeQuery>> FocusOnObjectTypes;
@@ -291,6 +367,51 @@ public:
 	//
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
 	float Internal_TargetFocusDistance;
+
+	//
+	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
+	float Internal_LastValidFocusDistance = 0.0f;
+
+	//
+	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
+	float Internal_AutoFocusLostTime = 0.0f;
+
+#pragma endregion
+
+#pragma region DOF
+
+	// Enables the advanced preset-based DOF stack.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bEnableAdvancedDOF = true;
+
+	// Quick preset selector.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (EditCondition = "bEnableAdvancedDOF"))
+	EOrbitCameraDOFPreset DOFPreset = EOrbitCameraDOFPreset::OC_DOF_Cinematic;
+
+	// If true, DOF values smoothly interpolate when presets/settings change.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (EditCondition = "bEnableAdvancedDOF"))
+	bool bSmoothDOFTransitions = true;
+
+	// Interpolation speed for aperture and focal length transitions.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bEnableAdvancedDOF && bSmoothDOFTransitions"))
+	float DOFTransitionSpeed = 5.0f;
+
+	// Preset definitions.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings CinematicDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings GameplayDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings PortraitDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings MacroDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings CustomDOF;
 
 #pragma endregion
 
@@ -339,11 +460,22 @@ protected:
 	// We clamp after everything else moved the root this frame.
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void OnConstruction(const FTransform& Transform) override;
+
+public:
+	// Applies current slider values (Initial/Min/Max previews) to the actor and camera components.
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "OrbitCamera|Setup")
+	void ApplyPlacementFromSettings();
+
+	// Reads the actor's current component transform and stores it into Initial* values for easy authoring.
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "OrbitCamera|Setup")
+	void CaptureCurrentPlacementAsInitial();
 
 #if WITH_EDITOR
 
 	FDelegateHandle OnSelectionChangedDelegateHandle;
 	virtual void PostRegisterAllComponents() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void BeginDestroy() override;
 
 	//indicates if the Camera was selected in Editor. Is used to identify deselection
@@ -352,6 +484,10 @@ protected:
 #endif
 
 private:
+	float ResolvePreviewValue(EEditorPositionPreview PreviewMode, float MinValue, float InitialValue, float MaxValue) const;
 	void ClampOrbitRootToBounds();
 	void ClampCameraToBounds();
+	void UpdateAutoFocus(float DeltaSeconds);
+	void UpdateDepthOfField(float DeltaSeconds);
+	const FOrbitCameraDOFSettings& ResolveDOFSettings() const;
 };
