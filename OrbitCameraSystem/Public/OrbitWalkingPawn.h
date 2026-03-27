@@ -21,6 +21,12 @@ public:
 	float MoveSpeed = 600.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walk")
+	float SprintMultiplier = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walk")
+	float SlowMultiplier = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walk")
 	float LookSensitivityYaw = 1.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walk")
@@ -31,6 +37,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walk")
 	float MaxPitch = 80.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walk")
+	bool bEnableVerticalMovement = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walk")
+	bool bUseCameraRelativeVerticalMovement = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Walk")
 	TObjectPtr<UCameraComponent> CameraComponent;
@@ -50,6 +62,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Walk|Bounds")
 	void ConfigureMovementBounds(bool bEnableBounds, AActor* InBoundsActor, float InBoundsPadding);
 
+	UFUNCTION(BlueprintCallable, Category = "Walk")
+	void SetSprintActive(bool bActive);
+
+	UFUNCTION(BlueprintCallable, Category = "Walk")
+	void SetSlowWalkActive(bool bActive);
+
 	virtual UPawnMovementComponent* GetMovementComponent() const override;
 
 protected:
@@ -64,7 +82,15 @@ private:
 
 	void MoveForward(float Value);
 	void MoveRight(float Value);
+	void MoveUp(float Value);
 	void LookYaw(float Value);
 	void LookPitchInput(float Value);
 	void ClampActorToBounds();
+	void OnSprintPressed();
+	void OnSprintReleased();
+	void OnSlowPressed();
+	void OnSlowReleased();
+
+	bool bSprintActive = false;
+	bool bSlowActive = false;
 };
