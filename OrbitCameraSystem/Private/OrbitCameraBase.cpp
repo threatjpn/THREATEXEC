@@ -35,8 +35,42 @@ void AOrbitCameraBase::BeginPlay()
 	Super::BeginPlay();
 	ValidateAndNormalizeSettings();
 	ApplyComfortProfile(ComfortProfile);
+	ApplyDOFPreset(DOFPreset);
 	InitializeRuntimeStateFromDefaults();
 	ClampOrbitRootToBounds();
+}
+
+void AOrbitCameraBase::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	if (!OrbitRoot || !CineCamRef)
+	{
+		return;
+	}
+
+	ValidateAndNormalizeSettings();
+	ApplyDOFPreset(DOFPreset);
+
+	if (bUseActorTransformForInitialState)
+	{
+		const FVector ActorLocation = GetActorLocation();
+		const FRotator ActorRotation = GetActorRotation();
+
+		OrbitRoot->SetWorldLocation(ActorLocation);
+		if (bLockInitialRotationToActorTransform)
+		{
+			OrbitRoot->SetWorldRotation(ActorRotation);
+		}
+		else
+		{
+			OrbitRoot->SetWorldRotation(FRotator(InitialPitch, InitialYaw, InitialRoll));
+		}
+	}
+
+	CineCamRef->SetRelativeLocation(FVector(-InitialDistance, 0.0f, 0.0f));
+	CineCamRef->CurrentFocalLength = InitialFocalLength;
+	CineCamRef->CurrentAperture = TargetAperture;
 }
 
 void AOrbitCameraBase::Tick(float DeltaSeconds)
@@ -48,6 +82,24 @@ void AOrbitCameraBase::Tick(float DeltaSeconds)
 
 void AOrbitCameraBase::ValidateAndNormalizeSettings()
 {
+	switch (PlacementMode)
+	{
+	case EOrbitPlacementMode::ViewportTransform:
+		bUseActorTransformForInitialState = true;
+		bLockInitialRotationToActorTransform = true;
+		break;
+	case EOrbitPlacementMode::HybridActorLocationManualRotation:
+		bUseActorTransformForInitialState = true;
+		bLockInitialRotationToActorTransform = false;
+		break;
+	case EOrbitPlacementMode::ManualInitialValues:
+		bUseActorTransformForInitialState = false;
+		bLockInitialRotationToActorTransform = false;
+		break;
+	default:
+		break;
+	}
+
 	if (MinYaw > MaxYaw)
 	{
 		Swap(MinYaw, MaxYaw);
@@ -80,6 +132,19 @@ void AOrbitCameraBase::ValidateAndNormalizeSettings()
 	Internal_ZoomInterpolationSpeed = FMath::Max(0.0f, Internal_ZoomInterpolationSpeed);
 
 	FocusDeadzone = FMath::Max(0.0f, FocusDeadzone);
+	FocusMaxStepPerSecond = FMath::Max(0.0f, FocusMaxStepPerSecond);
+	FocusPredictionLeadSeconds = FMath::Max(0.0f, FocusPredictionLeadSeconds);
+	MinAperture = FMath::Clamp(MinAperture, 0.7f, 32.0f);
+	MaxAperture = FMath::Clamp(MaxAperture, 0.7f, 32.0f);
+	if (MinAperture > MaxAperture)
+	{
+		Swap(MinAperture, MaxAperture);
+	}
+	TargetAperture = FMath::Clamp(TargetAperture, MinAperture, MaxAperture);
+	AutoApertureNearDistance = FMath::Max(0.0f, AutoApertureNearDistance);
+	AutoApertureFarDistance = FMath::Max(AutoApertureNearDistance + 1.0f, AutoApertureFarDistance);
+	ApertureInterpolationSpeed = FMath::Max(0.0f, ApertureInterpolationSpeed);
+	CineFocusSmoothingInterpSpeed = FMath::Max(0.0f, CineFocusSmoothingInterpSpeed);
 }
 
 void AOrbitCameraBase::InitializeRuntimeStateFromDefaults()
@@ -90,10 +155,23 @@ void AOrbitCameraBase::InitializeRuntimeStateFromDefaults()
 	}
 
 	Internal_InitalLocation = OrbitRoot->GetComponentLocation();
+	if (bUseActorTransformForInitialState)
+	{
+		Internal_InitalLocation = GetActorLocation();
+		OrbitRoot->SetWorldLocation(Internal_InitalLocation);
+	}
 	Internal_TargetLocation = Internal_InitalLocation;
 	Internal_CurrentLocation = Internal_InitalLocation;
 
 	Internal_TargetRotation = FRotator(InitialPitch, InitialYaw, InitialRoll);
+	if (bUseActorTransformForInitialState && bLockInitialRotationToActorTransform)
+	{
+		const FRotator ActorRot = GetActorRotation();
+		Internal_TargetRotation = FRotator(
+			FMath::Clamp(ActorRot.Pitch, MinPitch, MaxPitch),
+			FMath::Clamp(ActorRot.Yaw, MinYaw, MaxYaw),
+			ActorRot.Roll);
+	}
 	Internal_CurrentRotation = Internal_TargetRotation;
 	OrbitRoot->SetWorldRotation(Internal_CurrentRotation);
 
@@ -109,6 +187,7 @@ void AOrbitCameraBase::InitializeRuntimeStateFromDefaults()
 	LastStableAutoFocusDistance = Internal_TargetFocusDistance;
 	CineCamRef->FocusSettings.FocusMethod = ECameraFocusMethod::Manual;
 	CineCamRef->FocusSettings.ManualFocusDistance = Internal_TargetFocusDistance;
+	CineCamRef->CurrentAperture = TargetAperture;
 }
 
 void AOrbitCameraBase::UpdateRuntimeState(float DeltaSeconds)
@@ -203,19 +282,20 @@ void AOrbitCameraBase::UpdateFocus(float DeltaSeconds)
 
 	const FVector CameraLocation = CineCamRef->GetComponentLocation();
 	float DesiredFocusDistance = Internal_TargetFocusDistance;
+	const float PredictedTravelOffset = Internal_LocationVelocity.Size() * FocusPredictionLeadSeconds;
 
 	switch (FocusBehavior)
 	{
 	case EOrbitCameraFocus::OC_FocusOrigin:
-		DesiredFocusDistance = FVector::Distance(CameraLocation, OrbitRoot->GetComponentLocation());
+		DesiredFocusDistance = FVector::Distance(CameraLocation, OrbitRoot->GetComponentLocation()) + PredictedTravelOffset;
 		break;
 	case EOrbitCameraFocus::OC_AutoFocus:
-		DesiredFocusDistance = ComputeAutoFocusDistance(FVector::Distance(CameraLocation, OrbitRoot->GetComponentLocation()));
+		DesiredFocusDistance = ComputeAutoFocusDistance(FVector::Distance(CameraLocation, OrbitRoot->GetComponentLocation()) + PredictedTravelOffset);
 		break;
 	case EOrbitCameraFocus::OC_TargetActor:
 		if (IsValid(FocusTargetActor))
 		{
-			DesiredFocusDistance = FVector::Distance(CameraLocation, FocusTargetActor->GetActorLocation());
+			DesiredFocusDistance = FVector::Distance(CameraLocation, FocusTargetActor->GetActorLocation()) + PredictedTravelOffset;
 		}
 		break;
 	default:
@@ -259,8 +339,18 @@ void AOrbitCameraBase::UpdateFocus(float DeltaSeconds)
 		1.0f / FMath::Max(1.0f, Speed),
 		DeltaSeconds);
 
+	if (FocusMaxStepPerSecond > 0.0f)
+	{
+		const float MaxStep = FocusMaxStepPerSecond * DeltaSeconds;
+		Internal_TargetFocusDistance = FMath::Clamp(
+			Internal_TargetFocusDistance,
+			CineCamRef->FocusSettings.ManualFocusDistance - MaxStep,
+			CineCamRef->FocusSettings.ManualFocusDistance + MaxStep);
+	}
+
 	CineCamRef->FocusSettings.FocusMethod = ECameraFocusMethod::Manual;
 	CineCamRef->FocusSettings.ManualFocusDistance = Internal_TargetFocusDistance;
+	UpdateDepthOfField(DeltaSeconds, Internal_TargetFocusDistance);
 
 	if (bDrawDebugFocus)
 	{
@@ -268,6 +358,46 @@ void AOrbitCameraBase::UpdateFocus(float DeltaSeconds)
 		DrawDebugLine(GetWorld(), CameraLocation, End, FColor::Cyan, false, -1.0f, 0, 1.5f);
 		DrawDebugSphere(GetWorld(), End, 8.0f, 8, FColor::Yellow, false, -1.0f);
 	}
+}
+
+void AOrbitCameraBase::UpdateDepthOfField(float DeltaSeconds, float BaseFocusDistance)
+{
+	if (!CineCamRef)
+	{
+		return;
+	}
+
+	if (!bEnableDepthOfField)
+	{
+		CineCamRef->FocusSettings.FocusMethod = ECameraFocusMethod::Disable;
+		return;
+	}
+
+	CineCamRef->FocusSettings.FocusMethod = ECameraFocusMethod::Manual;
+
+	CineCamRef->FocusSettings.bSmoothFocusChanges = bUseCineSmoothFocusChanges;
+	CineCamRef->FocusSettings.FocusSmoothingInterpSpeed = CineFocusSmoothingInterpSpeed;
+
+	const float FinalFocusDistance = FMath::Clamp(BaseFocusDistance + DOFFocusOffset, MinAutoFocusDistance, MaxAutoFocusDistance);
+	CineCamRef->FocusSettings.ManualFocusDistance = FinalFocusDistance;
+
+	float DesiredAperture = FMath::Clamp(TargetAperture, MinAperture, MaxAperture);
+	if (bAutoApertureByFocusDistance)
+	{
+		const float Alpha = FMath::Clamp(
+			(FinalFocusDistance - AutoApertureNearDistance) / FMath::Max(1.0f, AutoApertureFarDistance - AutoApertureNearDistance),
+			0.0f,
+			1.0f);
+
+		// Near target -> lower f-stop (shallower DOF), far target -> higher f-stop.
+		DesiredAperture = FMath::Lerp(MinAperture, MaxAperture, Alpha);
+	}
+
+	CineCamRef->CurrentAperture = FMath::FInterpTo(
+		CineCamRef->CurrentAperture,
+		DesiredAperture,
+		DeltaSeconds,
+		ApertureInterpolationSpeed);
 }
 
 float AOrbitCameraBase::ComputeAutoFocusDistance(float FallbackDistance) const
@@ -375,6 +505,106 @@ void AOrbitCameraBase::AddZoomInput(float DeltaZoom)
 	Internal_TargetFocalLength = FMath::Lerp(MinFocalLength, MaxFocalLength, ZoomRatio);
 }
 
+void AOrbitCameraBase::AddOrbitInputScaled(float DeltaYaw, float DeltaPitch, float SensitivityScale)
+{
+	AddOrbitInput(DeltaYaw * SensitivityScale, DeltaPitch * SensitivityScale);
+}
+
+void AOrbitCameraBase::AddPanInputWorld(const FVector& WorldOffset)
+{
+	Internal_TargetLocation += WorldOffset;
+}
+
+void AOrbitCameraBase::RotateCamera(float DeltaYaw, float DeltaPitch)
+{
+	AddOrbitInput(DeltaYaw, DeltaPitch);
+}
+
+void AOrbitCameraBase::DollyCamera(float DeltaDistance)
+{
+	Internal_TargetDistance = FMath::Clamp(Internal_TargetDistance + DeltaDistance, MinDistance, MaxDistance);
+	const float ZoomRatio = (MaxDistance > MinDistance)
+		? (Internal_TargetDistance - MinDistance) / (MaxDistance - MinDistance)
+		: 0.0f;
+	Internal_TargetFocalLength = FMath::Lerp(MinFocalLength, MaxFocalLength, ZoomRatio);
+}
+
+void AOrbitCameraBase::PanCamera(float Right, float Up)
+{
+	AddPanInput(Right, Up);
+}
+
+void AOrbitCameraBase::ZoomCamera(float DeltaZoom)
+{
+	AddZoomInput(DeltaZoom);
+}
+
+void AOrbitCameraBase::ResetCamera(bool bSnapInstantly)
+{
+	Internal_TargetLocation = Internal_InitalLocation;
+	Internal_TargetRotation = FRotator(InitialPitch, InitialYaw, InitialRoll);
+	Internal_TargetDistance = InitialDistance;
+	Internal_TargetFocalLength = InitialFocalLength;
+	Internal_TargetFocusDistance = InitialDistance;
+
+	if (bSnapInstantly)
+	{
+		SnapToCurrentTargetState();
+	}
+}
+
+void AOrbitCameraBase::StopCameraMovement()
+{
+	PendingYawInput = 0.0f;
+	PendingPitchInput = 0.0f;
+	Internal_YawVelocity = 0.0f;
+	Internal_PitchVelocity = 0.0f;
+	Internal_LocationVelocity = FVector3f::ZeroVector;
+	Internal_DistanceVelocity = 0.0f;
+	Internal_FocalVelocity = 0.0f;
+	Internal_FocusVelocity = 0.0f;
+}
+
+void AOrbitCameraBase::FinishCameraMovement()
+{
+	CancelTransition(true);
+	SnapToCurrentTargetState();
+}
+
+void AOrbitCameraBase::SetPositionTarget(const FVector& NewTargetLocation)
+{
+	Internal_TargetLocation = NewTargetLocation;
+}
+
+void AOrbitCameraBase::SetAbsoluteCameraValues(const FOrbitCameraDefinition& Definition, bool bSnapInstantly)
+{
+	Internal_TargetLocation = Definition.Position;
+	Internal_TargetRotation = Definition.Rotation;
+	Internal_TargetDistance = FMath::Clamp(Definition.Distance, MinDistance, MaxDistance);
+	Internal_TargetFocalLength = FMath::Clamp(Definition.Zoom, MinFocalLength, MaxFocalLength);
+	Internal_TargetFocusDistance = FMath::Clamp(Definition.Distance, MinAutoFocusDistance, MaxAutoFocusDistance);
+
+	if (bSnapInstantly)
+	{
+		SnapToCurrentTargetState();
+	}
+}
+
+FOrbitCameraDefinition AOrbitCameraBase::GetAbsoluteCameraValues() const
+{
+	return GetCurrentDefinition();
+}
+
+float AOrbitCameraBase::GetCameraDistance() const
+{
+	return Internal_CurrentDistance;
+}
+
+bool AOrbitCameraBase::IsYawMinMaxRangeOver360() const
+{
+	return FMath::Abs(MaxYaw - MinYaw) >= 359.0f;
+}
+
 void AOrbitCameraBase::StartTransitionToDefinition(const FOrbitCameraDefinition& Definition, const FOrbitTransitionParams& Params)
 {
 	TransitionStart = GetCurrentDefinition();
@@ -464,6 +694,98 @@ void AOrbitCameraBase::SetFocusTargetActor(AActor* NewFocusTarget)
 	FocusTargetActor = NewFocusTarget;
 }
 
+void AOrbitCameraBase::SnapToCurrentTargetState()
+{
+	Internal_CurrentLocation = Internal_TargetLocation;
+	Internal_CurrentRotation = Internal_TargetRotation;
+	Internal_CurrentDistance = Internal_TargetDistance;
+	Internal_CurrentFocalLength = Internal_TargetFocalLength;
+	Internal_LocationVelocity = FVector3f::ZeroVector;
+	Internal_DistanceVelocity = 0.0f;
+	Internal_FocalVelocity = 0.0f;
+
+	if (OrbitRoot)
+	{
+		OrbitRoot->SetWorldLocation(Internal_CurrentLocation);
+		OrbitRoot->SetWorldRotation(Internal_CurrentRotation);
+	}
+
+	if (CineCamRef)
+	{
+		CineCamRef->SetRelativeLocation(FVector(-Internal_CurrentDistance, 0.0f, 0.0f));
+		CineCamRef->CurrentFocalLength = Internal_CurrentFocalLength;
+		CineCamRef->CurrentAperture = TargetAperture;
+	}
+}
+
+void AOrbitCameraBase::SetDepthOfFieldEnabled(bool bEnabled)
+{
+	bEnableDepthOfField = bEnabled;
+	if (!bEnableDepthOfField && CineCamRef)
+	{
+		CineCamRef->FocusSettings.FocusMethod = ECameraFocusMethod::Disable;
+	}
+}
+
+void AOrbitCameraBase::SetDOFPreset(EOrbitDOFPreset NewPreset)
+{
+	ApplyDOFPreset(NewPreset);
+}
+
+void AOrbitCameraBase::SetTargetAperture(float NewAperture)
+{
+	TargetAperture = FMath::Clamp(NewAperture, MinAperture, MaxAperture);
+}
+
+void AOrbitCameraBase::ApplyDOFPreset(EOrbitDOFPreset NewPreset)
+{
+	DOFPreset = NewPreset;
+	if (DOFPreset == EOrbitDOFPreset::Custom)
+	{
+		return;
+	}
+
+	switch (DOFPreset)
+	{
+	case EOrbitDOFPreset::Realistic:
+		MinAperture = 2.8f;
+		MaxAperture = 11.0f;
+		TargetAperture = 5.6f;
+		AutoApertureNearDistance = 150.0f;
+		AutoApertureFarDistance = 2600.0f;
+		ApertureInterpolationSpeed = 4.0f;
+		break;
+	case EOrbitDOFPreset::Cinematic:
+		MinAperture = 1.4f;
+		MaxAperture = 8.0f;
+		TargetAperture = 2.0f;
+		AutoApertureNearDistance = 100.0f;
+		AutoApertureFarDistance = 2200.0f;
+		ApertureInterpolationSpeed = 7.0f;
+		break;
+	case EOrbitDOFPreset::Portrait:
+		MinAperture = 1.2f;
+		MaxAperture = 5.6f;
+		TargetAperture = 1.8f;
+		AutoApertureNearDistance = 80.0f;
+		AutoApertureFarDistance = 1400.0f;
+		ApertureInterpolationSpeed = 8.0f;
+		break;
+	case EOrbitDOFPreset::Macro:
+		MinAperture = 2.8f;
+		MaxAperture = 16.0f;
+		TargetAperture = 8.0f;
+		AutoApertureNearDistance = 40.0f;
+		AutoApertureFarDistance = 700.0f;
+		ApertureInterpolationSpeed = 5.0f;
+		break;
+	default:
+		break;
+	}
+
+	ValidateAndNormalizeSettings();
+}
+
 float AOrbitCameraBase::SmoothDampFloat(float Current, float Target, float& CurrentVelocity, float SmoothTime, float DeltaSeconds, float MaxSpeed) const
 {
 	SmoothTime = FMath::Max(0.0001f, SmoothTime);
@@ -500,7 +822,7 @@ FVector AOrbitCameraBase::SmoothDampVector(const FVector& Current, const FVector
 
 void AOrbitCameraBase::UpdateCollisionSoftSolve(float DeltaSeconds)
 {
-	if (!GetWorld() || !OrbitRoot || !CineCamRef)
+	if (!bEnableCollisionSoftSolve || !GetWorld() || !OrbitRoot || !CineCamRef)
 	{
 		return;
 	}
@@ -552,8 +874,11 @@ void AOrbitCameraBase::ClampOrbitRootToBounds()
 		OrbitRoot->SetWorldLocation(RootClamped, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 
-	// 2) Then clamp the CAMERA position too (this fixes rotate clipping)
-	ClampCameraToBounds();
+	// 2) Optional camera clamping pass (can cause extra correction/snap if enabled).
+	if (bClampCameraPositionToBounds)
+	{
+		ClampCameraToBounds();
+	}
 }
 
 void AOrbitCameraBase::ClampCameraToBounds()

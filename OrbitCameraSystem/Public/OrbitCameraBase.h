@@ -95,6 +95,29 @@ enum class EOrbitComfortProfile : uint8
 	Custom UMETA(DisplayName = "Custom"),
 };
 
+UENUM(BlueprintType)
+enum class EOrbitDOFPreset : uint8
+{
+	Realistic = 0 UMETA(DisplayName = "Realistic"),
+	Cinematic UMETA(DisplayName = "Cinematic"),
+	Portrait UMETA(DisplayName = "Portrait"),
+	Macro UMETA(DisplayName = "Macro"),
+	Custom UMETA(DisplayName = "Custom"),
+};
+
+UENUM(BlueprintType)
+enum class EOrbitPlacementMode : uint8
+{
+	// Use actor transform from viewport for initial location + rotation.
+	ViewportTransform = 0 UMETA(DisplayName = "Viewport Transform"),
+
+	// Use actor location from viewport, but use InitialYaw/InitialPitch/InitialRoll for rotation.
+	HybridActorLocationManualRotation UMETA(DisplayName = "Hybrid: Actor Location + Manual Rotation"),
+
+	// Use InitialYaw/InitialPitch/InitialRoll behavior (manual setup workflow).
+	ManualInitialValues UMETA(DisplayName = "Manual Initial Values"),
+};
+
 USTRUCT(BlueprintType)
 struct FOrbitTransitionParams
 {
@@ -378,6 +401,56 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float FocusTargetHoldSeconds = 0.2f;
 
+	// Max focus change per second; helps avoid sudden autofocus popping on thin geometry hits.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusMaxStepPerSecond = 1200.0f;
+
+	// Optional autofocus prediction (in seconds) based on camera target velocity to reduce lag.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusPredictionLeadSeconds = 0.08f;
+
+	// Master DOF switch for this orbit camera.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bEnableDepthOfField = true;
+
+	// Quick DOF style presets (custom keeps all manual values).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	EOrbitDOFPreset DOFPreset = EOrbitDOFPreset::Realistic;
+
+	// Manual aperture controls.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.7", ClampMax = "32.0", UIMin = "0.7", UIMax = "32.0"))
+	float MinAperture = 1.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.7", ClampMax = "32.0", UIMin = "0.7", UIMax = "32.0"))
+	float MaxAperture = 11.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.7", ClampMax = "32.0", UIMin = "0.7", UIMax = "32.0"))
+	float TargetAperture = 4.0f;
+
+	// Dynamically adjust aperture based on focus distance.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bAutoApertureByFocusDistance = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bAutoApertureByFocusDistance"))
+	float AutoApertureNearDistance = 120.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "1.0", UIMin = "1.0", EditCondition = "bAutoApertureByFocusDistance"))
+	float AutoApertureFarDistance = 2000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ApertureInterpolationSpeed = 6.0f;
+
+	// Extra focus offset used only for DOF calculations.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (UIMin = "-500.0", UIMax = "500.0"))
+	float DOFFocusOffset = 0.0f;
+
+	// Optional smooth focus changes in the cine camera settings (in addition to plugin-side smoothing).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bUseCineSmoothFocusChanges = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bUseCineSmoothFocusChanges"))
+	float CineFocusSmoothingInterpSpeed = 8.0f;
+
 	//
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
 	float Internal_TargetFocusDistance = 250.0f;
@@ -403,6 +476,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds")
 	bool bClampToBounds = false;
 
+	// If enabled, camera component clamping is applied in addition to orbit-root clamping.
+	// Disable for simpler behavior with fewer snap corrections.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds")
+	bool bClampCameraPositionToBounds = false;
+
 	// Set this to your BP_CameraBounds actor (it must have a BoxComponent).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds", meta = (EditCondition = "bClampToBounds"))
 	AActor* CameraBoundsActor = nullptr;
@@ -418,6 +496,23 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Debugging")
 	bool EnableDebugging = false;
+
+	// If true, actor transform in editor is used directly as the initial orbit anchor/rotation.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Setup")
+	bool bUseActorTransformForInitialState = true;
+
+	// When viewport placement mode is enabled, this controls whether actor rotation overrides InitialYaw/InitialPitch.
+	// Disable this if you prefer to edit initial yaw/pitch values manually.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Setup", meta = (EditCondition = "bUseActorTransformForInitialState"))
+	bool bLockInitialRotationToActorTransform = true;
+
+	// User-friendly setup mode. This drives the legacy setup toggles above automatically.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Setup")
+	EOrbitPlacementMode PlacementMode = EOrbitPlacementMode::ViewportTransform;
+
+	// Optional soft collision zoom correction (can feel like zoom snapping if enabled in tight spaces).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom")
+	bool bEnableCollisionSoftSolve = false;
 
 #pragma endregion
 
@@ -440,6 +535,49 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
 	void AddZoomInput(float DeltaZoom);
 
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
+	void AddOrbitInputScaled(float DeltaYaw, float DeltaPitch, float SensitivityScale = 1.0f);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
+	void AddPanInputWorld(const FVector& WorldOffset);
+
+	// Backward-compatible Blueprint API aliases (for existing BP graphs).
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void RotateCamera(float DeltaYaw, float DeltaPitch);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void DollyCamera(float DeltaDistance);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void PanCamera(float Right, float Up);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void ZoomCamera(float DeltaZoom);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void ResetCamera(bool bSnapInstantly = false);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void StopCameraMovement();
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void FinishCameraMovement();
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void SetPositionTarget(const FVector& NewTargetLocation);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void SetAbsoluteCameraValues(const FOrbitCameraDefinition& Definition, bool bSnapInstantly = true);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	FOrbitCameraDefinition GetAbsoluteCameraValues() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "OrbitCamera|Legacy")
+	float GetCameraDistance() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "OrbitCamera|Legacy")
+	bool IsYawMinMaxRangeOver360() const;
+
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
 	void StartTransitionToDefinition(const FOrbitCameraDefinition& Definition, const FOrbitTransitionParams& Params);
 
@@ -455,6 +593,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|State")
 	void SetFocusTargetActor(AActor* NewFocusTarget);
 
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|State")
+	void SnapToCurrentTargetState();
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|DOF")
+	void SetDepthOfFieldEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|DOF")
+	void SetDOFPreset(EOrbitDOFPreset NewPreset);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|DOF")
+	void SetTargetAperture(float NewAperture);
+
 #if WITH_EDITOR
 
 	// InEditor Only ! It will reset the *Preview variables to its inital state.
@@ -466,6 +616,7 @@ protected:
 	// We clamp after everything else moved the root this frame.
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 #if WITH_EDITOR
 
@@ -485,6 +636,8 @@ private:
 	void InitializeRuntimeStateFromDefaults();
 	void UpdateRuntimeState(float DeltaSeconds);
 	void UpdateFocus(float DeltaSeconds);
+	void UpdateDepthOfField(float DeltaSeconds, float BaseFocusDistance);
+	void ApplyDOFPreset(EOrbitDOFPreset NewPreset);
 	float EvaluateTransitionAlpha(float RawAlpha, const FOrbitTransitionParams& Params) const;
 	float ComputeAutoFocusDistance(float FallbackDistance) const;
 	float ApplyBoundaryDamping(float Value, float MinValue, float MaxValue) const;

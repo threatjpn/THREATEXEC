@@ -5,6 +5,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "EngineUtils.h"
 
 // Sets default values
 AOrbitCameraManagerBase::AOrbitCameraManagerBase()
@@ -17,6 +18,8 @@ AOrbitCameraManagerBase::AOrbitCameraManagerBase()
 void AOrbitCameraManagerBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	DiscoverOrbitCamerasIfNeeded();
 
 	if (!ActiveOrbitCamera)
 	{
@@ -37,6 +40,27 @@ void AOrbitCameraManagerBase::Tick(float DeltaTime)
 	if (ActiveOrbitCamera)
 	{
 		CurrentCameraDefinition = ActiveOrbitCamera->GetCurrentDefinition();
+	}
+}
+
+void AOrbitCameraManagerBase::DiscoverOrbitCamerasIfNeeded()
+{
+	if (!bAutoDiscoverOrbitCameras || !GetWorld())
+	{
+		return;
+	}
+
+	if (RegisteredOrbitCameras.Num() > 0)
+	{
+		return;
+	}
+
+	for (TActorIterator<AOrbitCameraBase> It(GetWorld()); It; ++It)
+	{
+		if (IsValid(*It))
+		{
+			RegisteredOrbitCameras.Add(*It);
+		}
 	}
 }
 
@@ -62,6 +86,154 @@ bool AOrbitCameraManagerBase::TransitionToCamera(AOrbitCameraBase* TargetCamera,
 	ActiveOrbitCamera = TargetCamera;
 	CurrentCameraDefinition = TargetCameraDefinition;
 	return true;
+}
+
+int32 AOrbitCameraManagerBase::GetActiveCameraIndex() const
+{
+	if (!ActiveOrbitCamera)
+	{
+		return INDEX_NONE;
+	}
+
+	return RegisteredOrbitCameras.IndexOfByPredicate([this](const TObjectPtr<AOrbitCameraBase>& Camera)
+	{
+		return Camera == ActiveOrbitCamera;
+	});
+}
+
+bool AOrbitCameraManagerBase::TransitionToNextCamera(EOrbitCameraTransition TransitionType)
+{
+	DiscoverOrbitCamerasIfNeeded();
+	if (RegisteredOrbitCameras.Num() == 0)
+	{
+		return false;
+	}
+
+	int32 ActiveIndex = GetActiveCameraIndex();
+	if (ActiveIndex == INDEX_NONE)
+	{
+		ActiveIndex = 0;
+	}
+
+	for (int32 Offset = 1; Offset <= RegisteredOrbitCameras.Num(); ++Offset)
+	{
+		const int32 CandidateIndex = (ActiveIndex + Offset) % RegisteredOrbitCameras.Num();
+		AOrbitCameraBase* Candidate = RegisteredOrbitCameras[CandidateIndex];
+		if (IsValid(Candidate))
+		{
+			return TransitionToCamera(Candidate, TransitionType);
+		}
+	}
+
+	return false;
+}
+
+bool AOrbitCameraManagerBase::TransitionToPreviousCamera(EOrbitCameraTransition TransitionType)
+{
+	DiscoverOrbitCamerasIfNeeded();
+	if (RegisteredOrbitCameras.Num() == 0)
+	{
+		return false;
+	}
+
+	int32 ActiveIndex = GetActiveCameraIndex();
+	if (ActiveIndex == INDEX_NONE)
+	{
+		ActiveIndex = 0;
+	}
+
+	for (int32 Offset = 1; Offset <= RegisteredOrbitCameras.Num(); ++Offset)
+	{
+		const int32 CandidateIndex = (ActiveIndex - Offset + RegisteredOrbitCameras.Num()) % RegisteredOrbitCameras.Num();
+		AOrbitCameraBase* Candidate = RegisteredOrbitCameras[CandidateIndex];
+		if (IsValid(Candidate))
+		{
+			return TransitionToCamera(Candidate, TransitionType);
+		}
+	}
+
+	return false;
+}
+
+TArray<AOrbitCameraBase*> AOrbitCameraManagerBase::GetAllCameras() const
+{
+	TArray<AOrbitCameraBase*> OutCameras;
+	if (!GetWorld())
+	{
+		return OutCameras;
+	}
+
+	for (TActorIterator<AOrbitCameraBase> It(GetWorld()); It; ++It)
+	{
+		if (IsValid(*It))
+		{
+			OutCameras.Add(*It);
+		}
+	}
+	return OutCameras;
+}
+
+AOrbitCameraBase* AOrbitCameraManagerBase::GetCameraByName(FName InCameraName) const
+{
+	const TArray<AOrbitCameraBase*> Cameras = GetAllCameras();
+	for (AOrbitCameraBase* Camera : Cameras)
+	{
+		if (!IsValid(Camera))
+		{
+			continue;
+		}
+
+		if (Camera->CameraId == InCameraName || Camera->GetFName() == InCameraName)
+		{
+			return Camera;
+		}
+	}
+	return nullptr;
+}
+
+TArray<AOrbitCameraBase*> AOrbitCameraManagerBase::GetCamerasByTags(const FOrbitCameraTags& Tags) const
+{
+	TArray<AOrbitCameraBase*> Result;
+	const TArray<AOrbitCameraBase*> Cameras = GetAllCameras();
+	for (AOrbitCameraBase* Camera : Cameras)
+	{
+		if (!IsValid(Camera))
+		{
+			continue;
+		}
+
+		bool bMatchesInclude = Tags.IncludingTags.Num() == 0;
+		for (const FName& IncludeTag : Tags.IncludingTags)
+		{
+			if (Camera->ActorHasTag(IncludeTag))
+			{
+				bMatchesInclude = true;
+				break;
+			}
+		}
+
+		bool bMatchesExclude = true;
+		for (const FName& ExcludeTag : Tags.ExcludingTags)
+		{
+			if (Camera->ActorHasTag(ExcludeTag))
+			{
+				bMatchesExclude = false;
+				break;
+			}
+		}
+
+		if (bMatchesInclude && bMatchesExclude)
+		{
+			Result.Add(Camera);
+		}
+	}
+
+	return Result;
+}
+
+bool AOrbitCameraManagerBase::SelectCamera(AOrbitCameraBase* InCamera, EOrbitCameraTransition TransitionType)
+{
+	return TransitionToCamera(InCamera, TransitionType);
 }
 
 bool AOrbitCameraManagerBase::EnterWalkingMode(bool bMatchCurrentCamera)
