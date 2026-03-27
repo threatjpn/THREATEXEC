@@ -25,6 +25,9 @@ Plugin-local guide for setting up and using the Orbit Camera + Walk-Out workflow
    - Orbit mode works as before.
    - Press `Tab` (default) to toggle walk-out mode.
 
+> `ActiveOrbitCamera` is instance-only by design. Set it on the placed manager actor in the level, not in BP class defaults.
+> If left empty, manager can auto-find a camera at BeginPlay (`bAutoFindOrbitCameraIfUnset` / `AutoFindOrbitCameraTag`).
+
 ### Make it work on BeginPlay (required)
 
 `AOrbitCameraManagerBase` is a Pawn, so it must be possessed by Player 0 on play.
@@ -37,6 +40,7 @@ Use one of these patterns:
    `Event BeginPlay` -> `Get Player Controller(0)` -> `Possess` (target = OrbitCameraManager actor in level).
 
 Then make sure manager `ActiveOrbitCamera` points to your placed `AOrbitCameraBase`.
+If it is empty, enable `bAutoFindOrbitCameraIfUnset` so the manager automatically binds to the first orbit camera in the level (or the first with `AutoFindOrbitCameraTag`).
 
 ### Default walk keybinds (manager)
 

@@ -92,8 +92,18 @@ public:
 	bool bStartInWalkOutMode = false;
 
 	// Camera that remains the source orbit camera when switching to walk out.
+	// Edit this on placed level instances (not class defaults) so actor picking works as expected.
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "OrbitCamera|Mode")
+	TObjectPtr<AOrbitCameraBase> ActiveOrbitCamera = nullptr;
+
+	// If true and ActiveOrbitCamera is unset, manager will auto-bind to the first matching OrbitCameraBase in the level.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Mode")
-	AOrbitCameraBase* ActiveOrbitCamera = nullptr;
+	bool bAutoFindOrbitCameraIfUnset = true;
+
+	// Optional tag filter for auto-discovery. If set, manager prefers cameras with this tag.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Mode",
+		meta = (EditCondition = "bAutoFindOrbitCameraIfUnset"))
+	FName AutoFindOrbitCameraTag = NAME_None;
 
 	// True while player is in walk out mode.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OrbitCamera|Mode")

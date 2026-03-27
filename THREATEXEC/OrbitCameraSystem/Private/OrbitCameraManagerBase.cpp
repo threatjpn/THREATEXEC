@@ -6,6 +6,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/InputComponent.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AOrbitCameraManagerBase::AOrbitCameraManagerBase()
@@ -18,6 +19,36 @@ AOrbitCameraManagerBase::AOrbitCameraManagerBase()
 void AOrbitCameraManagerBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (!ActiveOrbitCamera && bAutoFindOrbitCameraIfUnset)
+	{
+		TArray<AActor*> FoundOrbitCameras;
+		UGameplayStatics::GetAllActorsOfClass(this, AOrbitCameraBase::StaticClass(), FoundOrbitCameras);
+
+		AOrbitCameraBase* FirstOrbitCamera = nullptr;
+		AOrbitCameraBase* TaggedOrbitCamera = nullptr;
+		for (AActor* FoundActor : FoundOrbitCameras)
+		{
+			AOrbitCameraBase* FoundOrbitCamera = Cast<AOrbitCameraBase>(FoundActor);
+			if (!FoundOrbitCamera)
+			{
+				continue;
+			}
+
+			if (!FirstOrbitCamera)
+			{
+				FirstOrbitCamera = FoundOrbitCamera;
+			}
+
+			if (!AutoFindOrbitCameraTag.IsNone() && FoundOrbitCamera->ActorHasTag(AutoFindOrbitCameraTag))
+			{
+				TaggedOrbitCamera = FoundOrbitCamera;
+				break;
+			}
+		}
+
+		ActiveOrbitCamera = TaggedOrbitCamera ? TaggedOrbitCamera : FirstOrbitCamera;
+	}
 
 	if (ActiveOrbitCamera)
 	{
