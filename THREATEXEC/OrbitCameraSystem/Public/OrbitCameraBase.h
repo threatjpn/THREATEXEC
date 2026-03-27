@@ -66,6 +66,40 @@ enum class EOrbitCameraFocus : uint8
 	Off UMETA(DisplayName = "Off"),
 };
 
+// High-level depth of field presets for quick setup.
+UENUM(BlueprintType)
+enum class EOrbitCameraDOFPreset : uint8
+{
+	OC_DOF_Cinematic = 0 UMETA(DisplayName = "Cinematic"),
+	OC_DOF_Gameplay UMETA(DisplayName = "Gameplay"),
+	OC_DOF_Portrait UMETA(DisplayName = "Portrait"),
+	OC_DOF_Macro UMETA(DisplayName = "Macro"),
+	OC_DOF_Off UMETA(DisplayName = "Off"),
+	OC_DOF_Custom UMETA(DisplayName = "Custom"),
+};
+
+USTRUCT(BlueprintType)
+struct FOrbitCameraDOFSettings
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	float Aperture = 2.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	float FocalLength = 50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	float FocusOffset = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusSmoothing = 8.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bUseAutoFocus = true;
+};
+
 // Editor Preview Modes for Visualisation purposes
 UENUM(BlueprintType)
 enum class EEditorPositionPreview : uint8
@@ -278,6 +312,14 @@ public:
 		meta = (ClampMin = "0", ClampMax = "100", UIMin = "1", UIMax = "20"))
 	float AutoFocus_InterpolationSpeed = 5.0f;
 
+	// Additional offset used from camera origin for autofocus traces.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (UIMin = "-100.0", UIMax = "100.0"))
+	FVector AutoFocus_TraceStartOffset = FVector::ZeroVector;
+
+	// If true autofocus will fallback to current distance when no hit is found.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
+	bool bAutoFocusFallbackToDistance = true;
+
 	//Sets the Objects to Focus on, only applies if FocusBehavior == AutoFocus. See ProjectSettings/Collisions for Object Types.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "OrbitCamera|Focus")
 	TArray<TEnumAsByte<EObjectTypeQuery>> FocusOnObjectTypes;
@@ -291,6 +333,43 @@ public:
 	//
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
 	float Internal_TargetFocusDistance;
+
+#pragma endregion
+
+#pragma region DOF
+
+	// Enables the advanced preset-based DOF stack.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bEnableAdvancedDOF = true;
+
+	// Quick preset selector.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (EditCondition = "bEnableAdvancedDOF"))
+	EOrbitCameraDOFPreset DOFPreset = EOrbitCameraDOFPreset::OC_DOF_Cinematic;
+
+	// If true, DOF values smoothly interpolate when presets/settings change.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (EditCondition = "bEnableAdvancedDOF"))
+	bool bSmoothDOFTransitions = true;
+
+	// Interpolation speed for aperture and focal length transitions.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bEnableAdvancedDOF && bSmoothDOFTransitions"))
+	float DOFTransitionSpeed = 5.0f;
+
+	// Preset definitions.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings CinematicDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings GameplayDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings PortraitDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings MacroDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings CustomDOF;
 
 #pragma endregion
 
@@ -354,4 +433,7 @@ protected:
 private:
 	void ClampOrbitRootToBounds();
 	void ClampCameraToBounds();
+	void UpdateAutoFocus(float DeltaSeconds);
+	void UpdateDepthOfField(float DeltaSeconds);
+	const FOrbitCameraDOFSettings& ResolveDOFSettings() const;
 };
