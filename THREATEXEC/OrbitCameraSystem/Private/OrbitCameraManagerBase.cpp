@@ -24,6 +24,11 @@ void AOrbitCameraManagerBase::BeginPlay()
 		SetActorLocationAndRotation(ActiveOrbitCamera->GetActorLocation(), ActiveOrbitCamera->GetActorRotation());
 		CaptureOrbitCameraTransform(CurrentCameraDefinition, ActiveOrbitCamera);
 	}
+
+	if (bWalkModeOnly || bStartInWalkOutMode)
+	{
+		EnterWalkOutMode();
+	}
 }
 
 // Called every frame
@@ -72,6 +77,12 @@ void AOrbitCameraManagerBase::SetupPlayerInputComponent(UInputComponent* PlayerI
 
 void AOrbitCameraManagerBase::ToggleWalkOutMode()
 {
+	if (bWalkModeOnly)
+	{
+		EnterWalkOutMode();
+		return;
+	}
+
 	if (!bAllowWalkOutMode)
 	{
 		return;
@@ -106,6 +117,11 @@ void AOrbitCameraManagerBase::EnterWalkOutMode()
 
 void AOrbitCameraManagerBase::ExitWalkOutMode()
 {
+	if (bWalkModeOnly)
+	{
+		return;
+	}
+
 	if (!bIsWalkOutMode)
 	{
 		return;
@@ -124,6 +140,17 @@ void AOrbitCameraManagerBase::ExitWalkOutMode()
 	{
 		TransitionToOrbitCamera(ActiveOrbitCamera, ModeTransitionDuration);
 	}
+}
+
+void AOrbitCameraManagerBase::SetWalkOutModeEnabled(bool bEnable)
+{
+	if (bEnable)
+	{
+		EnterWalkOutMode();
+		return;
+	}
+
+	ExitWalkOutMode();
 }
 
 void AOrbitCameraManagerBase::CutToOrbitCamera(AOrbitCameraBase* NewOrbitCamera)

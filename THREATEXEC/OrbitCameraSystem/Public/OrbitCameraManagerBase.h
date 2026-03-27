@@ -81,6 +81,16 @@ public:
 
 #pragma region OrbitAndWalkMode
 
+	// Enables standalone walk mode usage with no orbit camera dependency.
+	// When enabled the pawn starts in walk mode and does not transition back to orbit.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Mode")
+	bool bWalkModeOnly = false;
+
+	// If true, starts the pawn in walk out mode on BeginPlay.
+	// Ignored when bWalkModeOnly is enabled because walk mode is forced on.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Mode")
+	bool bStartInWalkOutMode = false;
+
 	// Camera that remains the source orbit camera when switching to walk out.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Mode")
 	AOrbitCameraBase* ActiveOrbitCamera = nullptr;
@@ -176,6 +186,10 @@ public:
 	// Return to orbit camera mode.
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Mode")
 	void ExitWalkOutMode();
+
+	// Explicitly set walk out mode state (supports walk-only levels without orbit cameras).
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Mode")
+	void SetWalkOutModeEnabled(bool bEnable);
 
 	// Assign active orbit camera and move manager to it.
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
