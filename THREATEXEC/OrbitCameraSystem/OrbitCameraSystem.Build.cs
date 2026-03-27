@@ -14,7 +14,6 @@ public class OrbitCameraSystem : ModuleRules
 			{
 				"CinematicCamera",
 				"Core",
-				"InputCore",
 			}
 			);
 			
@@ -35,3 +34,4 @@ public class OrbitCameraSystem : ModuleRules
 
 	}
 }
+
