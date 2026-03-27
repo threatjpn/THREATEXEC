@@ -141,6 +141,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float WalkLookPitchSpeed = 120.0f;
 
+	// Orbit mouse look speed while holding orbit-look key.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float OrbitLookYawSpeed = 100.0f;
+
+	// Orbit mouse pitch speed while holding orbit-look key.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float OrbitLookPitchSpeed = 100.0f;
+
+	// Orbit pan speed while holding orbit-pan key.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float OrbitPanSpeed = 0.6f;
+
+	// Orbit zoom speed per mouse wheel tick.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float OrbitZoomStep = 25.0f;
+
 	// Clamp pitch while walking to keep controls predictable.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut", meta = (ClampMin = "-89.0", ClampMax = "89.0"))
 	float WalkMinPitch = -80.0f;
@@ -190,6 +206,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input|Keybinds")
 	FKey SprintKey = EKeys::LeftShift;
+
+	// Hold to rotate orbit camera with mouse movement.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input|Keybinds")
+	FKey OrbitLookHoldKey = EKeys::RightMouseButton;
+
+	// Hold to pan orbit origin with mouse movement.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input|Keybinds")
+	FKey OrbitPanHoldKey = EKeys::MiddleMouseButton;
 
 #pragma endregion
 
@@ -249,6 +273,11 @@ private:
 	void SetMoveDownReleased();
 	void SetSprintPressed();
 	void SetSprintReleased();
+	void SetOrbitLookPressed();
+	void SetOrbitLookReleased();
+	void SetOrbitPanPressed();
+	void SetOrbitPanReleased();
+	void OnOrbitMouseWheel(float Value);
 
 	void OnLookYaw(float Value);
 	void OnLookPitch(float Value);
@@ -264,6 +293,8 @@ private:
 	bool bMoveUpPressed = false;
 	bool bMoveDownPressed = false;
 	bool bSprintPressed = false;
+	bool bOrbitLookPressed = false;
+	bool bOrbitPanPressed = false;
 
 	bool bTransitionInProgress = false;
 	float TransitionElapsed = 0.0f;

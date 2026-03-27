@@ -57,6 +57,9 @@ These are coded directly in `AOrbitCameraManagerBase` and exposed as editable `F
 - Vertical move: `E / Q`
 - Sprint: `LeftShift`
 - Look: Mouse X / Mouse Y axis
+- Orbit look (while in orbit mode): hold `Right Mouse Button` + Mouse X/Y
+- Orbit pan (while in orbit mode): hold `Middle Mouse Button` + Mouse X/Y
+- Orbit zoom (while in orbit mode): `Mouse Wheel`
 
 > You can change any of these in the manager details panel or in Blueprint defaults.
 
@@ -163,3 +166,7 @@ On `AOrbitCameraBase`:
 - **I press Play and camera is wrong / not using orbit camera**
   - Make sure manager is possessed (or keep `bAutoPossessPlayer0OnBeginPlay` enabled).
   - Keep `bAutoManageViewTarget` enabled so view target swaps between orbit camera and walk mode automatically.
+- **RMB / mouse wheel orbit controls do nothing**
+  - Make sure you are in orbit mode (not walk-out mode).
+  - Hold `OrbitLookHoldKey` (default RMB) while moving mouse for rotate.
+  - Use `OrbitPanHoldKey` (default MMB) for pan and Mouse Wheel for zoom.
