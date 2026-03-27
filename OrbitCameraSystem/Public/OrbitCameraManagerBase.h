@@ -102,6 +102,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "OrbitCamera|Modes")
 	EOrbitCameraMode ActiveMode = EOrbitCameraMode::Orbit;
 
+	// Optional auto-discovered orbit camera list used for next/previous camera hotkeys.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	TArray<TObjectPtr<AOrbitCameraBase>> RegisteredOrbitCameras;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Transition")
+	bool bAutoDiscoverOrbitCameras = true;
+
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
 	bool TransitionToCamera(AOrbitCameraBase* TargetCamera, EOrbitCameraTransition TransitionType = EOrbitCameraTransition::OC_Transition);
 
@@ -110,6 +117,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Modes")
 	bool ExitWalkingMode(bool bMatchWalkCameraToOrbit = true);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
+	bool TransitionToNextCamera(EOrbitCameraTransition TransitionType = EOrbitCameraTransition::OC_Transition);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
+	bool TransitionToPreviousCamera(EOrbitCameraTransition TransitionType = EOrbitCameraTransition::OC_Transition);
 
 protected:
 	// Called when the game starts or when spawned
@@ -121,4 +134,8 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+private:
+	void DiscoverOrbitCamerasIfNeeded();
+	int32 GetActiveCameraIndex() const;
 };

@@ -95,6 +95,16 @@ enum class EOrbitComfortProfile : uint8
 	Custom UMETA(DisplayName = "Custom"),
 };
 
+UENUM(BlueprintType)
+enum class EOrbitDOFPreset : uint8
+{
+	Realistic = 0 UMETA(DisplayName = "Realistic"),
+	Cinematic UMETA(DisplayName = "Cinematic"),
+	Portrait UMETA(DisplayName = "Portrait"),
+	Macro UMETA(DisplayName = "Macro"),
+	Custom UMETA(DisplayName = "Custom"),
+};
+
 USTRUCT(BlueprintType)
 struct FOrbitTransitionParams
 {
@@ -378,6 +388,56 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float FocusTargetHoldSeconds = 0.2f;
 
+	// Max focus change per second; helps avoid sudden autofocus popping on thin geometry hits.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusMaxStepPerSecond = 1200.0f;
+
+	// Optional autofocus prediction (in seconds) based on camera target velocity to reduce lag.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Focus", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FocusPredictionLeadSeconds = 0.08f;
+
+	// Master DOF switch for this orbit camera.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bEnableDepthOfField = true;
+
+	// Quick DOF style presets (custom keeps all manual values).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	EOrbitDOFPreset DOFPreset = EOrbitDOFPreset::Realistic;
+
+	// Manual aperture controls.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.7", ClampMax = "32.0", UIMin = "0.7", UIMax = "32.0"))
+	float MinAperture = 1.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.7", ClampMax = "32.0", UIMin = "0.7", UIMax = "32.0"))
+	float MaxAperture = 11.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.7", ClampMax = "32.0", UIMin = "0.7", UIMax = "32.0"))
+	float TargetAperture = 4.0f;
+
+	// Dynamically adjust aperture based on focus distance.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bAutoApertureByFocusDistance = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bAutoApertureByFocusDistance"))
+	float AutoApertureNearDistance = 120.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "1.0", UIMin = "1.0", EditCondition = "bAutoApertureByFocusDistance"))
+	float AutoApertureFarDistance = 2000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ApertureInterpolationSpeed = 6.0f;
+
+	// Extra focus offset used only for DOF calculations.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (UIMin = "-500.0", UIMax = "500.0"))
+	float DOFFocusOffset = 0.0f;
+
+	// Optional smooth focus changes in the cine camera settings (in addition to plugin-side smoothing).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bUseCineSmoothFocusChanges = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bUseCineSmoothFocusChanges"))
+	float CineFocusSmoothingInterpSpeed = 8.0f;
+
 	//
 	UPROPERTY(VisibleAnyWhere, BlueprintReadWrite, Category = "OrbitCamera|Focus")
 	float Internal_TargetFocusDistance = 250.0f;
@@ -440,6 +500,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
 	void AddZoomInput(float DeltaZoom);
 
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
+	void AddOrbitInputScaled(float DeltaYaw, float DeltaPitch, float SensitivityScale = 1.0f);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
+	void AddPanInputWorld(const FVector& WorldOffset);
+
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
 	void StartTransitionToDefinition(const FOrbitCameraDefinition& Definition, const FOrbitTransitionParams& Params);
 
@@ -454,6 +520,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|State")
 	void SetFocusTargetActor(AActor* NewFocusTarget);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|State")
+	void SnapToCurrentTargetState();
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|DOF")
+	void SetDepthOfFieldEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|DOF")
+	void SetDOFPreset(EOrbitDOFPreset NewPreset);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|DOF")
+	void SetTargetAperture(float NewAperture);
 
 #if WITH_EDITOR
 
@@ -485,6 +563,8 @@ private:
 	void InitializeRuntimeStateFromDefaults();
 	void UpdateRuntimeState(float DeltaSeconds);
 	void UpdateFocus(float DeltaSeconds);
+	void UpdateDepthOfField(float DeltaSeconds, float BaseFocusDistance);
+	void ApplyDOFPreset(EOrbitDOFPreset NewPreset);
 	float EvaluateTransitionAlpha(float RawAlpha, const FOrbitTransitionParams& Params) const;
 	float ComputeAutoFocusDistance(float FallbackDistance) const;
 	float ApplyBoundaryDamping(float Value, float MinValue, float MaxValue) const;

@@ -34,8 +34,13 @@ void AOrbitWalkingPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AOrbitWalkingPawn::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AOrbitWalkingPawn::MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("MoveUp"), this, &AOrbitWalkingPawn::MoveUp);
 	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AOrbitWalkingPawn::LookYaw);
 	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AOrbitWalkingPawn::LookPitchInput);
+	PlayerInputComponent->BindAction(TEXT("WalkSprint"), IE_Pressed, this, &AOrbitWalkingPawn::OnSprintPressed);
+	PlayerInputComponent->BindAction(TEXT("WalkSprint"), IE_Released, this, &AOrbitWalkingPawn::OnSprintReleased);
+	PlayerInputComponent->BindAction(TEXT("WalkSlow"), IE_Pressed, this, &AOrbitWalkingPawn::OnSlowPressed);
+	PlayerInputComponent->BindAction(TEXT("WalkSlow"), IE_Released, this, &AOrbitWalkingPawn::OnSlowReleased);
 }
 
 void AOrbitWalkingPawn::Tick(float DeltaSeconds)
@@ -44,7 +49,8 @@ void AOrbitWalkingPawn::Tick(float DeltaSeconds)
 
 	if (MovementComponent)
 	{
-		MovementComponent->MaxSpeed = MoveSpeed;
+		const float SpeedScale = bSprintActive ? SprintMultiplier : (bSlowActive ? SlowMultiplier : 1.0f);
+		MovementComponent->MaxSpeed = MoveSpeed * FMath::Max(0.0f, SpeedScale);
 	}
 
 	ClampActorToBounds();
@@ -92,6 +98,58 @@ void AOrbitWalkingPawn::LookPitchInput(float Value)
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		PC->SetControlRotation(FRotator(LookPitch, PC->GetControlRotation().Yaw, 0.0f));
+	}
+}
+
+void AOrbitWalkingPawn::MoveUp(float Value)
+{
+	if (!bEnableVerticalMovement || FMath::IsNearlyZero(Value))
+	{
+		return;
+	}
+
+	const FVector VerticalVector = bUseCameraRelativeVerticalMovement && CameraComponent
+		? CameraComponent->GetUpVector()
+		: FVector::UpVector;
+
+	AddMovementInput(VerticalVector, Value);
+}
+
+void AOrbitWalkingPawn::OnSprintPressed()
+{
+	SetSprintActive(true);
+}
+
+void AOrbitWalkingPawn::OnSprintReleased()
+{
+	SetSprintActive(false);
+}
+
+void AOrbitWalkingPawn::OnSlowPressed()
+{
+	SetSlowWalkActive(true);
+}
+
+void AOrbitWalkingPawn::OnSlowReleased()
+{
+	SetSlowWalkActive(false);
+}
+
+void AOrbitWalkingPawn::SetSprintActive(bool bActive)
+{
+	bSprintActive = bActive;
+	if (bSprintActive)
+	{
+		bSlowActive = false;
+	}
+}
+
+void AOrbitWalkingPawn::SetSlowWalkActive(bool bActive)
+{
+	bSlowActive = bActive;
+	if (bSlowActive)
+	{
+		bSprintActive = false;
 	}
 }
 

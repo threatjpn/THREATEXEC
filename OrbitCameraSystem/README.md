@@ -54,10 +54,15 @@ If you want default behavior without building your own input graph:
 
 1. Set GameMode PlayerController class to `AOrbitCameraPlayerController` (or BP child).
 2. Ensure input mapping names exist:
-   - Actions: `OrbitDrag`, `PanDrag`, `ToggleWalk`
+   - Actions: `OrbitDrag`, `PanDrag`, `ToggleWalk`, `NextOrbitCamera`, `PreviousOrbitCamera`, `WalkSprint`, `WalkSlow`
    - Axes: `OrbitYaw`, `OrbitPitch`, `PanX`, `PanY`, `Zoom`
+   - Walking Axes: `MoveForward`, `MoveRight`, `MoveUp`, `Turn`, `LookUp`
 3. On BeginPlay the controller auto-finds camera/manager and sets view target.
 4. Drag/scroll/toggle are handled automatically by C++ bindings.
+5. Default key mappings are now auto-created at runtime (legacy input):
+   - Orbit drag `RMB`, pan drag `MMB`, walk toggle `Tab`
+   - Next/previous orbit camera `PageDown` / `PageUp`
+   - Walk move `WASD`, vertical `E/Q`, sprint `LeftShift`, slow walk `LeftCtrl`.
 
 ---
 
@@ -68,6 +73,7 @@ If you want default behavior without building your own input graph:
 
 - `MoveForward`
 - `MoveRight`
+- `MoveUp`
 - `Turn`
 - `LookUp`
 
@@ -133,7 +139,21 @@ Useful settings:
 - `FocusDeadzone`
 - `FocusSwitchThreshold`
 - `FocusTargetHoldSeconds`
+- `FocusMaxStepPerSecond`
+- `FocusPredictionLeadSeconds`
 - `FocusTargetActor`
+
+DOF controls (new):
+
+- `bEnableDepthOfField`
+- `DOFPreset` (`Realistic`, `Cinematic`, `Portrait`, `Macro`, `Custom`)
+- `MinAperture` / `MaxAperture` / `TargetAperture`
+- `bAutoApertureByFocusDistance`
+- `AutoApertureNearDistance` / `AutoApertureFarDistance`
+- `ApertureInterpolationSpeed`
+- `DOFFocusOffset`
+- `bUseCineSmoothFocusChanges`
+- `CineFocusSmoothingInterpSpeed`
 
 Optional debug visuals:
 
@@ -167,6 +187,15 @@ When entering walking mode, manager can copy the current orbit camera transform 
 `AOrbitWalkingPawn` supports runtime bounds via:
 
 - `ConfigureMovementBounds(bool bEnableBounds, AActor* InBoundsActor, float InBoundsPadding)`
+
+It also exposes runtime speed/handling options:
+
+- `MoveSpeed`
+- `SprintMultiplier` / `SlowMultiplier`
+- `bEnableVerticalMovement`
+- `bUseCameraRelativeVerticalMovement`
+- `SetSprintActive(...)`
+- `SetSlowWalkActive(...)`
 
 ---
 

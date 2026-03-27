@@ -5,6 +5,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "EngineUtils.h"
 
 // Sets default values
 AOrbitCameraManagerBase::AOrbitCameraManagerBase()
@@ -17,6 +18,8 @@ AOrbitCameraManagerBase::AOrbitCameraManagerBase()
 void AOrbitCameraManagerBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	DiscoverOrbitCamerasIfNeeded();
 
 	if (!ActiveOrbitCamera)
 	{
@@ -37,6 +40,27 @@ void AOrbitCameraManagerBase::Tick(float DeltaTime)
 	if (ActiveOrbitCamera)
 	{
 		CurrentCameraDefinition = ActiveOrbitCamera->GetCurrentDefinition();
+	}
+}
+
+void AOrbitCameraManagerBase::DiscoverOrbitCamerasIfNeeded()
+{
+	if (!bAutoDiscoverOrbitCameras || !GetWorld())
+	{
+		return;
+	}
+
+	if (RegisteredOrbitCameras.Num() > 0)
+	{
+		return;
+	}
+
+	for (TActorIterator<AOrbitCameraBase> It(GetWorld()); It; ++It)
+	{
+		if (IsValid(*It))
+		{
+			RegisteredOrbitCameras.Add(*It);
+		}
 	}
 }
 
@@ -62,6 +86,73 @@ bool AOrbitCameraManagerBase::TransitionToCamera(AOrbitCameraBase* TargetCamera,
 	ActiveOrbitCamera = TargetCamera;
 	CurrentCameraDefinition = TargetCameraDefinition;
 	return true;
+}
+
+int32 AOrbitCameraManagerBase::GetActiveCameraIndex() const
+{
+	if (!ActiveOrbitCamera)
+	{
+		return INDEX_NONE;
+	}
+
+	return RegisteredOrbitCameras.IndexOfByPredicate([this](const TObjectPtr<AOrbitCameraBase>& Camera)
+	{
+		return Camera == ActiveOrbitCamera;
+	});
+}
+
+bool AOrbitCameraManagerBase::TransitionToNextCamera(EOrbitCameraTransition TransitionType)
+{
+	DiscoverOrbitCamerasIfNeeded();
+	if (RegisteredOrbitCameras.Num() == 0)
+	{
+		return false;
+	}
+
+	int32 ActiveIndex = GetActiveCameraIndex();
+	if (ActiveIndex == INDEX_NONE)
+	{
+		ActiveIndex = 0;
+	}
+
+	for (int32 Offset = 1; Offset <= RegisteredOrbitCameras.Num(); ++Offset)
+	{
+		const int32 CandidateIndex = (ActiveIndex + Offset) % RegisteredOrbitCameras.Num();
+		AOrbitCameraBase* Candidate = RegisteredOrbitCameras[CandidateIndex];
+		if (IsValid(Candidate))
+		{
+			return TransitionToCamera(Candidate, TransitionType);
+		}
+	}
+
+	return false;
+}
+
+bool AOrbitCameraManagerBase::TransitionToPreviousCamera(EOrbitCameraTransition TransitionType)
+{
+	DiscoverOrbitCamerasIfNeeded();
+	if (RegisteredOrbitCameras.Num() == 0)
+	{
+		return false;
+	}
+
+	int32 ActiveIndex = GetActiveCameraIndex();
+	if (ActiveIndex == INDEX_NONE)
+	{
+		ActiveIndex = 0;
+	}
+
+	for (int32 Offset = 1; Offset <= RegisteredOrbitCameras.Num(); ++Offset)
+	{
+		const int32 CandidateIndex = (ActiveIndex - Offset + RegisteredOrbitCameras.Num()) % RegisteredOrbitCameras.Num();
+		AOrbitCameraBase* Candidate = RegisteredOrbitCameras[CandidateIndex];
+		if (IsValid(Candidate))
+		{
+			return TransitionToCamera(Candidate, TransitionType);
+		}
+	}
+
+	return false;
 }
 
 bool AOrbitCameraManagerBase::EnterWalkingMode(bool bMatchCurrentCamera)
