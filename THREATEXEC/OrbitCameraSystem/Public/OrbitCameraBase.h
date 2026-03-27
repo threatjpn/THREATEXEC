@@ -415,6 +415,43 @@ public:
 
 #pragma endregion
 
+#pragma region DOF
+
+	// Enables the advanced preset-based DOF stack.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF")
+	bool bEnableAdvancedDOF = true;
+
+	// Quick preset selector.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (EditCondition = "bEnableAdvancedDOF"))
+	EOrbitCameraDOFPreset DOFPreset = EOrbitCameraDOFPreset::OC_DOF_Cinematic;
+
+	// If true, DOF values smoothly interpolate when presets/settings change.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF", meta = (EditCondition = "bEnableAdvancedDOF"))
+	bool bSmoothDOFTransitions = true;
+
+	// Interpolation speed for aperture and focal length transitions.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bEnableAdvancedDOF && bSmoothDOFTransitions"))
+	float DOFTransitionSpeed = 5.0f;
+
+	// Preset definitions.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings CinematicDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings GameplayDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings PortraitDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings MacroDOF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|DOF|Presets", meta = (EditCondition = "bEnableAdvancedDOF"))
+	FOrbitCameraDOFSettings CustomDOF;
+
+#pragma endregion
+
 #pragma region Bounds
 
 	// Enable world-space clamping for OrbitRoot using a BoxComponent on CameraBoundsActor.
