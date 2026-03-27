@@ -58,11 +58,14 @@ void AOrbitCameraBase::OnConstruction(const FTransform& Transform)
 		const FRotator ActorRotation = GetActorRotation();
 
 		OrbitRoot->SetWorldLocation(ActorLocation);
-		OrbitRoot->SetWorldRotation(ActorRotation);
-
-		InitialYaw = FMath::Clamp(ActorRotation.Yaw, MinYaw, MaxYaw);
-		InitialPitch = FMath::Clamp(ActorRotation.Pitch, MinPitch, MaxPitch);
-		InitialRoll = ActorRotation.Roll;
+		if (bLockInitialRotationToActorTransform)
+		{
+			OrbitRoot->SetWorldRotation(ActorRotation);
+		}
+		else
+		{
+			OrbitRoot->SetWorldRotation(FRotator(InitialPitch, InitialYaw, InitialRoll));
+		}
 	}
 
 	CineCamRef->SetRelativeLocation(FVector(-InitialDistance, 0.0f, 0.0f));
@@ -79,6 +82,24 @@ void AOrbitCameraBase::Tick(float DeltaSeconds)
 
 void AOrbitCameraBase::ValidateAndNormalizeSettings()
 {
+	switch (PlacementMode)
+	{
+	case EOrbitPlacementMode::ViewportTransform:
+		bUseActorTransformForInitialState = true;
+		bLockInitialRotationToActorTransform = true;
+		break;
+	case EOrbitPlacementMode::HybridActorLocationManualRotation:
+		bUseActorTransformForInitialState = true;
+		bLockInitialRotationToActorTransform = false;
+		break;
+	case EOrbitPlacementMode::ManualInitialValues:
+		bUseActorTransformForInitialState = false;
+		bLockInitialRotationToActorTransform = false;
+		break;
+	default:
+		break;
+	}
+
 	if (MinYaw > MaxYaw)
 	{
 		Swap(MinYaw, MaxYaw);
@@ -143,7 +164,7 @@ void AOrbitCameraBase::InitializeRuntimeStateFromDefaults()
 	Internal_CurrentLocation = Internal_InitalLocation;
 
 	Internal_TargetRotation = FRotator(InitialPitch, InitialYaw, InitialRoll);
-	if (bUseActorTransformForInitialState)
+	if (bUseActorTransformForInitialState && bLockInitialRotationToActorTransform)
 	{
 		const FRotator ActorRot = GetActorRotation();
 		Internal_TargetRotation = FRotator(
@@ -492,6 +513,96 @@ void AOrbitCameraBase::AddOrbitInputScaled(float DeltaYaw, float DeltaPitch, flo
 void AOrbitCameraBase::AddPanInputWorld(const FVector& WorldOffset)
 {
 	Internal_TargetLocation += WorldOffset;
+}
+
+void AOrbitCameraBase::RotateCamera(float DeltaYaw, float DeltaPitch)
+{
+	AddOrbitInput(DeltaYaw, DeltaPitch);
+}
+
+void AOrbitCameraBase::DollyCamera(float DeltaDistance)
+{
+	Internal_TargetDistance = FMath::Clamp(Internal_TargetDistance + DeltaDistance, MinDistance, MaxDistance);
+	const float ZoomRatio = (MaxDistance > MinDistance)
+		? (Internal_TargetDistance - MinDistance) / (MaxDistance - MinDistance)
+		: 0.0f;
+	Internal_TargetFocalLength = FMath::Lerp(MinFocalLength, MaxFocalLength, ZoomRatio);
+}
+
+void AOrbitCameraBase::PanCamera(float Right, float Up)
+{
+	AddPanInput(Right, Up);
+}
+
+void AOrbitCameraBase::ZoomCamera(float DeltaZoom)
+{
+	AddZoomInput(DeltaZoom);
+}
+
+void AOrbitCameraBase::ResetCamera(bool bSnapInstantly)
+{
+	Internal_TargetLocation = Internal_InitalLocation;
+	Internal_TargetRotation = FRotator(InitialPitch, InitialYaw, InitialRoll);
+	Internal_TargetDistance = InitialDistance;
+	Internal_TargetFocalLength = InitialFocalLength;
+	Internal_TargetFocusDistance = InitialDistance;
+
+	if (bSnapInstantly)
+	{
+		SnapToCurrentTargetState();
+	}
+}
+
+void AOrbitCameraBase::StopCameraMovement()
+{
+	PendingYawInput = 0.0f;
+	PendingPitchInput = 0.0f;
+	Internal_YawVelocity = 0.0f;
+	Internal_PitchVelocity = 0.0f;
+	Internal_LocationVelocity = FVector3f::ZeroVector;
+	Internal_DistanceVelocity = 0.0f;
+	Internal_FocalVelocity = 0.0f;
+	Internal_FocusVelocity = 0.0f;
+}
+
+void AOrbitCameraBase::FinishCameraMovement()
+{
+	CancelTransition(true);
+	SnapToCurrentTargetState();
+}
+
+void AOrbitCameraBase::SetPositionTarget(const FVector& NewTargetLocation)
+{
+	Internal_TargetLocation = NewTargetLocation;
+}
+
+void AOrbitCameraBase::SetAbsoluteCameraValues(const FOrbitCameraDefinition& Definition, bool bSnapInstantly)
+{
+	Internal_TargetLocation = Definition.Position;
+	Internal_TargetRotation = Definition.Rotation;
+	Internal_TargetDistance = FMath::Clamp(Definition.Distance, MinDistance, MaxDistance);
+	Internal_TargetFocalLength = FMath::Clamp(Definition.Zoom, MinFocalLength, MaxFocalLength);
+	Internal_TargetFocusDistance = FMath::Clamp(Definition.Distance, MinAutoFocusDistance, MaxAutoFocusDistance);
+
+	if (bSnapInstantly)
+	{
+		SnapToCurrentTargetState();
+	}
+}
+
+FOrbitCameraDefinition AOrbitCameraBase::GetAbsoluteCameraValues() const
+{
+	return GetCurrentDefinition();
+}
+
+float AOrbitCameraBase::GetCameraDistance() const
+{
+	return Internal_CurrentDistance;
+}
+
+bool AOrbitCameraBase::IsYawMinMaxRangeOver360() const
+{
+	return FMath::Abs(MaxYaw - MinYaw) >= 359.0f;
 }
 
 void AOrbitCameraBase::StartTransitionToDefinition(const FOrbitCameraDefinition& Definition, const FOrbitTransitionParams& Params)

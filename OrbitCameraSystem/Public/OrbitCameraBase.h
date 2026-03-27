@@ -105,6 +105,19 @@ enum class EOrbitDOFPreset : uint8
 	Custom UMETA(DisplayName = "Custom"),
 };
 
+UENUM(BlueprintType)
+enum class EOrbitPlacementMode : uint8
+{
+	// Use actor transform from viewport for initial location + rotation.
+	ViewportTransform = 0 UMETA(DisplayName = "Viewport Transform"),
+
+	// Use actor location from viewport, but use InitialYaw/InitialPitch/InitialRoll for rotation.
+	HybridActorLocationManualRotation UMETA(DisplayName = "Hybrid: Actor Location + Manual Rotation"),
+
+	// Use InitialYaw/InitialPitch/InitialRoll behavior (manual setup workflow).
+	ManualInitialValues UMETA(DisplayName = "Manual Initial Values"),
+};
+
 USTRUCT(BlueprintType)
 struct FOrbitTransitionParams
 {
@@ -488,6 +501,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Setup")
 	bool bUseActorTransformForInitialState = true;
 
+	// When viewport placement mode is enabled, this controls whether actor rotation overrides InitialYaw/InitialPitch.
+	// Disable this if you prefer to edit initial yaw/pitch values manually.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Setup", meta = (EditCondition = "bUseActorTransformForInitialState"))
+	bool bLockInitialRotationToActorTransform = true;
+
+	// User-friendly setup mode. This drives the legacy setup toggles above automatically.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Setup")
+	EOrbitPlacementMode PlacementMode = EOrbitPlacementMode::ViewportTransform;
+
 	// Optional soft collision zoom correction (can feel like zoom snapping if enabled in tight spaces).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom")
 	bool bEnableCollisionSoftSolve = false;
@@ -518,6 +540,43 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Input")
 	void AddPanInputWorld(const FVector& WorldOffset);
+
+	// Backward-compatible Blueprint API aliases (for existing BP graphs).
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void RotateCamera(float DeltaYaw, float DeltaPitch);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void DollyCamera(float DeltaDistance);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void PanCamera(float Right, float Up);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void ZoomCamera(float DeltaZoom);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void ResetCamera(bool bSnapInstantly = false);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void StopCameraMovement();
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void FinishCameraMovement();
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void SetPositionTarget(const FVector& NewTargetLocation);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	void SetAbsoluteCameraValues(const FOrbitCameraDefinition& Definition, bool bSnapInstantly = true);
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	FOrbitCameraDefinition GetAbsoluteCameraValues() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "OrbitCamera|Legacy")
+	float GetCameraDistance() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "OrbitCamera|Legacy")
+	bool IsYawMinMaxRangeOver360() const;
 
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
 	void StartTransitionToDefinition(const FOrbitCameraDefinition& Definition, const FOrbitTransitionParams& Params);

@@ -124,6 +124,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
 	bool TransitionToPreviousCamera(EOrbitCameraTransition TransitionType = EOrbitCameraTransition::OC_Transition);
 
+	// Backward-compatible Blueprint API aliases (for existing BP graphs).
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	TArray<AOrbitCameraBase*> GetAllCameras() const;
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	AOrbitCameraBase* GetCameraByName(FName InCameraName) const;
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	TArray<AOrbitCameraBase*> GetCamerasByTags(const FOrbitCameraTags& Tags) const;
+
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Legacy")
+	bool SelectCamera(AOrbitCameraBase* InCamera, EOrbitCameraTransition TransitionType = EOrbitCameraTransition::OC_Transition);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "OrbitCamera|Legacy")
+	AOrbitCameraBase* GetActiveCamera() const { return ActiveOrbitCamera; }
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

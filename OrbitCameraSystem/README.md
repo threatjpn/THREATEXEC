@@ -175,7 +175,12 @@ Orbit camera fields:
 
 Setup helpers for easier editor placement:
 
+- `PlacementMode` (recommended single switch):
+  - `Viewport Transform` (place/rotate in viewport)
+  - `Hybrid: Actor Location + Manual Rotation`
+  - `Manual Initial Values`
 - `bUseActorTransformForInitialState` (uses placed actor transform as initial orbit anchor/rotation)
+- `bLockInitialRotationToActorTransform` (if disabled, `InitialYaw/InitialPitch` remain fully editable even with viewport-placement mode on)
 - `bEnableCollisionSoftSolve` (optional; can be disabled to prevent zoom push-back feeling)
 
 ---
@@ -224,6 +229,9 @@ It also exposes runtime speed/handling options:
    - middle drag -> `AddPanInput`
    - mouse wheel -> `AddZoomInput`
    - key toggle -> `EnterWalkingMode`/`ExitWalkingMode`
+
+### Legacy Blueprint graph compatibility
+To avoid breaking existing BP graphs/macros from older Orbit camera setups, C++ now exposes compatibility aliases for common function names (camera rotate/pan/zoom/reset, absolute value getters/setters, and manager camera query/select helpers).
 
 ---
 

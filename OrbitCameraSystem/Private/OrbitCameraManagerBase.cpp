@@ -155,6 +155,87 @@ bool AOrbitCameraManagerBase::TransitionToPreviousCamera(EOrbitCameraTransition 
 	return false;
 }
 
+TArray<AOrbitCameraBase*> AOrbitCameraManagerBase::GetAllCameras() const
+{
+	TArray<AOrbitCameraBase*> OutCameras;
+	if (!GetWorld())
+	{
+		return OutCameras;
+	}
+
+	for (TActorIterator<AOrbitCameraBase> It(GetWorld()); It; ++It)
+	{
+		if (IsValid(*It))
+		{
+			OutCameras.Add(*It);
+		}
+	}
+	return OutCameras;
+}
+
+AOrbitCameraBase* AOrbitCameraManagerBase::GetCameraByName(FName InCameraName) const
+{
+	const TArray<AOrbitCameraBase*> Cameras = GetAllCameras();
+	for (AOrbitCameraBase* Camera : Cameras)
+	{
+		if (!IsValid(Camera))
+		{
+			continue;
+		}
+
+		if (Camera->CameraId == InCameraName || Camera->GetFName() == InCameraName)
+		{
+			return Camera;
+		}
+	}
+	return nullptr;
+}
+
+TArray<AOrbitCameraBase*> AOrbitCameraManagerBase::GetCamerasByTags(const FOrbitCameraTags& Tags) const
+{
+	TArray<AOrbitCameraBase*> Result;
+	const TArray<AOrbitCameraBase*> Cameras = GetAllCameras();
+	for (AOrbitCameraBase* Camera : Cameras)
+	{
+		if (!IsValid(Camera))
+		{
+			continue;
+		}
+
+		bool bMatchesInclude = Tags.IncludingTags.Num() == 0;
+		for (const FName& IncludeTag : Tags.IncludingTags)
+		{
+			if (Camera->ActorHasTag(IncludeTag))
+			{
+				bMatchesInclude = true;
+				break;
+			}
+		}
+
+		bool bMatchesExclude = true;
+		for (const FName& ExcludeTag : Tags.ExcludingTags)
+		{
+			if (Camera->ActorHasTag(ExcludeTag))
+			{
+				bMatchesExclude = false;
+				break;
+			}
+		}
+
+		if (bMatchesInclude && bMatchesExclude)
+		{
+			Result.Add(Camera);
+		}
+	}
+
+	return Result;
+}
+
+bool AOrbitCameraManagerBase::SelectCamera(AOrbitCameraBase* InCamera, EOrbitCameraTransition TransitionType)
+{
+	return TransitionToCamera(InCamera, TransitionType);
+}
+
 bool AOrbitCameraManagerBase::EnterWalkingMode(bool bMatchCurrentCamera)
 {
 	if (ActiveMode == EOrbitCameraMode::Walking)
