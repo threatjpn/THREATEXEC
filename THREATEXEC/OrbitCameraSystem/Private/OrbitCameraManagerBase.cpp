@@ -6,6 +6,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/InputComponent.h"
 #include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values
@@ -50,6 +51,17 @@ void AOrbitCameraManagerBase::BeginPlay()
 		ActiveOrbitCamera = TaggedOrbitCamera ? TaggedOrbitCamera : FirstOrbitCamera;
 	}
 
+	if (bAutoPossessPlayer0OnBeginPlay)
+	{
+		if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
+		{
+			if (PlayerController->GetPawn() != this)
+			{
+				PlayerController->Possess(this);
+			}
+		}
+	}
+
 	if (ActiveOrbitCamera)
 	{
 		SetActorLocationAndRotation(ActiveOrbitCamera->GetActorLocation(), ActiveOrbitCamera->GetActorRotation());
@@ -60,6 +72,8 @@ void AOrbitCameraManagerBase::BeginPlay()
 	{
 		EnterWalkOutMode();
 	}
+
+	ApplyDesiredViewTarget();
 }
 
 // Called every frame
@@ -144,6 +158,8 @@ void AOrbitCameraManagerBase::EnterWalkOutMode()
 	{
 		CaptureOrbitCameraTransform(StartCameraDefinition, ActiveOrbitCamera);
 	}
+
+	ApplyDesiredViewTarget();
 }
 
 void AOrbitCameraManagerBase::ExitWalkOutMode()
@@ -171,6 +187,8 @@ void AOrbitCameraManagerBase::ExitWalkOutMode()
 	{
 		TransitionToOrbitCamera(ActiveOrbitCamera, ModeTransitionDuration);
 	}
+
+	ApplyDesiredViewTarget();
 }
 
 void AOrbitCameraManagerBase::SetWalkOutModeEnabled(bool bEnable)
@@ -184,6 +202,31 @@ void AOrbitCameraManagerBase::SetWalkOutModeEnabled(bool bEnable)
 	ExitWalkOutMode();
 }
 
+void AOrbitCameraManagerBase::ApplyDesiredViewTarget()
+{
+	if (!bAutoManageViewTarget)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	AActor* DesiredViewTarget = bIsWalkOutMode ? Cast<AActor>(this) : Cast<AActor>(ActiveOrbitCamera.Get());
+	if (!DesiredViewTarget)
+	{
+		DesiredViewTarget = this;
+	}
+
+	if (PlayerController->GetViewTarget() != DesiredViewTarget)
+	{
+		PlayerController->SetViewTarget(DesiredViewTarget);
+	}
+}
+
 void AOrbitCameraManagerBase::CutToOrbitCamera(AOrbitCameraBase* NewOrbitCamera)
 {
 	if (!NewOrbitCamera)
@@ -195,6 +238,7 @@ void AOrbitCameraManagerBase::CutToOrbitCamera(AOrbitCameraBase* NewOrbitCamera)
 	bTransitionInProgress = false;
 	SetActorLocationAndRotation(NewOrbitCamera->GetActorLocation(), NewOrbitCamera->GetActorRotation());
 	CaptureOrbitCameraTransform(CurrentCameraDefinition, ActiveOrbitCamera);
+	ApplyDesiredViewTarget();
 }
 
 void AOrbitCameraManagerBase::TransitionToOrbitCamera(AOrbitCameraBase* NewOrbitCamera, float Duration)
@@ -217,6 +261,7 @@ void AOrbitCameraManagerBase::TransitionToOrbitCamera(AOrbitCameraBase* NewOrbit
 	{
 		SetActorTransform(TransitionTarget);
 		CaptureOrbitCameraTransform(CurrentCameraDefinition, ActiveOrbitCamera);
+		ApplyDesiredViewTarget();
 	}
 }
 

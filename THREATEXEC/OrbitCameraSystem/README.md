@@ -42,6 +42,12 @@ Use one of these patterns:
 Then make sure manager `ActiveOrbitCamera` points to your placed `AOrbitCameraBase`.
 If it is empty, enable `bAutoFindOrbitCameraIfUnset` so the manager automatically binds to the first orbit camera in the level (or the first with `AutoFindOrbitCameraTag`).
 
+For easiest setup, keep these enabled on manager:
+- `bAutoPossessPlayer0OnBeginPlay`
+- `bAutoManageViewTarget`
+
+This makes play-in-editor automatically possess the manager and switch the camera view target correctly.
+
 ### Default walk keybinds (manager)
 
 These are coded directly in `AOrbitCameraManagerBase` and exposed as editable `FKey` properties:
@@ -154,3 +160,6 @@ On `AOrbitCameraBase`:
   - Raise `AutoFocus_DeadZone`.
 - **Walk mode feels unconstrained**
   - Enable walk bounds and set `WalkBoundsExtent` or `WalkBoundsActor`.
+- **I press Play and camera is wrong / not using orbit camera**
+  - Make sure manager is possessed (or keep `bAutoPossessPlayer0OnBeginPlay` enabled).
+  - Keep `bAutoManageViewTarget` enabled so view target swaps between orbit camera and walk mode automatically.

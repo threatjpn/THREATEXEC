@@ -105,6 +105,14 @@ public:
 		meta = (EditCondition = "bAutoFindOrbitCameraIfUnset"))
 	FName AutoFindOrbitCameraTag = NAME_None;
 
+	// If true, manager will possess itself with PlayerController(0) on BeginPlay for plug-and-play setup.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Mode")
+	bool bAutoPossessPlayer0OnBeginPlay = true;
+
+	// If true, manager updates player view target automatically when entering/exiting walk mode.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Mode")
+	bool bAutoManageViewTarget = true;
+
 	// True while player is in walk out mode.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OrbitCamera|Mode")
 	bool bIsWalkOutMode = false;
@@ -221,6 +229,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
+	void ApplyDesiredViewTarget();
 	void UpdateWalkOutMovement(float DeltaTime);
 	void UpdateModeTransition(float DeltaTime);
 	void ClampWalkLocation(FVector& InOutLocation) const;
