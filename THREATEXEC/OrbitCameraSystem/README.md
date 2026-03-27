@@ -116,10 +116,10 @@ This workflow avoids stale editor state and ensures sliders always map to the ac
 
 On `AOrbitCameraBase`:
 
-1. Enable `bEnableAdvancedDOF`.
-2. Choose `DOFPreset`.
-3. Tune preset structs (`CinematicDOF`, `GameplayDOF`, etc.) only when needed.
-4. Use `bSmoothDOFTransitions` + `DOFTransitionSpeed` for blend behavior.
+1. Enable `bEnableAdvancedDOFStack`.
+2. Choose `AdvancedDOFPreset`.
+3. Tune preset structs (`AdvancedCinematicDOF`, `AdvancedGameplayDOF`, etc.) only when needed.
+4. Use `bSmoothAdvancedDOFTransitions` + `AdvancedDOFTransitionSpeed` for blend behavior.
 
 ---
 

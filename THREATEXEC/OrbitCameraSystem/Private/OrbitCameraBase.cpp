@@ -28,11 +28,11 @@ AOrbitCameraBase::AOrbitCameraBase(const FObjectInitializer& ObjectInitializer)
 	CineCamRef->SetupAttachment(OrbitRoot);
 	CineCamRef->SetRelativeLocation(FVector(InitialDistance * -1, 0.f, 0.f));
 
-	CinematicDOF = FOrbitCameraDOFSettings{ 1.8f, 50.0f, 0.0f, 8.0f, true };
-	GameplayDOF = FOrbitCameraDOFSettings{ 4.0f, 35.0f, 0.0f, 10.0f, true };
-	PortraitDOF = FOrbitCameraDOFSettings{ 1.4f, 85.0f, 5.0f, 6.0f, true };
-	MacroDOF = FOrbitCameraDOFSettings{ 2.0f, 100.0f, -2.0f, 5.0f, true };
-	CustomDOF = CinematicDOF;
+	AdvancedCinematicDOF = FOrbitCameraDOFSettings{ 1.8f, 50.0f, 0.0f, 8.0f, true };
+	AdvancedGameplayDOF = FOrbitCameraDOFSettings{ 4.0f, 35.0f, 0.0f, 10.0f, true };
+	AdvancedPortraitDOF = FOrbitCameraDOFSettings{ 1.4f, 85.0f, 5.0f, 6.0f, true };
+	AdvancedMacroDOF = FOrbitCameraDOFSettings{ 2.0f, 100.0f, -2.0f, 5.0f, true };
+	AdvancedCustomDOF = AdvancedCinematicDOF;
 }
 
 void AOrbitCameraBase::BeginPlay()
@@ -334,34 +334,34 @@ void AOrbitCameraBase::UpdateAutoFocus(float DeltaSeconds)
 
 const FOrbitCameraDOFSettings& AOrbitCameraBase::ResolveDOFSettings() const
 {
-	switch (DOFPreset)
+	switch (AdvancedDOFPreset)
 	{
 	case EOrbitCameraDOFPreset::OC_DOF_Gameplay:
-		return GameplayDOF;
+		return AdvancedGameplayDOF;
 	case EOrbitCameraDOFPreset::OC_DOF_Portrait:
-		return PortraitDOF;
+		return AdvancedPortraitDOF;
 	case EOrbitCameraDOFPreset::OC_DOF_Macro:
-		return MacroDOF;
+		return AdvancedMacroDOF;
 	case EOrbitCameraDOFPreset::OC_DOF_Custom:
-		return CustomDOF;
+		return AdvancedCustomDOF;
 	case EOrbitCameraDOFPreset::OC_DOF_Off:
-		return GameplayDOF;
+		return AdvancedGameplayDOF;
 	case EOrbitCameraDOFPreset::OC_DOF_Cinematic:
 	default:
-		return CinematicDOF;
+		return AdvancedCinematicDOF;
 	}
 }
 
 void AOrbitCameraBase::UpdateDepthOfField(float DeltaSeconds)
 {
-	if (!CineCamRef || !bEnableAdvancedDOF)
+	if (!CineCamRef || !bEnableAdvancedDOFStack)
 	{
 		return;
 	}
 
-	if (DOFPreset == EOrbitCameraDOFPreset::OC_DOF_Off)
+	if (AdvancedDOFPreset == EOrbitCameraDOFPreset::OC_DOF_Off)
 	{
-		CineCamRef->CurrentAperture = FMath::FInterpTo(CineCamRef->CurrentAperture, 22.0f, DeltaSeconds, DOFTransitionSpeed);
+		CineCamRef->CurrentAperture = FMath::FInterpTo(CineCamRef->CurrentAperture, 22.0f, DeltaSeconds, AdvancedDOFTransitionSpeed);
 		return;
 	}
 
@@ -370,10 +370,10 @@ void AOrbitCameraBase::UpdateDepthOfField(float DeltaSeconds)
 	const float TargetAperture = FMath::Max(0.1f, Settings.Aperture);
 	const float TargetFocalLength = FMath::Max(1.0f, Settings.FocalLength);
 
-	if (bSmoothDOFTransitions)
+	if (bSmoothAdvancedDOFTransitions)
 	{
-		CineCamRef->CurrentAperture = FMath::FInterpTo(CineCamRef->CurrentAperture, TargetAperture, DeltaSeconds, DOFTransitionSpeed);
-		CineCamRef->CurrentFocalLength = FMath::FInterpTo(CineCamRef->CurrentFocalLength, TargetFocalLength, DeltaSeconds, DOFTransitionSpeed);
+		CineCamRef->CurrentAperture = FMath::FInterpTo(CineCamRef->CurrentAperture, TargetAperture, DeltaSeconds, AdvancedDOFTransitionSpeed);
+		CineCamRef->CurrentFocalLength = FMath::FInterpTo(CineCamRef->CurrentFocalLength, TargetFocalLength, DeltaSeconds, AdvancedDOFTransitionSpeed);
 	}
 	else
 	{
