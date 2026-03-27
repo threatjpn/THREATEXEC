@@ -463,6 +463,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds")
 	bool bClampToBounds = false;
 
+	// If enabled, camera component clamping is applied in addition to orbit-root clamping.
+	// Disable for simpler behavior with fewer snap corrections.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds")
+	bool bClampCameraPositionToBounds = false;
+
 	// Set this to your BP_CameraBounds actor (it must have a BoxComponent).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds", meta = (EditCondition = "bClampToBounds"))
 	AActor* CameraBoundsActor = nullptr;
@@ -478,6 +483,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Debugging")
 	bool EnableDebugging = false;
+
+	// If true, actor transform in editor is used directly as the initial orbit anchor/rotation.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Setup")
+	bool bUseActorTransformForInitialState = true;
+
+	// Optional soft collision zoom correction (can feel like zoom snapping if enabled in tight spaces).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Zoom")
+	bool bEnableCollisionSoftSolve = false;
 
 #pragma endregion
 
@@ -544,6 +557,7 @@ protected:
 	// We clamp after everything else moved the root this frame.
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 #if WITH_EDITOR
 

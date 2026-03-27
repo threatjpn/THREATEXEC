@@ -40,6 +40,36 @@ void AOrbitCameraBase::BeginPlay()
 	ClampOrbitRootToBounds();
 }
 
+void AOrbitCameraBase::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	if (!OrbitRoot || !CineCamRef)
+	{
+		return;
+	}
+
+	ValidateAndNormalizeSettings();
+	ApplyDOFPreset(DOFPreset);
+
+	if (bUseActorTransformForInitialState)
+	{
+		const FVector ActorLocation = GetActorLocation();
+		const FRotator ActorRotation = GetActorRotation();
+
+		OrbitRoot->SetWorldLocation(ActorLocation);
+		OrbitRoot->SetWorldRotation(ActorRotation);
+
+		InitialYaw = FMath::Clamp(ActorRotation.Yaw, MinYaw, MaxYaw);
+		InitialPitch = FMath::Clamp(ActorRotation.Pitch, MinPitch, MaxPitch);
+		InitialRoll = ActorRotation.Roll;
+	}
+
+	CineCamRef->SetRelativeLocation(FVector(-InitialDistance, 0.0f, 0.0f));
+	CineCamRef->CurrentFocalLength = InitialFocalLength;
+	CineCamRef->CurrentAperture = TargetAperture;
+}
+
 void AOrbitCameraBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -104,10 +134,23 @@ void AOrbitCameraBase::InitializeRuntimeStateFromDefaults()
 	}
 
 	Internal_InitalLocation = OrbitRoot->GetComponentLocation();
+	if (bUseActorTransformForInitialState)
+	{
+		Internal_InitalLocation = GetActorLocation();
+		OrbitRoot->SetWorldLocation(Internal_InitalLocation);
+	}
 	Internal_TargetLocation = Internal_InitalLocation;
 	Internal_CurrentLocation = Internal_InitalLocation;
 
 	Internal_TargetRotation = FRotator(InitialPitch, InitialYaw, InitialRoll);
+	if (bUseActorTransformForInitialState)
+	{
+		const FRotator ActorRot = GetActorRotation();
+		Internal_TargetRotation = FRotator(
+			FMath::Clamp(ActorRot.Pitch, MinPitch, MaxPitch),
+			FMath::Clamp(ActorRot.Yaw, MinYaw, MaxYaw),
+			ActorRot.Roll);
+	}
 	Internal_CurrentRotation = Internal_TargetRotation;
 	OrbitRoot->SetWorldRotation(Internal_CurrentRotation);
 
@@ -668,7 +711,7 @@ FVector AOrbitCameraBase::SmoothDampVector(const FVector& Current, const FVector
 
 void AOrbitCameraBase::UpdateCollisionSoftSolve(float DeltaSeconds)
 {
-	if (!GetWorld() || !OrbitRoot || !CineCamRef)
+	if (!bEnableCollisionSoftSolve || !GetWorld() || !OrbitRoot || !CineCamRef)
 	{
 		return;
 	}
@@ -720,8 +763,11 @@ void AOrbitCameraBase::ClampOrbitRootToBounds()
 		OrbitRoot->SetWorldLocation(RootClamped, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 
-	// 2) Then clamp the CAMERA position too (this fixes rotate clipping)
-	ClampCameraToBounds();
+	// 2) Optional camera clamping pass (can cause extra correction/snap if enabled).
+	if (bClampCameraPositionToBounds)
+	{
+		ClampCameraToBounds();
+	}
 }
 
 void AOrbitCameraBase::ClampCameraToBounds()

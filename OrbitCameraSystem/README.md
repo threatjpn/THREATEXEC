@@ -63,6 +63,7 @@ If you want default behavior without building your own input graph:
    - Orbit drag `RMB`, pan drag `MMB`, walk toggle `Tab`
    - Next/previous orbit camera `PageDown` / `PageUp`
    - Walk move `WASD`, vertical `E/Q`, sprint `LeftShift`, slow walk `LeftCtrl`.
+   - Left click is intentionally left unbound for gameplay/UI interaction.
 
 ---
 
@@ -170,6 +171,12 @@ Orbit camera fields:
 - `bClampToBounds`
 - `CameraBoundsActor`
 - `BoundsPadding`
+- `bClampCameraPositionToBounds` (optional extra clamp pass; leave off for simpler/no-snap setup)
+
+Setup helpers for easier editor placement:
+
+- `bUseActorTransformForInitialState` (uses placed actor transform as initial orbit anchor/rotation)
+- `bEnableCollisionSoftSolve` (optional; can be disabled to prevent zoom push-back feeling)
 
 ---
 

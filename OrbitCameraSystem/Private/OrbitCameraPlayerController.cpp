@@ -221,6 +221,15 @@ void AOrbitCameraPlayerController::EnsureDefaultInputMappings()
 
 	bool bMappingsChanged = false;
 
+	if (bKeepLeftClickUnbound)
+	{
+		RemoveLeftMouseActionMapping(InputSettings, OrbitDragActionName, bMappingsChanged);
+		RemoveLeftMouseActionMapping(InputSettings, PanDragActionName, bMappingsChanged);
+		RemoveLeftMouseActionMapping(InputSettings, ToggleWalkActionName, bMappingsChanged);
+		RemoveLeftMouseActionMapping(InputSettings, NextCameraActionName, bMappingsChanged);
+		RemoveLeftMouseActionMapping(InputSettings, PreviousCameraActionName, bMappingsChanged);
+	}
+
 	// Orbit mode mappings
 	AddDefaultActionMapping(InputSettings, OrbitDragActionName, FInputActionKeyMapping(OrbitDragActionName, EKeys::RightMouseButton), bMappingsChanged);
 	AddDefaultActionMapping(InputSettings, PanDragActionName, FInputActionKeyMapping(PanDragActionName, EKeys::MiddleMouseButton), bMappingsChanged);
@@ -297,5 +306,24 @@ void AOrbitCameraPlayerController::AddDefaultAxisMapping(UInputSettings* InputSe
 	{
 		InputSettings->AddAxisMapping(Mapping, false);
 		bMappingsChanged = true;
+	}
+}
+
+void AOrbitCameraPlayerController::RemoveLeftMouseActionMapping(UInputSettings* InputSettings, const FName& ActionName, bool& bMappingsChanged) const
+{
+	if (!InputSettings)
+	{
+		return;
+	}
+
+	TArray<FInputActionKeyMapping> ExistingMappings;
+	InputSettings->GetActionMappingByName(ActionName, ExistingMappings);
+	for (const FInputActionKeyMapping& Existing : ExistingMappings)
+	{
+		if (Existing.Key == EKeys::LeftMouseButton)
+		{
+			InputSettings->RemoveActionMapping(Existing, false);
+			bMappingsChanged = true;
+		}
 	}
 }

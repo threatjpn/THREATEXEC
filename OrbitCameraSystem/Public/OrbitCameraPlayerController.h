@@ -47,6 +47,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input")
 	FName ZoomAxisName = TEXT("Zoom");
 
+	// Keeps Left Mouse Button unbound from orbit-controller default actions so gameplay/UI click remains free.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input")
+	bool bKeepLeftClickUnbound = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera")
 	TObjectPtr<AOrbitCameraBase> OrbitCameraRef = nullptr;
 
@@ -81,4 +85,5 @@ private:
 	void EnsureDefaultInputMappings();
 	void AddDefaultActionMapping(UInputSettings* InputSettings, const FName& ActionName, const struct FInputActionKeyMapping& Mapping, bool& bMappingsChanged) const;
 	void AddDefaultAxisMapping(UInputSettings* InputSettings, const FName& AxisName, const struct FInputAxisKeyMapping& Mapping, bool& bMappingsChanged) const;
+	void RemoveLeftMouseActionMapping(UInputSettings* InputSettings, const FName& ActionName, bool& bMappingsChanged) const;
 };
