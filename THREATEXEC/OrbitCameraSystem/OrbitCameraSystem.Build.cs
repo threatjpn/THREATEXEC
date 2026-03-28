@@ -14,11 +14,10 @@ public class OrbitCameraSystem : ModuleRules
 			{
 				"CinematicCamera",
 				"Core",
-				"InputCore",
 			}
 			);
-			
-		
+
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
@@ -28,7 +27,7 @@ public class OrbitCameraSystem : ModuleRules
 				"SlateCore",
 			}
 			);
-		if (Target.Type == TargetRules.TargetType.Editor) 
+		if (Target.Type == TargetRules.TargetType.Editor)
 		{
 			PrivateDependencyModuleNames.Add("UnrealEd");
 		}
