@@ -159,13 +159,16 @@ void AOrbitCameraBase::ClampOrbitRootToBounds()
 		OrbitRoot->SetWorldLocation(RootClamped, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 
-	// 2) Then clamp the CAMERA position too (this fixes rotate clipping)
-	ClampCameraToBounds();
+	// 2) Optional: clamp camera position too (can push root vertically when near floor bounds).
+	if (bClampCameraComponentToBounds)
+	{
+		ClampCameraToBounds();
+	}
 }
 
 void AOrbitCameraBase::ClampCameraToBounds()
 {
-	if (!bClampToBounds || !CameraBoundsActor || !OrbitRoot || !CineCamRef)
+	if (!bClampToBounds || !bClampCameraComponentToBounds || !CameraBoundsActor || !OrbitRoot || !CineCamRef)
 	{
 		return;
 	}

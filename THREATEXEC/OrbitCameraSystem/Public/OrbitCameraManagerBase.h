@@ -13,6 +13,7 @@
 #include "OrbitCameraManagerBase.generated.h"
 
 //////////////////////////////////////////////////////////////////////////
+class AOrbitWalkCharacter;
 
 // Defines the Transition for selecting an OrbitCamera
 UENUM(BlueprintType)
@@ -129,6 +130,49 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float WalkMoveSpeed = 350.0f;
 
+	// If true, uses a first-person style acceleration/deceleration model instead of instant movement.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut")
+	bool bUseFirstPersonWalkModel = true;
+
+	// Horizontal acceleration in cm/s^2 for first-person walk model.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bUseFirstPersonWalkModel"))
+	float WalkAcceleration = 2200.0f;
+
+	// Horizontal braking deceleration in cm/s^2 when no movement input.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bUseFirstPersonWalkModel"))
+	float WalkBrakingDeceleration = 2600.0f;
+
+	// Vertical movement speed (when vertical input is enabled).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut",
+		meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float WalkVerticalSpeed = 300.0f;
+
+	// Apply sweep collision when moving in walk mode (if root has collision enabled).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut")
+	bool bWalkSweepCollision = true;
+
+	// If true, walk movement uses only planar forward/right (character-like movement without flying when looking up/down).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut")
+	bool bWalkPlanarMovement = true;
+
+	// If false, vertical walk input (E/Q) is ignored for character-like ground movement.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut")
+	bool bAllowWalkVerticalInput = false;
+
+	// If true and the game starts in walk mode, spawn at manager placed transform instead of orbit camera transform.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut")
+	bool bWalkSpawnFromManagerPlacement = true;
+
+	// Character class used for walk mode.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut")
+	TSubclassOf<AOrbitWalkCharacter> WalkCharacterClass;
+
+	// If true, walk character actor is destroyed when leaving walk mode.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut")
+	bool bDestroyWalkCharacterOnExit = false;
+
 	// Fast movement speed while sprint input is active.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float WalkSprintMultiplier = 2.0f;
@@ -156,6 +200,25 @@ public:
 	// Orbit zoom speed per mouse wheel tick.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float OrbitZoomStep = 25.0f;
+
+	// Smoothly interpolate orbit look/pan/zoom instead of applying instant jumps.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls")
+	bool bSmoothOrbitControls = true;
+
+	// Interp speed for orbit look rotation.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bSmoothOrbitControls"))
+	float OrbitLookSmoothingSpeed = 12.0f;
+
+	// Interp speed for orbit panning movement.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bSmoothOrbitControls"))
+	float OrbitPanSmoothingSpeed = 10.0f;
+
+	// Interp speed for orbit wheel zoom movement.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bSmoothOrbitControls"))
+	float OrbitZoomSmoothingSpeed = 10.0f;
 
 	// Clamp pitch while walking to keep controls predictable.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut", meta = (ClampMin = "-89.0", ClampMax = "89.0"))
@@ -254,6 +317,8 @@ public:
 
 private:
 	void ApplyDesiredViewTarget();
+	void EnsureOrbitTargetsInitialized();
+	void UpdateOrbitCameraSmoothing(float DeltaTime);
 	void UpdateWalkOutMovement(float DeltaTime);
 	void UpdateModeTransition(float DeltaTime);
 	void ClampWalkLocation(FVector& InOutLocation) const;
@@ -285,6 +350,9 @@ private:
 	FVector WalkBoundsOrigin = FVector::ZeroVector;
 	FVector WalkModeStartLocation = FVector::ZeroVector;
 	FRotator WalkModeStartRotation = FRotator::ZeroRotator;
+	FTransform ManagerPlacedTransform = FTransform::Identity;
+	FVector WalkVelocity = FVector::ZeroVector;
+	TObjectPtr<AOrbitWalkCharacter> WalkCharacterInstance = nullptr;
 
 	bool bMoveForwardPressed = false;
 	bool bMoveBackwardPressed = false;
@@ -295,6 +363,12 @@ private:
 	bool bSprintPressed = false;
 	bool bOrbitLookPressed = false;
 	bool bOrbitPanPressed = false;
+	bool bOrbitTargetsInitialized = false;
+
+	FVector OrbitTargetRootLocation = FVector::ZeroVector;
+	FRotator OrbitTargetRootRotation = FRotator::ZeroRotator;
+	float OrbitTargetDistance = 0.0f;
+	float OrbitTargetFocalLength = 0.0f;
 
 	bool bTransitionInProgress = false;
 	float TransitionElapsed = 0.0f;

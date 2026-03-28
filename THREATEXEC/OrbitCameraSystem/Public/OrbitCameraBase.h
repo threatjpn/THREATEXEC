@@ -430,6 +430,12 @@ public:
 		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bClampToBounds"))
 	float BoundsPadding = 30.0f;
 
+	// If true, camera component is also clamped inside bounds by pushing root.
+	// Disable this to avoid unwanted vertical push when looking up/down near floor/ceiling bounds.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds",
+		meta = (EditCondition = "bClampToBounds"))
+	bool bClampCameraComponentToBounds = false;
+
 #pragma endregion
 
 #pragma region Debugging

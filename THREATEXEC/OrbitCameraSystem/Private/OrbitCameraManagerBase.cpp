@@ -1,6 +1,7 @@
 // Copyright 2020 RealVisStudios. All Rights Reserved.
 
 #include "OrbitCameraManagerBase.h"
+#include "OrbitWalkCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "CineCameraComponent.h"
 #include "Components/BoxComponent.h"
@@ -14,12 +15,15 @@ AOrbitCameraManagerBase::AOrbitCameraManagerBase()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	WalkCharacterClass = AOrbitWalkCharacter::StaticClass();
 }
 
 // Called when the game starts or when spawned
 void AOrbitCameraManagerBase::BeginPlay()
 {
 	Super::BeginPlay();
+	ManagerPlacedTransform = GetActorTransform();
+	const bool bStartInWalkMode = (bWalkModeOnly || bStartInWalkOutMode);
 
 	if (!ActiveOrbitCamera && bAutoFindOrbitCameraIfUnset)
 	{
@@ -62,14 +66,18 @@ void AOrbitCameraManagerBase::BeginPlay()
 		}
 	}
 
-	if (ActiveOrbitCamera)
+	if (ActiveOrbitCamera && !(bStartInWalkMode && bWalkSpawnFromManagerPlacement))
 	{
 		SetActorLocationAndRotation(ActiveOrbitCamera->GetActorLocation(), ActiveOrbitCamera->GetActorRotation());
 		CaptureOrbitCameraTransform(CurrentCameraDefinition, ActiveOrbitCamera);
 	}
 
-	if (bWalkModeOnly || bStartInWalkOutMode)
+	if (bStartInWalkMode)
 	{
+		if (bWalkSpawnFromManagerPlacement)
+		{
+			SetActorTransform(ManagerPlacedTransform);
+		}
 		EnterWalkOutMode();
 	}
 
@@ -85,7 +93,11 @@ void AOrbitCameraManagerBase::Tick(float DeltaTime)
 
 	if (bIsWalkOutMode)
 	{
-		UpdateWalkOutMovement(DeltaTime);
+		// Character-based walk mode handles movement input directly.
+	}
+	else
+	{
+		UpdateOrbitCameraSmoothing(DeltaTime);
 	}
 }
 
@@ -155,6 +167,8 @@ void AOrbitCameraManagerBase::EnterWalkOutMode()
 	}
 
 	bIsWalkOutMode = true;
+	bOrbitTargetsInitialized = false;
+	WalkVelocity = FVector::ZeroVector;
 	WalkModeStartLocation = GetActorLocation();
 	WalkModeStartRotation = GetActorRotation();
 	WalkBoundsOrigin = WalkModeStartLocation;
@@ -162,6 +176,40 @@ void AOrbitCameraManagerBase::EnterWalkOutMode()
 	if (ActiveOrbitCamera)
 	{
 		CaptureOrbitCameraTransform(StartCameraDefinition, ActiveOrbitCamera);
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (PlayerController)
+	{
+		const FTransform SpawnTransform(GetActorRotation(), GetActorLocation());
+		if (!WalkCharacterInstance && WalkCharacterClass)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+			WalkCharacterInstance = GetWorld()->SpawnActor<AOrbitWalkCharacter>(WalkCharacterClass, SpawnTransform, SpawnParams);
+		}
+
+		if (WalkCharacterInstance)
+		{
+			WalkCharacterInstance->SetActorLocationAndRotation(GetActorLocation(), GetActorRotation());
+			WalkCharacterInstance->InitializeFromManager(
+				this,
+				WalkMoveSpeed,
+				WalkSprintMultiplier,
+				WalkMinPitch,
+				WalkMaxPitch,
+				bAllowWalkVerticalInput,
+				ToggleWalkOutKey,
+				MoveForwardKey,
+				MoveBackwardKey,
+				MoveRightKey,
+				MoveLeftKey,
+				MoveUpKey,
+				MoveDownKey,
+				SprintKey);
+			PlayerController->Possess(WalkCharacterInstance);
+			PlayerController->SetViewTarget(WalkCharacterInstance);
+		}
 	}
 
 	ApplyDesiredViewTarget();
@@ -180,6 +228,8 @@ void AOrbitCameraManagerBase::ExitWalkOutMode()
 	}
 
 	bIsWalkOutMode = false;
+	bOrbitTargetsInitialized = false;
+	WalkVelocity = FVector::ZeroVector;
 	bMoveForwardPressed = false;
 	bMoveBackwardPressed = false;
 	bMoveRightPressed = false;
@@ -191,6 +241,22 @@ void AOrbitCameraManagerBase::ExitWalkOutMode()
 	if (ActiveOrbitCamera)
 	{
 		TransitionToOrbitCamera(ActiveOrbitCamera, ModeTransitionDuration);
+	}
+
+	if (WalkCharacterInstance)
+	{
+		SetActorLocationAndRotation(WalkCharacterInstance->GetActorLocation(), WalkCharacterInstance->GetActorRotation());
+
+		if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
+		{
+			PlayerController->Possess(this);
+		}
+
+		if (bDestroyWalkCharacterOnExit)
+		{
+			WalkCharacterInstance->Destroy();
+			WalkCharacterInstance = nullptr;
+		}
 	}
 
 	ApplyDesiredViewTarget();
@@ -220,7 +286,17 @@ void AOrbitCameraManagerBase::ApplyDesiredViewTarget()
 		return;
 	}
 
-	AActor* DesiredViewTarget = bIsWalkOutMode ? Cast<AActor>(this) : Cast<AActor>(ActiveOrbitCamera.Get());
+	AActor* DesiredViewTarget = nullptr;
+	if (bIsWalkOutMode)
+	{
+		DesiredViewTarget = (WalkCharacterInstance)
+			? Cast<AActor>(WalkCharacterInstance.Get())
+			: Cast<AActor>(this);
+	}
+	else
+	{
+		DesiredViewTarget = Cast<AActor>(ActiveOrbitCamera.Get());
+	}
 	if (!DesiredViewTarget)
 	{
 		DesiredViewTarget = this;
@@ -232,6 +308,74 @@ void AOrbitCameraManagerBase::ApplyDesiredViewTarget()
 	}
 }
 
+void AOrbitCameraManagerBase::EnsureOrbitTargetsInitialized()
+{
+	if (bOrbitTargetsInitialized || !ActiveOrbitCamera || !ActiveOrbitCamera->CineCamRef || !ActiveOrbitCamera->OrbitRoot)
+	{
+		return;
+	}
+
+	OrbitTargetRootLocation = ActiveOrbitCamera->OrbitRoot->GetComponentLocation();
+	OrbitTargetRootRotation = ActiveOrbitCamera->OrbitRoot->GetRelativeRotation();
+	OrbitTargetDistance = FMath::Abs(ActiveOrbitCamera->CineCamRef->GetRelativeLocation().X);
+	OrbitTargetFocalLength = ActiveOrbitCamera->CineCamRef->CurrentFocalLength;
+	bOrbitTargetsInitialized = true;
+}
+
+void AOrbitCameraManagerBase::UpdateOrbitCameraSmoothing(float DeltaTime)
+{
+	if (!ActiveOrbitCamera || !ActiveOrbitCamera->CineCamRef || !ActiveOrbitCamera->OrbitRoot)
+	{
+		bOrbitTargetsInitialized = false;
+		return;
+	}
+
+	EnsureOrbitTargetsInitialized();
+
+	if (!bSmoothOrbitControls)
+	{
+		ActiveOrbitCamera->OrbitRoot->SetWorldLocation(OrbitTargetRootLocation);
+		ActiveOrbitCamera->OrbitRoot->SetRelativeRotation(OrbitTargetRootRotation);
+		ActiveOrbitCamera->CineCamRef->SetRelativeLocation(FVector(-OrbitTargetDistance, 0.0f, 0.0f));
+		ActiveOrbitCamera->CineCamRef->CurrentFocalLength = OrbitTargetFocalLength;
+	}
+	else
+	{
+		const FVector SmoothedLocation = FMath::VInterpTo(
+			ActiveOrbitCamera->OrbitRoot->GetComponentLocation(),
+			OrbitTargetRootLocation,
+			DeltaTime,
+			OrbitPanSmoothingSpeed);
+		const FRotator SmoothedRotation = FMath::RInterpTo(
+			ActiveOrbitCamera->OrbitRoot->GetRelativeRotation(),
+			OrbitTargetRootRotation,
+			DeltaTime,
+			OrbitLookSmoothingSpeed);
+		const float SmoothedDistance = FMath::FInterpTo(
+			FMath::Abs(ActiveOrbitCamera->CineCamRef->GetRelativeLocation().X),
+			OrbitTargetDistance,
+			DeltaTime,
+			OrbitZoomSmoothingSpeed);
+		const float SmoothedFocal = FMath::FInterpTo(
+			ActiveOrbitCamera->CineCamRef->CurrentFocalLength,
+			OrbitTargetFocalLength,
+			DeltaTime,
+			OrbitZoomSmoothingSpeed);
+
+		ActiveOrbitCamera->OrbitRoot->SetWorldLocation(SmoothedLocation);
+		ActiveOrbitCamera->OrbitRoot->SetRelativeRotation(SmoothedRotation);
+		ActiveOrbitCamera->CineCamRef->SetRelativeLocation(FVector(-SmoothedDistance, 0.0f, 0.0f));
+		ActiveOrbitCamera->CineCamRef->CurrentFocalLength = SmoothedFocal;
+	}
+
+	ActiveOrbitCamera->Internal_CurrentRotation = ActiveOrbitCamera->OrbitRoot->GetRelativeRotation();
+	ActiveOrbitCamera->Internal_TargetRotation = OrbitTargetRootRotation;
+	ActiveOrbitCamera->Internal_CurrentDistance = FMath::Abs(ActiveOrbitCamera->CineCamRef->GetRelativeLocation().X);
+	ActiveOrbitCamera->Internal_TargetDistance = OrbitTargetDistance;
+	ActiveOrbitCamera->Internal_CurrentFocalLength = ActiveOrbitCamera->CineCamRef->CurrentFocalLength;
+	ActiveOrbitCamera->Internal_TargetFocalLength = OrbitTargetFocalLength;
+}
+
 void AOrbitCameraManagerBase::CutToOrbitCamera(AOrbitCameraBase* NewOrbitCamera)
 {
 	if (!NewOrbitCamera)
@@ -240,6 +384,7 @@ void AOrbitCameraManagerBase::CutToOrbitCamera(AOrbitCameraBase* NewOrbitCamera)
 	}
 
 	ActiveOrbitCamera = NewOrbitCamera;
+	bOrbitTargetsInitialized = false;
 	bTransitionInProgress = false;
 	SetActorLocationAndRotation(NewOrbitCamera->GetActorLocation(), NewOrbitCamera->GetActorRotation());
 	CaptureOrbitCameraTransform(CurrentCameraDefinition, ActiveOrbitCamera);
@@ -254,6 +399,7 @@ void AOrbitCameraManagerBase::TransitionToOrbitCamera(AOrbitCameraBase* NewOrbit
 	}
 
 	ActiveOrbitCamera = NewOrbitCamera;
+	bOrbitTargetsInitialized = false;
 	CaptureOrbitCameraTransform(TargetCameraDefinition, ActiveOrbitCamera);
 
 	TransitionStart = GetActorTransform();
@@ -272,9 +418,16 @@ void AOrbitCameraManagerBase::TransitionToOrbitCamera(AOrbitCameraBase* NewOrbit
 
 void AOrbitCameraManagerBase::UpdateWalkOutMovement(float DeltaTime)
 {
-	const FVector Forward = GetActorForwardVector();
-	const FVector Right = GetActorRightVector();
+	FVector Forward = GetActorForwardVector();
+	FVector Right = GetActorRightVector();
 	const FVector Up = FVector::UpVector;
+	if (bWalkPlanarMovement)
+	{
+		Forward.Z = 0.0f;
+		Right.Z = 0.0f;
+		Forward = Forward.GetSafeNormal();
+		Right = Right.GetSafeNormal();
+	}
 
 	float ForwardInput = 0.0f;
 	ForwardInput += bMoveForwardPressed ? 1.0f : 0.0f;
@@ -285,21 +438,61 @@ void AOrbitCameraManagerBase::UpdateWalkOutMovement(float DeltaTime)
 	RightInput -= bMoveLeftPressed ? 1.0f : 0.0f;
 
 	float UpInput = 0.0f;
-	UpInput += bMoveUpPressed ? 1.0f : 0.0f;
-	UpInput -= bMoveDownPressed ? 1.0f : 0.0f;
+	if (bAllowWalkVerticalInput)
+	{
+		UpInput += bMoveUpPressed ? 1.0f : 0.0f;
+		UpInput -= bMoveDownPressed ? 1.0f : 0.0f;
+	}
 
-	FVector MoveDir = (Forward * ForwardInput) + (Right * RightInput) + (Up * UpInput);
-	if (MoveDir.IsNearlyZero())
+	const float TargetSpeed = WalkMoveSpeed * (bSprintPressed ? WalkSprintMultiplier : 1.0f);
+	const FVector DesiredHorizontalDirection = ((Forward * ForwardInput) + (Right * RightInput)).GetSafeNormal();
+	const FVector DesiredHorizontalVelocity = DesiredHorizontalDirection * TargetSpeed;
+	const FVector CurrentHorizontalVelocity(WalkVelocity.X, WalkVelocity.Y, 0.0f);
+
+	FVector NewHorizontalVelocity = DesiredHorizontalVelocity;
+	if (bUseFirstPersonWalkModel)
+	{
+		const bool bHasHorizontalInput = !DesiredHorizontalDirection.IsNearlyZero();
+		const float InterpSpeed = bHasHorizontalInput
+			? FMath::Max(1.0f, WalkAcceleration / FMath::Max(1.0f, TargetSpeed))
+			: FMath::Max(1.0f, WalkBrakingDeceleration / FMath::Max(1.0f, WalkMoveSpeed));
+		NewHorizontalVelocity = FMath::VInterpConstantTo(CurrentHorizontalVelocity, DesiredHorizontalVelocity, DeltaTime, InterpSpeed * TargetSpeed);
+	}
+
+	float NewVerticalVelocity = 0.0f;
+	if (bAllowWalkVerticalInput)
+	{
+		const float DesiredVerticalVelocity = UpInput * WalkVerticalSpeed * (bSprintPressed ? WalkSprintMultiplier : 1.0f);
+		if (bUseFirstPersonWalkModel)
+		{
+			const float VerticalInterpSpeed = FMath::Max(1.0f, WalkAcceleration / FMath::Max(1.0f, WalkVerticalSpeed));
+			NewVerticalVelocity = FMath::FInterpConstantTo(WalkVelocity.Z, DesiredVerticalVelocity, DeltaTime, VerticalInterpSpeed * WalkVerticalSpeed);
+		}
+		else
+		{
+			NewVerticalVelocity = DesiredVerticalVelocity;
+		}
+	}
+
+	WalkVelocity = FVector(NewHorizontalVelocity.X, NewHorizontalVelocity.Y, NewVerticalVelocity);
+	if (WalkVelocity.IsNearlyZero(0.1f))
 	{
 		return;
 	}
 
-	MoveDir = MoveDir.GetSafeNormal();
-	const float Speed = WalkMoveSpeed * (bSprintPressed ? WalkSprintMultiplier : 1.0f);
+	FVector DeltaMove = WalkVelocity * DeltaTime;
+	FHitResult Hit;
+	AddActorWorldOffset(DeltaMove, bWalkSweepCollision, &Hit);
 
-	FVector Target = GetActorLocation() + (MoveDir * Speed * DeltaTime);
-	ClampWalkLocation(Target);
-	SetActorLocation(Target);
+	if (Hit.bBlockingHit)
+	{
+		const FVector SlideDelta = FVector::VectorPlaneProject(DeltaMove, Hit.ImpactNormal);
+		AddActorWorldOffset(SlideDelta, bWalkSweepCollision);
+	}
+
+	FVector ClampedLocation = GetActorLocation();
+	ClampWalkLocation(ClampedLocation);
+	SetActorLocation(ClampedLocation);
 }
 
 void AOrbitCameraManagerBase::UpdateModeTransition(float DeltaTime)
@@ -393,21 +586,15 @@ void AOrbitCameraManagerBase::OnOrbitMouseWheel(float Value)
 	{
 		return;
 	}
+	EnsureOrbitTargetsInitialized();
 
 	const float DistanceMin = FMath::Min(ActiveOrbitCamera->MinDistance, ActiveOrbitCamera->MaxDistance);
 	const float DistanceMax = FMath::Max(ActiveOrbitCamera->MinDistance, ActiveOrbitCamera->MaxDistance);
-	const float DistanceNow = FMath::Abs(ActiveOrbitCamera->CineCamRef->GetRelativeLocation().X);
-	const float DistanceTarget = FMath::Clamp(DistanceNow - (Value * OrbitZoomStep), DistanceMin, DistanceMax);
-	ActiveOrbitCamera->CineCamRef->SetRelativeLocation(FVector(-DistanceTarget, 0.0f, 0.0f));
-	ActiveOrbitCamera->Internal_CurrentDistance = DistanceTarget;
-	ActiveOrbitCamera->Internal_TargetDistance = DistanceTarget;
+	OrbitTargetDistance = FMath::Clamp(OrbitTargetDistance - (Value * OrbitZoomStep), DistanceMin, DistanceMax);
 
 	const float FocalMin = FMath::Min(ActiveOrbitCamera->MinFocalLength, ActiveOrbitCamera->MaxFocalLength);
 	const float FocalMax = FMath::Max(ActiveOrbitCamera->MinFocalLength, ActiveOrbitCamera->MaxFocalLength);
-	const float FocalTarget = FMath::Clamp(ActiveOrbitCamera->CineCamRef->CurrentFocalLength + (Value * 1.5f), FocalMin, FocalMax);
-	ActiveOrbitCamera->CineCamRef->CurrentFocalLength = FocalTarget;
-	ActiveOrbitCamera->Internal_CurrentFocalLength = FocalTarget;
-	ActiveOrbitCamera->Internal_TargetFocalLength = FocalTarget;
+	OrbitTargetFocalLength = FMath::Clamp(OrbitTargetFocalLength + (Value * 1.5f), FocalMin, FocalMax);
 }
 
 void AOrbitCameraManagerBase::OnLookYaw(float Value)
@@ -430,11 +617,12 @@ void AOrbitCameraManagerBase::OnLookYaw(float Value)
 	{
 		return;
 	}
+	EnsureOrbitTargetsInitialized();
 
 	if (bOrbitPanPressed)
 	{
 		const FVector RightMove = ActiveOrbitCamera->OrbitRoot->GetRightVector() * (Value * OrbitPanSpeed * 25.0f);
-		ActiveOrbitCamera->OrbitRoot->AddWorldOffset(RightMove);
+		OrbitTargetRootLocation += RightMove;
 		return;
 	}
 
@@ -443,13 +631,11 @@ void AOrbitCameraManagerBase::OnLookYaw(float Value)
 		return;
 	}
 
-	FRotator OrbitRot = ActiveOrbitCamera->OrbitRoot->GetRelativeRotation();
+	FRotator OrbitRot = OrbitTargetRootRotation;
 	const float YawMin = FMath::Min(ActiveOrbitCamera->MinYaw, ActiveOrbitCamera->MaxYaw);
 	const float YawMax = FMath::Max(ActiveOrbitCamera->MinYaw, ActiveOrbitCamera->MaxYaw);
 	OrbitRot.Yaw = FMath::Clamp(OrbitRot.Yaw + (Value * OrbitLookYawSpeed * DeltaSeconds), YawMin, YawMax);
-	ActiveOrbitCamera->OrbitRoot->SetRelativeRotation(OrbitRot);
-	ActiveOrbitCamera->Internal_CurrentRotation = OrbitRot;
-	ActiveOrbitCamera->Internal_TargetRotation = OrbitRot;
+	OrbitTargetRootRotation = OrbitRot;
 }
 
 void AOrbitCameraManagerBase::OnLookPitch(float Value)
@@ -472,11 +658,12 @@ void AOrbitCameraManagerBase::OnLookPitch(float Value)
 	{
 		return;
 	}
+	EnsureOrbitTargetsInitialized();
 
 	if (bOrbitPanPressed)
 	{
-		const FVector UpMove = ActiveOrbitCamera->OrbitRoot->GetUpVector() * (-Value * OrbitPanSpeed * 25.0f);
-		ActiveOrbitCamera->OrbitRoot->AddWorldOffset(UpMove);
+		const FVector UpMove = ActiveOrbitCamera->OrbitRoot->GetUpVector() * (Value * OrbitPanSpeed * 25.0f);
+		OrbitTargetRootLocation += UpMove;
 		return;
 	}
 
@@ -485,11 +672,9 @@ void AOrbitCameraManagerBase::OnLookPitch(float Value)
 		return;
 	}
 
-	FRotator OrbitRot = ActiveOrbitCamera->OrbitRoot->GetRelativeRotation();
+	FRotator OrbitRot = OrbitTargetRootRotation;
 	const float PitchMin = FMath::Min(ActiveOrbitCamera->MinPitch, ActiveOrbitCamera->MaxPitch);
 	const float PitchMax = FMath::Max(ActiveOrbitCamera->MinPitch, ActiveOrbitCamera->MaxPitch);
 	OrbitRot.Pitch = FMath::Clamp(OrbitRot.Pitch + (-Value * OrbitLookPitchSpeed * DeltaSeconds), PitchMin, PitchMax);
-	ActiveOrbitCamera->OrbitRoot->SetRelativeRotation(OrbitRot);
-	ActiveOrbitCamera->Internal_CurrentRotation = OrbitRot;
-	ActiveOrbitCamera->Internal_TargetRotation = OrbitRot;
+	OrbitTargetRootRotation = OrbitRot;
 }

@@ -48,6 +48,9 @@ For easiest setup, keep these enabled on manager:
 
 This makes play-in-editor automatically possess the manager and switch the camera view target correctly.
 
+Walk-mode spawn behavior:
+- Enable `bWalkSpawnFromManagerPlacement` if you want walk mode to start exactly where the manager actor is placed.
+
 ### Default walk keybinds (manager)
 
 These are coded directly in `AOrbitCameraManagerBase` and exposed as editable `FKey` properties:
@@ -62,6 +65,7 @@ These are coded directly in `AOrbitCameraManagerBase` and exposed as editable `F
 - Orbit zoom (while in orbit mode): `Mouse Wheel`
 
 > You can change any of these in the manager details panel or in Blueprint defaults.
+> For softer motion, tune `OrbitLookYawSpeed`, `OrbitLookPitchSpeed`, `OrbitPanSpeed`, `OrbitZoomStep` and smoothing options (`bSmoothOrbitControls`, `OrbitLookSmoothingSpeed`, `OrbitPanSmoothingSpeed`, `OrbitZoomSmoothingSpeed`).
 
 ---
 
@@ -72,6 +76,12 @@ If you want a level to use only walk mode:
 1. Place `AOrbitCameraManagerBase`.
 2. Enable `bWalkModeOnly = true`.
 3. (Optional) Enable `bStartInWalkOutMode = true` for immediate walk control at BeginPlay.
+4. Recommended for character-like feel:
+   - `WalkCharacterClass = OrbitWalkCharacter` (or your own `Character` subclass)
+   - `bWalkPlanarMovement = true`
+   - `bAllowWalkVerticalInput = false`
+   - `bUseFirstPersonWalkModel = true`
+   - Tune `WalkAcceleration` / `WalkBrakingDeceleration`
 
 You can also control this from BP using:
 
@@ -144,6 +154,7 @@ On `AOrbitCameraBase`:
   - `bClampToBounds`
   - `CameraBoundsActor` (must contain `UBoxComponent`)
   - `BoundsPadding`
+  - `bClampCameraComponentToBounds` (enable only if you want camera body clamping; can cause vertical push near floor/ceiling bounds)
 
 ### Walk bounds
 
@@ -163,6 +174,11 @@ On `AOrbitCameraBase`:
   - Raise `AutoFocus_DeadZone`.
 - **Walk mode feels unconstrained**
   - Enable walk bounds and set `WalkBoundsExtent` or `WalkBoundsActor`.
+- **Walk mode does not feel like first-person walking**
+  - Walk mode is CharacterMovement-based by default (`WalkCharacterClass`).
+  - Enable `bUseFirstPersonWalkModel` for acceleration/braking movement.
+  - Keep `bWalkPlanarMovement=true` and `bAllowWalkVerticalInput=false` for grounded motion.
+  - Increase `WalkBrakingDeceleration` for snappier stops or lower it for softer glide.
 - **I press Play and camera is wrong / not using orbit camera**
   - Make sure manager is possessed (or keep `bAutoPossessPlayer0OnBeginPlay` enabled).
   - Keep `bAutoManageViewTarget` enabled so view target swaps between orbit camera and walk mode automatically.
@@ -170,3 +186,10 @@ On `AOrbitCameraBase`:
   - Make sure you are in orbit mode (not walk-out mode).
   - Hold `OrbitLookHoldKey` (default RMB) while moving mouse for rotate.
   - Use `OrbitPanHoldKey` (default MMB) for pan and Mouse Wheel for zoom.
+- **Orbit movement is too fast / not smooth**
+  - Lower `OrbitLookYawSpeed`, `OrbitLookPitchSpeed`, `OrbitPanSpeed`, `OrbitZoomStep`.
+  - Enable `bSmoothOrbitControls` and raise smoothing speeds gradually until motion feels softer.
+- **Middle-mouse pan feels inverted on Y**
+  - Pan Y direction was updated so moving mouse up pans up.
+- **Camera gets pushed up near floor bound**
+  - Disable `bClampCameraComponentToBounds` on `AOrbitCameraBase` so only orbit root clamping is applied.
