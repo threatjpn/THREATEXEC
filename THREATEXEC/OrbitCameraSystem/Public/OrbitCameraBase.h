@@ -487,6 +487,10 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "OrbitCamera|Setup")
 	void CaptureCurrentPlacementAsInitial();
 
+	// Force one bounds-clamp pass for root/camera; useful when external systems move orbit targets.
+	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Bounds")
+	void ForceApplyBoundsClamp();
+
 #if WITH_EDITOR
 
 	FDelegateHandle OnSelectionChangedDelegateHandle;

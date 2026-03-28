@@ -96,6 +96,11 @@ void AOrbitCameraManagerBase::Tick(float DeltaTime)
 	if (bIsWalkOutMode)
 	{
 		// Character-based walk mode handles movement input directly.
+		// Fallback to manager walk movement if character spawn/possession failed.
+		if (!WalkCharacterInstance)
+		{
+			UpdateWalkOutMovement(DeltaTime);
+		}
 	}
 	else
 	{
@@ -412,6 +417,7 @@ void AOrbitCameraManagerBase::UpdateOrbitCameraSmoothing(float DeltaTime)
 	ActiveOrbitCamera->Internal_TargetDistance = OrbitTargetDistance;
 	ActiveOrbitCamera->Internal_CurrentFocalLength = ActiveOrbitCamera->CineCamRef->CurrentFocalLength;
 	ActiveOrbitCamera->Internal_TargetFocalLength = OrbitTargetFocalLength;
+	ActiveOrbitCamera->ForceApplyBoundsClamp();
 }
 
 void AOrbitCameraManagerBase::CutToOrbitCamera(AOrbitCameraBase* NewOrbitCamera)

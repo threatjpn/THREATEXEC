@@ -125,6 +125,11 @@ void AOrbitCameraBase::CaptureCurrentPlacementAsInitial()
 	ApplyPlacementFromSettings();
 }
 
+void AOrbitCameraBase::ForceApplyBoundsClamp()
+{
+	ClampOrbitRootToBounds();
+}
+
 void AOrbitCameraBase::ClampOrbitRootToBounds()
 {
 	if (!bClampToBounds || !CameraBoundsActor || !OrbitRoot)

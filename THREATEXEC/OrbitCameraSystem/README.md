@@ -196,6 +196,7 @@ On `AOrbitCameraBase`:
 - **Walk mode toggles but WASD does not move**
   - Confirm `WalkCharacterClass` is valid (defaults to `OrbitWalkCharacter`).
   - Ensure your pawn/controller actually possesses the spawned walk character after pressing Tab.
+  - Manager now falls back to internal walk movement if walk character spawn fails.
 - **Orbit movement is too fast / not smooth**
   - Lower `OrbitLookYawSpeed`, `OrbitLookPitchSpeed`, `OrbitPanSpeed`, `OrbitZoomStep`.
   - Enable `bSmoothOrbitControls` and raise smoothing speeds gradually until motion feels softer.
@@ -206,3 +207,4 @@ On `AOrbitCameraBase`:
 - **Bounds push jitters when orbit smoothing is low**
   - Keep `bSmoothCameraBoundsPush = true` and raise `CameraBoundsPushSmoothingSpeed`.
   - Keep orbit smoothing enabled and tune `OrbitPanSmoothingSpeed` / `OrbitLookSmoothingSpeed` together with bounds push speed.
+  - If external smoothing moves orbit root each tick, call/enable forced clamp pass (`ForceApplyBoundsClamp`) to keep camera inside bounds.
