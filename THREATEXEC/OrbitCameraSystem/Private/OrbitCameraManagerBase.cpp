@@ -6,7 +6,9 @@
 #include "CineCameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/InputComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/World.h"
+#include "Engine/Engine.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -99,6 +101,8 @@ void AOrbitCameraManagerBase::Tick(float DeltaTime)
 	{
 		UpdateOrbitCameraSmoothing(DeltaTime);
 	}
+
+	UpdateDebugOverlay(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -131,6 +135,10 @@ void AOrbitCameraManagerBase::SetupPlayerInputComponent(UInputComponent* PlayerI
 	PlayerInputComponent->BindKey(OrbitLookHoldKey, IE_Released, this, &AOrbitCameraManagerBase::SetOrbitLookReleased);
 	PlayerInputComponent->BindKey(OrbitPanHoldKey, IE_Pressed, this, &AOrbitCameraManagerBase::SetOrbitPanPressed);
 	PlayerInputComponent->BindKey(OrbitPanHoldKey, IE_Released, this, &AOrbitCameraManagerBase::SetOrbitPanReleased);
+	PlayerInputComponent->BindKey(ToggleDebugMenuKey, IE_Pressed, this, &AOrbitCameraManagerBase::ToggleDebugMenu);
+	PlayerInputComponent->BindKey(EKeys::F5, IE_Pressed, this, &AOrbitCameraManagerBase::ToggleDebugTraces);
+	PlayerInputComponent->BindKey(EKeys::F6, IE_Pressed, this, &AOrbitCameraManagerBase::ToggleDebugBounds);
+	PlayerInputComponent->BindKey(EKeys::F7, IE_Pressed, this, &AOrbitCameraManagerBase::ToggleDebugWalkState);
 
 	PlayerInputComponent->BindAxisKey(EKeys::MouseX, this, &AOrbitCameraManagerBase::OnLookYaw);
 	PlayerInputComponent->BindAxisKey(EKeys::MouseY, this, &AOrbitCameraManagerBase::OnLookPitch);
@@ -182,6 +190,11 @@ void AOrbitCameraManagerBase::EnterWalkOutMode()
 	if (PlayerController)
 	{
 		const FTransform SpawnTransform(GetActorRotation(), GetActorLocation());
+		if (!WalkCharacterClass)
+		{
+			WalkCharacterClass = AOrbitWalkCharacter::StaticClass();
+		}
+
 		if (!WalkCharacterInstance && WalkCharacterClass)
 		{
 			FActorSpawnParameters SpawnParams;
@@ -322,6 +335,30 @@ void AOrbitCameraManagerBase::EnsureOrbitTargetsInitialized()
 	bOrbitTargetsInitialized = true;
 }
 
+void AOrbitCameraManagerBase::ClampOrbitTargetToBounds()
+{
+	if (!ActiveOrbitCamera || !ActiveOrbitCamera->bClampToBounds || !ActiveOrbitCamera->CameraBoundsActor)
+	{
+		return;
+	}
+
+	const UBoxComponent* BoundsBox = ActiveOrbitCamera->CameraBoundsActor->FindComponentByClass<UBoxComponent>();
+	if (!BoundsBox)
+	{
+		return;
+	}
+
+	FVector Extent = BoundsBox->GetScaledBoxExtent() - FVector(ActiveOrbitCamera->BoundsPadding);
+	Extent.X = FMath::Max(0.0f, Extent.X);
+	Extent.Y = FMath::Max(0.0f, Extent.Y);
+	Extent.Z = FMath::Max(0.0f, Extent.Z);
+
+	const FVector Center = BoundsBox->GetComponentLocation();
+	OrbitTargetRootLocation.X = FMath::Clamp(OrbitTargetRootLocation.X, Center.X - Extent.X, Center.X + Extent.X);
+	OrbitTargetRootLocation.Y = FMath::Clamp(OrbitTargetRootLocation.Y, Center.Y - Extent.Y, Center.Y + Extent.Y);
+	OrbitTargetRootLocation.Z = FMath::Clamp(OrbitTargetRootLocation.Z, Center.Z - Extent.Z, Center.Z + Extent.Z);
+}
+
 void AOrbitCameraManagerBase::UpdateOrbitCameraSmoothing(float DeltaTime)
 {
 	if (!ActiveOrbitCamera || !ActiveOrbitCamera->CineCamRef || !ActiveOrbitCamera->OrbitRoot)
@@ -331,6 +368,7 @@ void AOrbitCameraManagerBase::UpdateOrbitCameraSmoothing(float DeltaTime)
 	}
 
 	EnsureOrbitTargetsInitialized();
+	ClampOrbitTargetToBounds();
 
 	if (!bSmoothOrbitControls)
 	{
@@ -580,6 +618,79 @@ void AOrbitCameraManagerBase::SetOrbitLookReleased() { bOrbitLookPressed = false
 void AOrbitCameraManagerBase::SetOrbitPanPressed() { bOrbitPanPressed = true; }
 void AOrbitCameraManagerBase::SetOrbitPanReleased() { bOrbitPanPressed = false; }
 
+void AOrbitCameraManagerBase::ToggleDebugMenu()
+{
+	bDebugMenuEnabled = !bDebugMenuEnabled;
+	if (!bDebugMenuEnabled && GEngine)
+	{
+		GEngine->ClearOnScreenDebugMessages();
+	}
+}
+
+void AOrbitCameraManagerBase::ToggleDebugTraces()
+{
+	bDebugTracesEnabled = !bDebugTracesEnabled;
+	if (ActiveOrbitCamera)
+	{
+		ActiveOrbitCamera->EnableDebugging = bDebugTracesEnabled;
+	}
+}
+
+void AOrbitCameraManagerBase::ToggleDebugBounds()
+{
+	bDebugBoundsEnabled = !bDebugBoundsEnabled;
+}
+
+void AOrbitCameraManagerBase::ToggleDebugWalkState()
+{
+	bDebugWalkStateEnabled = !bDebugWalkStateEnabled;
+}
+
+void AOrbitCameraManagerBase::UpdateDebugOverlay(float DeltaTime)
+{
+	if (!bDebugMenuEnabled || !GEngine)
+	{
+		return;
+	}
+
+	const FString ActiveCamName = ActiveOrbitCamera ? ActiveOrbitCamera->GetName() : TEXT("None");
+	const FString WalkCharName = WalkCharacterInstance ? WalkCharacterInstance->GetName() : TEXT("None");
+	GEngine->AddOnScreenDebugMessage(1001, 0.0f, FColor::Cyan, FString::Printf(TEXT("[Orbit Debug] WalkMode: %s  Transition: %s"),
+		bIsWalkOutMode ? TEXT("ON") : TEXT("OFF"),
+		bTransitionInProgress ? TEXT("ON") : TEXT("OFF")));
+	GEngine->AddOnScreenDebugMessage(1002, 0.0f, FColor::Cyan, FString::Printf(TEXT("[Orbit Debug] ActiveOrbitCamera: %s"), *ActiveCamName));
+	GEngine->AddOnScreenDebugMessage(1003, 0.0f, FColor::Cyan, FString::Printf(TEXT("[Orbit Debug] WalkCharacter: %s"), *WalkCharName));
+	GEngine->AddOnScreenDebugMessage(1004, 0.0f, FColor::Yellow, FString::Printf(TEXT("[Orbit Debug] Traces(F5): %s  Bounds(F6): %s  WalkState(F7): %s"),
+		bDebugTracesEnabled ? TEXT("ON") : TEXT("OFF"),
+		bDebugBoundsEnabled ? TEXT("ON") : TEXT("OFF"),
+		bDebugWalkStateEnabled ? TEXT("ON") : TEXT("OFF")));
+
+	if (bDebugWalkStateEnabled)
+	{
+		GEngine->AddOnScreenDebugMessage(1005, 0.0f, FColor::Green, FString::Printf(TEXT("[Orbit Debug] ManagerLoc: %s"), *GetActorLocation().ToCompactString()));
+		if (WalkCharacterInstance)
+		{
+			GEngine->AddOnScreenDebugMessage(1006, 0.0f, FColor::Green, FString::Printf(TEXT("[Orbit Debug] WalkLoc: %s"), *WalkCharacterInstance->GetActorLocation().ToCompactString()));
+		}
+	}
+
+	if (bDebugBoundsEnabled && ActiveOrbitCamera && ActiveOrbitCamera->CameraBoundsActor)
+	{
+		if (const UBoxComponent* Bounds = ActiveOrbitCamera->CameraBoundsActor->FindComponentByClass<UBoxComponent>())
+		{
+			DrawDebugBox(
+				GetWorld(),
+				Bounds->GetComponentLocation(),
+				Bounds->GetScaledBoxExtent(),
+				FColor::Blue,
+				false,
+				DeltaTime + 0.01f,
+				0,
+				2.0f);
+		}
+	}
+}
+
 void AOrbitCameraManagerBase::OnOrbitMouseWheel(float Value)
 {
 	if (bIsWalkOutMode || FMath::IsNearlyZero(Value) || !ActiveOrbitCamera || !ActiveOrbitCamera->CineCamRef)
@@ -592,9 +703,12 @@ void AOrbitCameraManagerBase::OnOrbitMouseWheel(float Value)
 	const float DistanceMax = FMath::Max(ActiveOrbitCamera->MinDistance, ActiveOrbitCamera->MaxDistance);
 	OrbitTargetDistance = FMath::Clamp(OrbitTargetDistance - (Value * OrbitZoomStep), DistanceMin, DistanceMax);
 
-	const float FocalMin = FMath::Min(ActiveOrbitCamera->MinFocalLength, ActiveOrbitCamera->MaxFocalLength);
-	const float FocalMax = FMath::Max(ActiveOrbitCamera->MinFocalLength, ActiveOrbitCamera->MaxFocalLength);
-	OrbitTargetFocalLength = FMath::Clamp(OrbitTargetFocalLength + (Value * 1.5f), FocalMin, FocalMax);
+	if (bOrbitZoomChangesFocalLength)
+	{
+		const float FocalMin = FMath::Min(ActiveOrbitCamera->MinFocalLength, ActiveOrbitCamera->MaxFocalLength);
+		const float FocalMax = FMath::Max(ActiveOrbitCamera->MinFocalLength, ActiveOrbitCamera->MaxFocalLength);
+		OrbitTargetFocalLength = FMath::Clamp(OrbitTargetFocalLength + (Value * OrbitZoomFocalStep), FocalMin, FocalMax);
+	}
 }
 
 void AOrbitCameraManagerBase::OnLookYaw(float Value)

@@ -436,6 +436,16 @@ public:
 		meta = (EditCondition = "bClampToBounds"))
 	bool bClampCameraComponentToBounds = false;
 
+	// Smooth root push when camera-component clamping is active.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds",
+		meta = (EditCondition = "bClampToBounds && bClampCameraComponentToBounds"))
+	bool bSmoothCameraBoundsPush = true;
+
+	// Interpolation speed for camera-component bounds push smoothing.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Bounds",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bClampToBounds && bClampCameraComponentToBounds && bSmoothCameraBoundsPush"))
+	float CameraBoundsPushSmoothingSpeed = 12.0f;
+
 #pragma endregion
 
 #pragma region Debugging

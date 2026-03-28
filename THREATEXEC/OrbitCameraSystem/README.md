@@ -63,9 +63,15 @@ These are coded directly in `AOrbitCameraManagerBase` and exposed as editable `F
 - Orbit look (while in orbit mode): hold `Right Mouse Button` + Mouse X/Y
 - Orbit pan (while in orbit mode): hold `Middle Mouse Button` + Mouse X/Y
 - Orbit zoom (while in orbit mode): `Mouse Wheel`
+- Debug menu toggle: `F4`
+- Debug toggles while menu active:
+  - `F5` autofocus traces
+  - `F6` bounds debug draw
+  - `F7` walk state diagnostics
 
 > You can change any of these in the manager details panel or in Blueprint defaults.
 > For softer motion, tune `OrbitLookYawSpeed`, `OrbitLookPitchSpeed`, `OrbitPanSpeed`, `OrbitZoomStep` and smoothing options (`bSmoothOrbitControls`, `OrbitLookSmoothingSpeed`, `OrbitPanSmoothingSpeed`, `OrbitZoomSmoothingSpeed`).
+> Zoom now primarily changes camera distance. Enable `bOrbitZoomChangesFocalLength` only if you also want wheel zoom to modify focal length.
 
 ---
 
@@ -155,6 +161,7 @@ On `AOrbitCameraBase`:
   - `CameraBoundsActor` (must contain `UBoxComponent`)
   - `BoundsPadding`
   - `bClampCameraComponentToBounds` (enable only if you want camera body clamping; can cause vertical push near floor/ceiling bounds)
+  - `bSmoothCameraBoundsPush` + `CameraBoundsPushSmoothingSpeed` (soften camera push when camera-body clamping is enabled)
 
 ### Walk bounds
 
@@ -186,6 +193,9 @@ On `AOrbitCameraBase`:
   - Make sure you are in orbit mode (not walk-out mode).
   - Hold `OrbitLookHoldKey` (default RMB) while moving mouse for rotate.
   - Use `OrbitPanHoldKey` (default MMB) for pan and Mouse Wheel for zoom.
+- **Walk mode toggles but WASD does not move**
+  - Confirm `WalkCharacterClass` is valid (defaults to `OrbitWalkCharacter`).
+  - Ensure your pawn/controller actually possesses the spawned walk character after pressing Tab.
 - **Orbit movement is too fast / not smooth**
   - Lower `OrbitLookYawSpeed`, `OrbitLookPitchSpeed`, `OrbitPanSpeed`, `OrbitZoomStep`.
   - Enable `bSmoothOrbitControls` and raise smoothing speeds gradually until motion feels softer.
@@ -193,3 +203,6 @@ On `AOrbitCameraBase`:
   - Pan Y direction was updated so moving mouse up pans up.
 - **Camera gets pushed up near floor bound**
   - Disable `bClampCameraComponentToBounds` on `AOrbitCameraBase` so only orbit root clamping is applied.
+- **Bounds push jitters when orbit smoothing is low**
+  - Keep `bSmoothCameraBoundsPush = true` and raise `CameraBoundsPushSmoothingSpeed`.
+  - Keep orbit smoothing enabled and tune `OrbitPanSmoothingSpeed` / `OrbitLookSmoothingSpeed` together with bounds push speed.

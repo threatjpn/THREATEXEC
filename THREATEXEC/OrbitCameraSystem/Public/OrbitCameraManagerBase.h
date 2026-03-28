@@ -201,6 +201,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float OrbitZoomStep = 25.0f;
 
+	// If true, mouse wheel zoom also adjusts focal length.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls")
+	bool bOrbitZoomChangesFocalLength = false;
+
+	// Focal length change per wheel tick (used when bOrbitZoomChangesFocalLength is enabled).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls",
+		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bOrbitZoomChangesFocalLength"))
+	float OrbitZoomFocalStep = 1.5f;
+
 	// Smoothly interpolate orbit look/pan/zoom instead of applying instant jumps.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls")
 	bool bSmoothOrbitControls = true;
@@ -208,17 +217,17 @@ public:
 	// Interp speed for orbit look rotation.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls",
 		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bSmoothOrbitControls"))
-	float OrbitLookSmoothingSpeed = 12.0f;
+	float OrbitLookSmoothingSpeed = 8.0f;
 
 	// Interp speed for orbit panning movement.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls",
 		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bSmoothOrbitControls"))
-	float OrbitPanSmoothingSpeed = 10.0f;
+	float OrbitPanSmoothingSpeed = 8.0f;
 
 	// Interp speed for orbit wheel zoom movement.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|OrbitControls",
 		meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bSmoothOrbitControls"))
-	float OrbitZoomSmoothingSpeed = 10.0f;
+	float OrbitZoomSmoothingSpeed = 8.0f;
 
 	// Clamp pitch while walking to keep controls predictable.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|WalkOut", meta = (ClampMin = "-89.0", ClampMax = "89.0"))
@@ -278,6 +287,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input|Keybinds")
 	FKey OrbitPanHoldKey = EKeys::MiddleMouseButton;
 
+	// Toggle runtime debug overlay/menu.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input|Keybinds")
+	FKey ToggleDebugMenuKey = EKeys::F4;
+
 #pragma endregion
 
 	// Switches between orbit and walk out mode.
@@ -318,6 +331,7 @@ public:
 private:
 	void ApplyDesiredViewTarget();
 	void EnsureOrbitTargetsInitialized();
+	void ClampOrbitTargetToBounds();
 	void UpdateOrbitCameraSmoothing(float DeltaTime);
 	void UpdateWalkOutMovement(float DeltaTime);
 	void UpdateModeTransition(float DeltaTime);
@@ -343,6 +357,11 @@ private:
 	void SetOrbitPanPressed();
 	void SetOrbitPanReleased();
 	void OnOrbitMouseWheel(float Value);
+	void ToggleDebugMenu();
+	void ToggleDebugTraces();
+	void ToggleDebugBounds();
+	void ToggleDebugWalkState();
+	void UpdateDebugOverlay(float DeltaTime);
 
 	void OnLookYaw(float Value);
 	void OnLookPitch(float Value);
@@ -375,4 +394,9 @@ private:
 	float TransitionDuration = 0.0f;
 	FTransform TransitionStart = FTransform::Identity;
 	FTransform TransitionTarget = FTransform::Identity;
+
+	bool bDebugMenuEnabled = false;
+	bool bDebugTracesEnabled = false;
+	bool bDebugBoundsEnabled = false;
+	bool bDebugWalkStateEnabled = true;
 };

@@ -199,7 +199,21 @@ void AOrbitCameraBase::ClampCameraToBounds()
 
 	if (!Delta.IsNearlyZero(0.01f))
 	{
-		OrbitRoot->AddWorldOffset(Delta, false, nullptr, ETeleportType::TeleportPhysics);
+		const FVector DesiredRootLocation = OrbitRoot->GetComponentLocation() + Delta;
+		if (bSmoothCameraBoundsPush)
+		{
+			const float DeltaTime = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.0f;
+			const FVector SmoothedRootLocation = FMath::VInterpTo(
+				OrbitRoot->GetComponentLocation(),
+				DesiredRootLocation,
+				DeltaTime,
+				FMath::Max(0.0f, CameraBoundsPushSmoothingSpeed));
+			OrbitRoot->SetWorldLocation(SmoothedRootLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		}
+		else
+		{
+			OrbitRoot->SetWorldLocation(DesiredRootLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		}
 	}
 }
 
