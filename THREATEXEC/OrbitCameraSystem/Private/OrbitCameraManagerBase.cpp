@@ -335,7 +335,7 @@ ACharacter* AOrbitCameraManagerBase::ResolveWalkCharacterTarget()
 		for (AActor* FoundActor : FoundCharacters)
 		{
 			ACharacter* FoundCharacter = Cast<ACharacter>(FoundActor);
-			if (!FoundCharacter || FoundCharacter == this)
+			if (!FoundCharacter || FoundActor == this)
 			{
 				continue;
 			}
