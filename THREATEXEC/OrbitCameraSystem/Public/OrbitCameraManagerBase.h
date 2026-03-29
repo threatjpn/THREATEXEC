@@ -62,6 +62,14 @@ public:
 	// Sets default values for this pawn's properties
 	AOrbitCameraManagerBase();
 
+	// Automatically possess this manager with PlayerController(0) at runtime.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Startup")
+	bool bAutoPossessPlayer0OnBeginPlay = true;
+
+	// Automatically set PlayerController(0) view target to the first found OrbitCamera actor.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Startup")
+	bool bAutoSetViewTargetOnBeginPlay = true;
+
 #pragma region Transition
 
 	// Holds the camera definition for the start of the transition
