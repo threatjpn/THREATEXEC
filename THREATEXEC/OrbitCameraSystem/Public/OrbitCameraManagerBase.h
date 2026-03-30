@@ -70,6 +70,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Startup")
 	bool bAutoSetViewTargetOnBeginPlay = true;
 
+	// Hold RMB ("Secondary") to look around orbit root.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input")
+	bool bEnableLookInput = true;
+
+	// Hold MMB to pan orbit root in camera local right/up plane.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input")
+	bool bEnablePanInput = true;
+
+	// Mouse sensitivity applied to look input.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float LookInputSensitivity = 0.2f;
+
+	// Pan speed scalar in world units per mouse unit.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float PanInputSpeed = 2.0f;
+
 #pragma region Transition
 
 	// Holds the camera definition for the start of the transition
@@ -96,4 +112,30 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+protected:
+	UFUNCTION()
+	void OnLookPressed();
+
+	UFUNCTION()
+	void OnLookReleased();
+
+	UFUNCTION()
+	void OnPanPressed();
+
+	UFUNCTION()
+	void OnPanReleased();
+
+	UFUNCTION()
+	void OnMouseX(float Value);
+
+	UFUNCTION()
+	void OnMouseY(float Value);
+
+private:
+	TObjectPtr<AOrbitCameraBase> ActiveOrbitCamera = nullptr;
+	bool bLookHeld = false;
+	bool bPanHeld = false;
+	float PendingMouseX = 0.0f;
+	float PendingMouseY = 0.0f;
 };
