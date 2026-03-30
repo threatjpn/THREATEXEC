@@ -34,7 +34,6 @@ void AOrbitCameraManagerBase::BeginPlay()
 		if (AOrbitCameraBase* InitialOrbitCamera = Cast<AOrbitCameraBase>(UGameplayStatics::GetActorOfClass(this, AOrbitCameraBase::StaticClass())))
 		{
 			PlayerController->SetViewTarget(InitialOrbitCamera);
-			CurrentCameraDefinition = InitialOrbitCamera->GetCurrentDefinition();
 		}
 	}
 }
