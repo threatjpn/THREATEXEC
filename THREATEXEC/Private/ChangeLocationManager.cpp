@@ -1,5 +1,6 @@
 #include "ChangeLocationManager.h"
 
+#include "Components/ActorComponent.h"
 #include "Components/LightComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
@@ -20,15 +21,49 @@ void AChangeLocationManager::BeginPlay()
     if (bApplyInitialVariantOnBeginPlay && InitialVariantID != NAME_None)
     {
         SwitchToVariant(InitialVariantID);
+        return;
+    }
+
+    if (bHideInactiveVariantsOnBeginPlay && VariantGroups.Num() > 0)
+    {
+        bool bFirst = true;
+
+        for (TPair<FName, FChangeLocationVariantGroup>& Pair : VariantGroups)
+        {
+            const bool bShouldBeActive = bFirst;
+
+            for (AActor* Actor : Pair.Value.Actors)
+            {
+                SetActorVariantActive(Actor, bShouldBeActive);
+            }
+
+            if (bFirst)
+            {
+                CurrentVariantID = Pair.Key;
+                bFirst = false;
+            }
+        }
+
+        if (CurrentVariantID != NAME_None)
+        {
+            UE_LOG(LogTemp, Log, TEXT("ChangeLocationManager: Defaulted to first detected variant '%s'"), *CurrentVariantID.ToString());
+        }
     }
 }
 
 void AChangeLocationManager::RefreshVariantCache()
 {
-    VariantActorMap.Empty();
+    VariantGroups.Empty();
+
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("ChangeLocationManager: No valid world"));
+        return;
+    }
 
     TArray<AActor*> AllActors;
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), AllActors);
+    UGameplayStatics::GetAllActorsOfClass(World, AActor::StaticClass(), AllActors);
 
     for (AActor* Actor : AllActors)
     {
@@ -38,23 +73,37 @@ void AChangeLocationManager::RefreshVariantCache()
         }
 
         FName VariantID = NAME_None;
-        if (!TryExtractVariantIDFromActor(Actor, VariantID))
+        if (!TryGetVariantIDFromRootActor(Actor, VariantID))
         {
             continue;
         }
 
-        VariantActorMap.FindOrAdd(VariantID).Add(Actor);
+        FChangeLocationVariantGroup Group;
+        Group.RootActor = Actor;
+
+        TArray<AActor*> GatheredActors;
+        GatherAttachedActorsRecursive(Actor, GatheredActors);
+
+        for (AActor* Gathered : GatheredActors)
+        {
+            Group.Actors.Add(Gathered);
+        }
+
+        VariantGroups.Add(VariantID, Group);
+
+        UE_LOG(LogTemp, Log, TEXT("ChangeLocationManager: Registered root '%s' for variant '%s' with %d actor(s)"),
+            *Actor->GetName(),
+            *VariantID.ToString(),
+            Group.Actors.Num());
     }
 
-    for (const TPair<FName, TArray<TObjectPtr<AActor>>>& Pair : VariantActorMap)
+    if (VariantGroups.Num() == 0)
     {
-        UE_LOG(LogTemp, Log, TEXT("ChangeLocationManager: Variant '%s' has %d actor(s)"),
-            *Pair.Key.ToString(),
-            Pair.Value.Num());
+        UE_LOG(LogTemp, Warning, TEXT("ChangeLocationManager: No variant roots found with prefix '%s'"), *VariantRootPrefix);
     }
 }
 
-bool AChangeLocationManager::TryExtractVariantIDFromActor(const AActor* Actor, FName& OutVariantID) const
+bool AChangeLocationManager::TryGetVariantIDFromRootActor(const AActor* Actor, FName& OutVariantID) const
 {
     if (!Actor)
     {
@@ -64,22 +113,48 @@ bool AChangeLocationManager::TryExtractVariantIDFromActor(const AActor* Actor, F
     for (const FName& Tag : Actor->Tags)
     {
         const FString TagString = Tag.ToString();
-
-        if (TagString.StartsWith(VariantTagPrefix))
+        if (TagString.StartsWith(VariantRootPrefix))
         {
-            const FString Suffix = TagString.RightChop(VariantTagPrefix.Len());
-            if (!Suffix.IsEmpty())
-            {
-                OutVariantID = FName(*Suffix);
-                return true;
-            }
+            OutVariantID = Tag;
+            return true;
         }
     }
 
     return false;
 }
 
-void AChangeLocationManager::SetActorVariantActive(AActor* Actor, bool bActive)
+void AChangeLocationManager::GatherAttachedActorsRecursive(AActor* RootActor, TArray<AActor*>& OutActors) const
+{
+    if (!RootActor)
+    {
+        return;
+    }
+
+    if (!OutActors.Contains(RootActor))
+    {
+        OutActors.Add(RootActor);
+    }
+
+    TArray<AActor*> AttachedActors;
+    RootActor->GetAttachedActors(AttachedActors);
+
+    for (AActor* ChildActor : AttachedActors)
+    {
+        if (!ChildActor)
+        {
+            continue;
+        }
+
+        if (!OutActors.Contains(ChildActor))
+        {
+            OutActors.Add(ChildActor);
+        }
+
+        GatherAttachedActorsRecursive(ChildActor, OutActors);
+    }
+}
+
+void AChangeLocationManager::SetActorVariantActive(AActor* Actor, bool bActive) const
 {
     if (!Actor)
     {
@@ -122,22 +197,23 @@ void AChangeLocationManager::SwitchToVariant(FName VariantID)
         return;
     }
 
-    if (VariantActorMap.Num() == 0)
+    if (VariantGroups.Num() == 0)
     {
         RefreshVariantCache();
     }
 
-    if (!VariantActorMap.Contains(VariantID))
+    FChangeLocationVariantGroup* TargetGroup = VariantGroups.Find(VariantID);
+    if (!TargetGroup)
     {
         UE_LOG(LogTemp, Warning, TEXT("ChangeLocationManager: Variant '%s' not found"), *VariantID.ToString());
         return;
     }
 
-    for (TPair<FName, TArray<TObjectPtr<AActor>>>& Pair : VariantActorMap)
+    for (TPair<FName, FChangeLocationVariantGroup>& Pair : VariantGroups)
     {
         const bool bShouldBeActive = (Pair.Key == VariantID);
 
-        for (AActor* Actor : Pair.Value)
+        for (AActor* Actor : Pair.Value.Actors)
         {
             SetActorVariantActive(Actor, bShouldBeActive);
         }

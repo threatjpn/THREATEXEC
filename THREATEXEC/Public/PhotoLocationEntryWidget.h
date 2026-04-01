@@ -31,11 +31,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location", meta = (ExposeOnSpawn = "true"))
     TObjectPtr<UTexture2D> HoveredButtonTexture = nullptr;
 
-    UFUNCTION(BlueprintCallable, Category = "Photo Location")
-    UTexture2D* GetPreviewTexture() const { return PreviewTexture; }
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location", meta = (ExposeOnSpawn = "true"))
+    TObjectPtr<UTexture2D> PressedButtonTexture = nullptr;
 
     UFUNCTION(BlueprintCallable, Category = "Photo Location")
-    void SetEntryData(UTexture2D* InButtonTexture, UTexture2D* InHoveredButtonTexture, UTexture2D* InPreviewTexture);
+    UTexture2D* GetPreviewTexture() const { return PreviewTexture; }
 
 protected:
     virtual void NativeOnInitialized() override;

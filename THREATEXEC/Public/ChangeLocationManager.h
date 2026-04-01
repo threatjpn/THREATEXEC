@@ -8,6 +8,18 @@ class AActor;
 class UPrimitiveComponent;
 class ULightComponent;
 
+USTRUCT()
+struct FChangeLocationVariantGroup
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    TObjectPtr<AActor> RootActor = nullptr;
+
+    UPROPERTY()
+    TArray<TObjectPtr<AActor>> Actors;
+};
+
 UCLASS()
 class THREATEXEC_API AChangeLocationManager : public AActor
 {
@@ -29,7 +41,7 @@ protected:
     virtual void BeginPlay() override;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Change Location")
-    FString VariantTagPrefix = TEXT("CL_");
+    FString VariantRootPrefix = TEXT("CL_");
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Change Location")
     FName InitialVariantID = NAME_None;
@@ -37,12 +49,17 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Change Location")
     bool bApplyInitialVariantOnBeginPlay = false;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Change Location")
+    bool bHideInactiveVariantsOnBeginPlay = true;
+
 private:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Change Location", meta = (AllowPrivateAccess = "true"))
     FName CurrentVariantID = NAME_None;
 
-    TMap<FName, TArray<TObjectPtr<AActor>>> VariantActorMap;
+    UPROPERTY()
+    TMap<FName, FChangeLocationVariantGroup> VariantGroups;
 
-    void SetActorVariantActive(AActor* Actor, bool bActive);
-    bool TryExtractVariantIDFromActor(const AActor* Actor, FName& OutVariantID) const;
+    void GatherAttachedActorsRecursive(AActor* RootActor, TArray<AActor*>& OutActors) const;
+    void SetActorVariantActive(AActor* Actor, bool bActive) const;
+    bool TryGetVariantIDFromRootActor(const AActor* Actor, FName& OutVariantID) const;
 };

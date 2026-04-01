@@ -1,19 +1,24 @@
 #include "ChangeLocationWidget.h"
+#include "ChangeLocationEntryWidget.h"
 
-#include "Components/Button.h"
 #include "Components/PanelWidget.h"
 #include "Components/Widget.h"
 
 void UChangeLocationWidget::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
-    RebindLocationButtons();
+    RebindLocationEntries();
 }
 
-void UChangeLocationWidget::RebindLocationButtons()
+void UChangeLocationWidget::NativeConstruct()
 {
-    CachedButtons.Empty();
-    LastHoveredButton = nullptr;
+    Super::NativeConstruct();
+    RebindLocationEntries();
+}
+
+void UChangeLocationWidget::RebindLocationEntries()
+{
+    CachedEntries.Empty();
 
     if (!CL_LIST)
     {
@@ -21,38 +26,38 @@ void UChangeLocationWidget::RebindLocationButtons()
         return;
     }
 
-    TArray<UButton*> FoundButtons;
-    CollectButtonsRecursive(CL_LIST, FoundButtons);
+    TArray<UChangeLocationEntryWidget*> FoundEntries;
+    CollectEntriesRecursive(CL_LIST, FoundEntries);
 
-    for (UButton* Button : FoundButtons)
+    for (UChangeLocationEntryWidget* Entry : FoundEntries)
     {
-        if (!Button)
+        if (!Entry)
         {
             continue;
         }
 
-        CachedButtons.Add(Button);
+        CachedEntries.Add(Entry);
 
-        Button->OnHovered.RemoveDynamic(this, &UChangeLocationWidget::HandleAnyButtonHovered);
-        Button->OnHovered.AddDynamic(this, &UChangeLocationWidget::HandleAnyButtonHovered);
+        Entry->OnEntryHovered.RemoveDynamic(this, &UChangeLocationWidget::HandleEntryHovered);
+        Entry->OnEntryHovered.AddDynamic(this, &UChangeLocationWidget::HandleEntryHovered);
 
-        Button->OnClicked.RemoveDynamic(this, &UChangeLocationWidget::HandleAnyButtonClicked);
-        Button->OnClicked.AddDynamic(this, &UChangeLocationWidget::HandleAnyButtonClicked);
+        Entry->OnEntryClicked.RemoveDynamic(this, &UChangeLocationWidget::HandleEntryClicked);
+        Entry->OnEntryClicked.AddDynamic(this, &UChangeLocationWidget::HandleEntryClicked);
     }
 
-    UE_LOG(LogTemp, Log, TEXT("ChangeLocationWidget: Bound %d plain Button widget(s) from CL_LIST"), CachedButtons.Num());
+    UE_LOG(LogTemp, Log, TEXT("ChangeLocationWidget: Bound %d ChangeLocationEntryWidget instance(s) from CL_LIST"), CachedEntries.Num());
 }
 
-void UChangeLocationWidget::CollectButtonsRecursive(UWidget* RootWidget, TArray<UButton*>& OutButtons)
+void UChangeLocationWidget::CollectEntriesRecursive(UWidget* RootWidget, TArray<UChangeLocationEntryWidget*>& OutEntries)
 {
     if (!RootWidget)
     {
         return;
     }
 
-    if (UButton* Button = Cast<UButton>(RootWidget))
+    if (UChangeLocationEntryWidget* Entry = Cast<UChangeLocationEntryWidget>(RootWidget))
     {
-        OutButtons.Add(Button);
+        OutEntries.Add(Entry);
         return;
     }
 
@@ -61,50 +66,23 @@ void UChangeLocationWidget::CollectButtonsRecursive(UWidget* RootWidget, TArray<
         const int32 ChildCount = Panel->GetChildrenCount();
         for (int32 i = 0; i < ChildCount; ++i)
         {
-            CollectButtonsRecursive(Panel->GetChildAt(i), OutButtons);
+            CollectEntriesRecursive(Panel->GetChildAt(i), OutEntries);
         }
     }
 }
 
-UButton* UChangeLocationWidget::ResolveHoveredButton() const
+void UChangeLocationWidget::HandleEntryHovered(FName VariantID)
 {
-    if (LastHoveredButton && LastHoveredButton->IsHovered())
-    {
-        return LastHoveredButton;
-    }
-
-    for (UButton* Button : CachedButtons)
-    {
-        if (Button && Button->IsHovered())
-        {
-            return Button;
-        }
-    }
-
-    return nullptr;
+    UE_LOG(LogTemp, Verbose, TEXT("ChangeLocationWidget: Hovered variant '%s'"), *VariantID.ToString());
 }
 
-void UChangeLocationWidget::HandleAnyButtonHovered()
+void UChangeLocationWidget::HandleEntryClicked(FName VariantID)
 {
-    LastHoveredButton = ResolveHoveredButton();
-}
-
-void UChangeLocationWidget::HandleAnyButtonClicked()
-{
-    UButton* SourceButton = ResolveHoveredButton();
-
-    if (!SourceButton)
+    if (VariantID == NAME_None)
     {
-        SourceButton = LastHoveredButton;
-    }
-
-    if (!SourceButton)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("ChangeLocationWidget: Click received but no hovered button could be resolved"));
+        UE_LOG(LogTemp, Warning, TEXT("ChangeLocationWidget: Clicked entry has invalid VariantID"));
         return;
     }
-
-    const FName VariantID = SourceButton->GetFName();
 
     UE_LOG(LogTemp, Log, TEXT("ChangeLocationWidget: Requested variant '%s'"), *VariantID.ToString());
 

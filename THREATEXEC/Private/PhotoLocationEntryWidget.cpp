@@ -38,18 +38,6 @@ void UPhotoLocationEntryWidget::SynchronizeProperties()
     RefreshVisuals();
 }
 
-void UPhotoLocationEntryWidget::SetEntryData(
-    UTexture2D* InButtonTexture,
-    UTexture2D* InHoveredButtonTexture,
-    UTexture2D* InPreviewTexture)
-{
-    ButtonTexture = InButtonTexture;
-    HoveredButtonTexture = InHoveredButtonTexture;
-    PreviewTexture = InPreviewTexture;
-
-    RefreshVisuals();
-}
-
 void UPhotoLocationEntryWidget::RefreshVisuals()
 {
     if (!MainButton)
@@ -76,8 +64,14 @@ void UPhotoLocationEntryWidget::RefreshVisuals()
         };
 
     ApplyBrushTexture(Style.Normal, ButtonTexture);
-    ApplyBrushTexture(Style.Hovered, HoveredButtonTexture ? HoveredButtonTexture : ButtonTexture);
-    ApplyBrushTexture(Style.Pressed, HoveredButtonTexture ? HoveredButtonTexture : ButtonTexture);
+    ApplyBrushTexture(
+        Style.Hovered,
+        HoveredButtonTexture ? HoveredButtonTexture : ButtonTexture);
+    ApplyBrushTexture(
+        Style.Pressed,
+        PressedButtonTexture
+        ? PressedButtonTexture
+        : (HoveredButtonTexture ? HoveredButtonTexture : ButtonTexture));
     ApplyBrushTexture(Style.Disabled, ButtonTexture);
 
     MainButton->SetStyle(Style);

@@ -4,9 +4,9 @@
 #include "Blueprint/UserWidget.h"
 #include "ChangeLocationWidget.generated.h"
 
-class UButton;
 class UPanelWidget;
 class UWidget;
+class UChangeLocationEntryWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FChangeLocationRequestedSignature, FName, VariantID);
 
@@ -20,10 +20,11 @@ public:
     FChangeLocationRequestedSignature OnChangeLocationRequested;
 
     UFUNCTION(BlueprintCallable, Category = "Change Location")
-    void RebindLocationButtons();
+    void RebindLocationEntries();
 
 protected:
     virtual void NativeOnInitialized() override;
+    virtual void NativeConstruct() override;
 
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UPanelWidget> CL_LIST;
@@ -33,18 +34,13 @@ protected:
 
 private:
     UPROPERTY()
-    TArray<TObjectPtr<UButton>> CachedButtons;
+    TArray<TObjectPtr<UChangeLocationEntryWidget>> CachedEntries;
 
-    UPROPERTY()
-    TObjectPtr<UButton> LastHoveredButton = nullptr;
-
-    void CollectButtonsRecursive(UWidget* RootWidget, TArray<UButton*>& OutButtons);
+    void CollectEntriesRecursive(UWidget* RootWidget, TArray<UChangeLocationEntryWidget*>& OutEntries);
 
     UFUNCTION()
-    void HandleAnyButtonHovered();
+    void HandleEntryHovered(FName VariantID);
 
     UFUNCTION()
-    void HandleAnyButtonClicked();
-
-    UButton* ResolveHoveredButton() const;
+    void HandleEntryClicked(FName VariantID);
 };
