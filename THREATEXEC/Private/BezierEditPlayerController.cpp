@@ -182,8 +182,22 @@ void ABezierEditPlayerController::UpdateHover()
 	FHitResult Hit;
 	const bool bHit = TraceUnderCursor(Hit);
 
-	AActor* NewActor = bHit ? Hit.GetActor() : nullptr;
-	int32 NewIndex = bHit ? Hit.Item : -1;
+	AActor* NewActor = nullptr;
+	int32 NewIndex = INDEX_NONE;
+
+	if (bHit)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Hit.GetActor()))
+		{
+			A3->UI_TryResolveControlPointFromHit(Hit, NewIndex);
+			NewActor = (NewIndex != INDEX_NONE) ? A3 : nullptr;
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Hit.GetActor()))
+		{
+			A2->UI_TryResolveControlPointFromHit(Hit, NewIndex);
+			NewActor = (NewIndex != INDEX_NONE) ? A2 : nullptr;
+		}
+	}
 
 	if (!NewActor || NewIndex == INDEX_NONE)
 	{
@@ -316,9 +330,23 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 	FHitResult Hit;
 	const bool bHit = TraceUnderCursor(Hit);
 
-	AActor* HitActor = bHit ? Hit.GetActor() : nullptr;
-	int32 HitIndex = bHit ? Hit.Item : INDEX_NONE;
+	AActor* HitActor = nullptr;
+	int32 HitIndex = INDEX_NONE;
 	FVector HitPoint = bHit ? Hit.ImpactPoint : FVector::ZeroVector;
+
+	if (bHit)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Hit.GetActor()))
+		{
+			A3->UI_TryResolveControlPointFromHit(Hit, HitIndex);
+			HitActor = (HitIndex != INDEX_NONE) ? A3 : nullptr;
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Hit.GetActor()))
+		{
+			A2->UI_TryResolveControlPointFromHit(Hit, HitIndex);
+			HitActor = (HitIndex != INDEX_NONE) ? A2 : nullptr;
+		}
+	}
 
 	// Fallback: if the cursor did not directly hit a control-point instance,
 	// use the nearest control point near the mouse ray.
@@ -379,6 +407,17 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(HitActor))
 		{
 			A2->UI_SelectAllControlPoints();
+		}
+	}
+	else
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(HitActor))
+		{
+			A3->UI_SelectControlPoint(HitIndex);
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(HitActor))
+		{
+			A2->UI_SelectControlPoint(HitIndex);
 		}
 	}
 
