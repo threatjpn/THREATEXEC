@@ -64,6 +64,9 @@ void ABezierDebugActor::SyncFromWorldState()
 	if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(SourceActor))
 	{
 		bEnableEditMode = A3->UI_GetEditMode();
+		bEnableRuntimeEditing = A3->bEnableRuntimeEditing;
+		bActorVisibleInGame = A3->bActorVisibleInGame;
+		bHideVisualsWhenNotEditing = A3->bHideVisualsWhenNotEditing;
 		bShowControlPoints = A3->bShowControlPoints;
 		bShowStrip = A3->bShowStripMesh;
 		bSnapToGrid = A3->bSnapToGrid;
@@ -76,6 +79,9 @@ void ABezierDebugActor::SyncFromWorldState()
 	else if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(SourceActor))
 	{
 		bEnableEditMode = A2->UI_GetEditMode();
+		bEnableRuntimeEditing = A2->bEnableRuntimeEditing;
+		bActorVisibleInGame = A2->bActorVisibleInGame;
+		bHideVisualsWhenNotEditing = A2->bHideVisualsWhenNotEditing;
 		bShowControlPoints = A2->bShowControlPoints;
 		bShowStrip = A2->bShowStripMesh;
 		bSnapToGrid = A2->bSnapToGrid;
@@ -163,11 +169,11 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 {
 	if (ABezierCurve3DActor* Curve3D = Cast<ABezierCurve3DActor>(CurveActor))
 	{
-		Curve3D->bEnableRuntimeEditing = true;
-		Curve3D->bActorVisibleInGame = true;
-		Curve3D->bHideVisualsWhenNotEditing = true;
+		Curve3D->bEnableRuntimeEditing = bEnableRuntimeEditing;
+		Curve3D->bActorVisibleInGame = bActorVisibleInGame;
+		Curve3D->bHideVisualsWhenNotEditing = bHideVisualsWhenNotEditing;
 
-		Curve3D->UI_SetActorVisibleInGame(true);
+		Curve3D->UI_SetActorVisibleInGame(bActorVisibleInGame);
 		Curve3D->UI_SetEditMode(bEnableEditMode);
 		Curve3D->UI_SetShowControlPoints(bShowControlPoints);
 		Curve3D->UI_SetShowStrip(bShowStrip);
@@ -245,11 +251,11 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 
 	if (ABezierCurve2DActor* Curve2D = Cast<ABezierCurve2DActor>(CurveActor))
 	{
-		Curve2D->bEnableRuntimeEditing = true;
-		Curve2D->bActorVisibleInGame = true;
-		Curve2D->bHideVisualsWhenNotEditing = true;
+		Curve2D->bEnableRuntimeEditing = bEnableRuntimeEditing;
+		Curve2D->bActorVisibleInGame = bActorVisibleInGame;
+		Curve2D->bHideVisualsWhenNotEditing = bHideVisualsWhenNotEditing;
 
-		Curve2D->UI_SetActorVisibleInGame(true);
+		Curve2D->UI_SetActorVisibleInGame(bActorVisibleInGame);
 		Curve2D->UI_SetEditMode(bEnableEditMode);
 		Curve2D->UI_SetShowControlPoints(bShowControlPoints);
 		Curve2D->UI_SetShowStrip(bShowStrip);

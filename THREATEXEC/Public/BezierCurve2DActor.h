@@ -368,6 +368,12 @@ public:
 	bool UI_SelectFromHit(const FHitResult& Hit);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_TryResolveControlPointFromHit(const FHitResult& Hit, int32& OutIndex) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
+	bool UI_SelectControlPoint(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
 	void UI_AddControlPoint(FVector2D ModelPos, int32 Index);
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier2D|UI|RuntimeEdit")
