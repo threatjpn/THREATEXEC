@@ -29,6 +29,15 @@ public:
 	bool bEnableEditMode = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	bool bEnableRuntimeEditing = true;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	bool bActorVisibleInGame = true;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
+	bool bHideVisualsWhenNotEditing = true;
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bShowControlPoints = true;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")

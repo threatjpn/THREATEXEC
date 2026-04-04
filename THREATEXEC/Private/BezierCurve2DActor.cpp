@@ -943,9 +943,27 @@ void ABezierCurve2DActor::UI_ImportFromJson()
 
 bool ABezierCurve2DActor::UI_SelectFromHit(const FHitResult& Hit)
 {
+	int32 HitIndex = INDEX_NONE;
+	return UI_TryResolveControlPointFromHit(Hit, HitIndex) && UI_SelectControlPoint(HitIndex);
+}
+
+bool ABezierCurve2DActor::UI_TryResolveControlPointFromHit(const FHitResult& Hit, int32& OutIndex) const
+{
+	OutIndex = INDEX_NONE;
 	if (!bEnableRuntimeEditing || !bEditMode) return false;
-	if (Hit.Component != ControlPointISM || Hit.Item == INDEX_NONE) return false;
-	SelectedControlPointIndex = Hit.Item;
+	if (Hit.Component.Get() != ControlPointISM || Hit.Item == INDEX_NONE) return false;
+	if (!Control.IsValidIndex(Hit.Item)) return false;
+
+	OutIndex = Hit.Item;
+	return true;
+}
+
+bool ABezierCurve2DActor::UI_SelectControlPoint(int32 Index)
+{
+	if (!bEnableRuntimeEditing || !bEditMode) return false;
+	if (!Control.IsValidIndex(Index)) return false;
+
+	SelectedControlPointIndex = Index;
 	bSelectAllControlPoints = false;
 	UpdateControlPointInstanceColors();
 	return true;
