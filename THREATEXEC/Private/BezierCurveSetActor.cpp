@@ -15,6 +15,27 @@
 #include "TimerManager.h"
 #include "EngineUtils.h"
 
+namespace
+{
+	static FString TE_SamplingModeToString(EBezierSamplingMode Mode)
+	{
+		return Mode == EBezierSamplingMode::ArcLength ? TEXT("arc_length") : TEXT("parametric");
+	}
+
+	static EBezierSamplingMode TE_SamplingModeFromString(const FString& Value, EBezierSamplingMode Fallback)
+	{
+		if (Value.Equals(TEXT("arc_length"), ESearchCase::IgnoreCase) || Value.Equals(TEXT("arclength"), ESearchCase::IgnoreCase))
+		{
+			return EBezierSamplingMode::ArcLength;
+		}
+		if (Value.Equals(TEXT("parametric"), ESearchCase::IgnoreCase))
+		{
+			return EBezierSamplingMode::Parametric;
+		}
+		return Fallback;
+	}
+}
+
 ABezierCurveSetActor::ABezierCurveSetActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -156,6 +177,8 @@ TSharedRef<FJsonObject> ABezierCurveSetActor::BuildCurveSetJson() const
 			CurveObj->SetStringField(TEXT("name"), A3->GetName());
 			CurveObj->SetStringField(TEXT("space"), TEXT("3D"));
 			CurveObj->SetBoolField(TEXT("closed"), A3->UI_IsClosedLoop());
+			CurveObj->SetStringField(TEXT("sampling_mode"), TE_SamplingModeToString(A3->UI_GetSamplingMode()));
+			CurveObj->SetNumberField(TEXT("sample_count"), A3->UI_GetSampleCount());
 
 			TArray<TSharedPtr<FJsonValue>> ControlValues;
 			for (const FVector& P : A3->Control)
@@ -182,6 +205,8 @@ TSharedRef<FJsonObject> ABezierCurveSetActor::BuildCurveSetJson() const
 			CurveObj->SetStringField(TEXT("name"), A2->GetName());
 			CurveObj->SetStringField(TEXT("space"), TEXT("2D"));
 			CurveObj->SetBoolField(TEXT("closed"), A2->UI_IsClosedLoop());
+			CurveObj->SetStringField(TEXT("sampling_mode"), TE_SamplingModeToString(A2->UI_GetSamplingMode()));
+			CurveObj->SetNumberField(TEXT("sample_count"), A2->UI_GetSampleCount());
 
 			TArray<TSharedPtr<FJsonValue>> ControlValues;
 			for (const FVector2D& P : A2->Control)
@@ -340,6 +365,16 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 		bool bClosed = false;
 		(*CurveObj)->TryGetBoolField(TEXT("closed"), bClosed);
 
+		FString SamplingModeStr;
+		(*CurveObj)->TryGetStringField(TEXT("sampling_mode"), SamplingModeStr);
+
+		double SampleCountNumber = 0.0;
+		(*CurveObj)->TryGetNumberField(TEXT("sample_count"), SampleCountNumber);
+		const int32 SampleCount = FMath::RoundToInt(SampleCountNumber);
+
+		FString SourceProfile;
+		(*CurveObj)->TryGetStringField(TEXT("source_profile"), SourceProfile);
+
 		const TArray<TSharedPtr<FJsonValue>>* ControlArray = nullptr;
 		if (!(*CurveObj)->TryGetArrayField(TEXT("control"), ControlArray) || !ControlArray)
 		{
@@ -427,6 +462,16 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 			A3->UI_SetInitialControlFromCurrent();
 			A3->OverwriteSplineFromControl();
 			A3->UI_SetClosedLoop(bClosed);
+			const EBezierSamplingMode SamplingMode = TE_SamplingModeFromString(SamplingModeStr, EBezierSamplingMode::Parametric);
+			A3->UI_SetSamplingMode(SamplingMode);
+
+			const int32 ImportedSampleCount = SampleCount > 0 ? SampleCount : A3->Control.Num();
+			A3->UI_SetSampleCount(FMath::Clamp(ImportedSampleCount, 2, 2048));
+			if (SourceProfile.Equals(TEXT("max_sampled"), ESearchCase::IgnoreCase))
+			{
+				A3->UI_SetSamplingMode(EBezierSamplingMode::ArcLength);
+				A3->UI_SetSampleCount(FMath::Clamp(FMath::Max(ImportedSampleCount, A3->Control.Num()), 2, 2048));
+			}
 			UI_RegisterSpawned(A3);
 		}
 		else
@@ -461,6 +506,16 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 			A2->UI_SetInitialControlFromCurrent();
 			A2->OverwriteSplineFromControl();
 			A2->UI_SetClosedLoop(bClosed);
+			const EBezierSamplingMode SamplingMode = TE_SamplingModeFromString(SamplingModeStr, EBezierSamplingMode::Parametric);
+			A2->UI_SetSamplingMode(SamplingMode);
+
+			const int32 ImportedSampleCount = SampleCount > 0 ? SampleCount : A2->Control.Num();
+			A2->UI_SetSampleCount(FMath::Clamp(ImportedSampleCount, 2, 2048));
+			if (SourceProfile.Equals(TEXT("max_sampled"), ESearchCase::IgnoreCase))
+			{
+				A2->UI_SetSamplingMode(EBezierSamplingMode::ArcLength);
+				A2->UI_SetSampleCount(FMath::Clamp(FMath::Max(ImportedSampleCount, A2->Control.Num()), 2, 2048));
+			}
 			UI_RegisterSpawned(A2);
 		}
 	}
