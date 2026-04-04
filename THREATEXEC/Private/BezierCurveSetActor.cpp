@@ -58,8 +58,11 @@ void ABezierCurveSetActor::OnConstruction(const FTransform& Transform)
 
 FString ABezierCurveSetActor::MakeAbs(const FString& FileName) const
 {
-	const FString Base = FPaths::IsRelative(IOPathAbsolute) ? (FPaths::ProjectDir() / IOPathAbsolute) : IOPathAbsolute;
-	return FPaths::ConvertRelativePathToFull(Base / FileName);
+	// Match the rest of the toolkit IO behavior:
+	// - empty path resolves under Saved/Bezier
+	// - relative paths resolve under Saved/<path>
+	// - absolute paths are used as-is
+	return TE_PathUtils::ResolveFile(IOPathAbsolute, FileName, TEXT("Bezier"));
 }
 
 bool ABezierCurveSetActor::ReadText(const FString& AbsPath, FString& Out) const
@@ -125,15 +128,140 @@ void ABezierCurveSetActor::RefreshSpawnedFromWorld()
 	}
 }
 
-void ABezierCurveSetActor::ImportCurveSetJson()
+TSharedRef<FJsonObject> ABezierCurveSetActor::BuildCurveSetJson() const
+{
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+	TArray<TSharedPtr<FJsonValue>> Curves;
+
+	const int32 CurrentVersion = 2;
+	double ScaleValue = 100.0;
+	bool bScaleSet = false;
+
+	for (AActor* A : Spawned)
+	{
+		if (!IsValid(A))
+		{
+			continue;
+		}
+
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
+		{
+			if (!bScaleSet)
+			{
+				ScaleValue = A3->Scale;
+				bScaleSet = true;
+			}
+
+			TSharedRef<FJsonObject> CurveObj = MakeShared<FJsonObject>();
+			CurveObj->SetStringField(TEXT("name"), A3->GetName());
+			CurveObj->SetStringField(TEXT("space"), TEXT("3D"));
+			CurveObj->SetBoolField(TEXT("closed"), A3->UI_IsClosedLoop());
+
+			TArray<TSharedPtr<FJsonValue>> ControlValues;
+			for (const FVector& P : A3->Control)
+			{
+				TArray<TSharedPtr<FJsonValue>> PointValues;
+				PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
+				PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
+				PointValues.Add(MakeShared<FJsonValueNumber>(P.Z));
+				ControlValues.Add(MakeShared<FJsonValueArray>(PointValues));
+			}
+
+			CurveObj->SetArrayField(TEXT("control"), ControlValues);
+			Curves.Add(MakeShared<FJsonValueObject>(CurveObj));
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
+		{
+			if (!bScaleSet)
+			{
+				ScaleValue = A2->Scale;
+				bScaleSet = true;
+			}
+
+			TSharedRef<FJsonObject> CurveObj = MakeShared<FJsonObject>();
+			CurveObj->SetStringField(TEXT("name"), A2->GetName());
+			CurveObj->SetStringField(TEXT("space"), TEXT("2D"));
+			CurveObj->SetBoolField(TEXT("closed"), A2->UI_IsClosedLoop());
+
+			TArray<TSharedPtr<FJsonValue>> ControlValues;
+			for (const FVector2D& P : A2->Control)
+			{
+				TArray<TSharedPtr<FJsonValue>> PointValues;
+				PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
+				PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
+				ControlValues.Add(MakeShared<FJsonValueArray>(PointValues));
+			}
+
+			CurveObj->SetArrayField(TEXT("control"), ControlValues);
+			Curves.Add(MakeShared<FJsonValueObject>(CurveObj));
+		}
+	}
+
+	// Unreal-authored saves are exported in local control space.
+	Root->SetNumberField(TEXT("version"), CurrentVersion);
+	Root->SetStringField(TEXT("point_space"), TEXT("local"));
+	Root->SetNumberField(TEXT("scale"), ScaleValue);
+	Root->SetArrayField(TEXT("curves"), Curves);
+
+	return Root;
+}
+
+bool ABezierCurveSetActor::WriteCurveSetJsonToFile(const FString& FileName, bool bWriteBackup) const
+{
+	const FString AbsPath = MakeAbs(FileName);
+	const TSharedRef<FJsonObject> Root = BuildCurveSetJson();
+
+	if (bWriteBackup && !BackupCurveSetFile.IsEmpty())
+	{
+		const FString BackupPath = MakeAbs(BackupCurveSetFile);
+		FString Existing;
+		if (ReadText(AbsPath, Existing))
+		{
+			if (!WriteText(BackupPath, Existing))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to write backup %s"), *BackupPath);
+			}
+		}
+	}
+
+	if (!TE_FileUtils::SaveJson(AbsPath, Root))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to write %s"), *AbsPath);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("BezierCurveSetActor: Saved curve set to %s"), *AbsPath);
+	return true;
+}
+
+FString ABezierCurveSetActor::FindNextExportCurveSetFileName() const
+{
+	const FString SafePrefix = ExportedCurveSetPrefix.IsEmpty()
+		? TEXT("exported_curve_set_")
+		: ExportedCurveSetPrefix;
+
+	for (int32 Index = FMath::Max(0, ExportedCurveSetStartIndex); Index < 100000; ++Index)
+	{
+		const FString Candidate = FString::Printf(TEXT("%s%d.json"), *SafePrefix, Index);
+		const FString AbsPath = MakeAbs(Candidate);
+
+		if (!FPaths::FileExists(AbsPath))
+		{
+			return Candidate;
+		}
+	}
+
+	return FString::Printf(TEXT("%s%d.json"), *SafePrefix, 99999);
+}
+
+bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 {
 	FString JsonText;
-	// Prototype behavior: always load the canonical base curve set file.
-	const FString AbsPath = MakeAbs(TEXT("curve_set.json"));
+	const FString AbsPath = MakeAbs(FileName);
 	if (!ReadText(AbsPath, JsonText))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to read %s"), *AbsPath);
-		return;
+		return false;
 	}
 
 	TSharedPtr<FJsonObject> Root;
@@ -141,10 +269,10 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to parse %s"), *AbsPath);
-		return;
+		return false;
 	}
 
-	const int32 CurrentVersion = 1;
+	const int32 CurrentVersion = 2;
 	int32 Version = 0;
 	Root->TryGetNumberField(TEXT("version"), Version);
 	if (Version > CurrentVersion)
@@ -152,20 +280,29 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Curve set version %d is newer than supported %d."), Version, CurrentVersion);
 	}
 
+	FString PointSpace = TEXT("local");
+	Root->TryGetStringField(TEXT("point_space"), PointSpace);
+	const bool bWorldSpacePoints = PointSpace.Equals(TEXT("world"), ESearchCase::IgnoreCase);
+
 	double FileScale = 100.0;
 	Root->TryGetNumberField(TEXT("scale"), FileScale);
+
 	const TArray<TSharedPtr<FJsonValue>>* CurvesArray = nullptr;
 	if (!Root->TryGetArrayField(TEXT("curves"), CurvesArray) || !CurvesArray)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: No curves array in %s"), *AbsPath);
-		return;
+		return false;
 	}
 
 	UWorld* World = GetWorld();
-	if (!World) return;
+	if (!World) return false;
 
 	if (!Curve2DClass) Curve2DClass = ABezierCurve2DActor::StaticClass();
 	if (!Curve3DClass) Curve3DClass = ABezierCurve3DActor::StaticClass();
+
+	// World-space exports from Max should spawn with identity transform so the
+	// control points land exactly where they were authored.
+	const FTransform SpawnTransform = bWorldSpacePoints ? FTransform::Identity : GetActorTransform();
 
 	if (ImportMode == EBezierCurveSetImportMode::ReplaceAll)
 	{
@@ -189,12 +326,17 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 	for (const TSharedPtr<FJsonValue>& CurveValue : *CurvesArray)
 	{
 		const TSharedPtr<FJsonObject>* CurveObj = nullptr;
-		if (!CurveValue.IsValid() || !CurveValue->TryGetObject(CurveObj) || !CurveObj || !CurveObj->IsValid()) continue;
+		if (!CurveValue.IsValid() || !CurveValue->TryGetObject(CurveObj) || !CurveObj || !CurveObj->IsValid())
+		{
+			continue;
+		}
 
 		FString CurveName;
 		(*CurveObj)->TryGetStringField(TEXT("name"), CurveName);
+
 		FString Space;
 		(*CurveObj)->TryGetStringField(TEXT("space"), Space);
+
 		bool bClosed = false;
 		(*CurveObj)->TryGetBoolField(TEXT("closed"), bClosed);
 
@@ -222,6 +364,7 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 		if (!CurveName.IsEmpty())
 		{
 			const FName CurveFName(*CurveName);
+
 			if (ImportMode == EBezierCurveSetImportMode::SkipExisting && ExistingByName.Contains(CurveFName))
 			{
 				continue;
@@ -252,7 +395,7 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 
 		if (bIs3D)
 		{
-			ABezierCurve3DActor* A3 = World->SpawnActor<ABezierCurve3DActor>(Curve3DClass, GetActorTransform(), Params);
+			ABezierCurve3DActor* A3 = World->SpawnActor<ABezierCurve3DActor>(Curve3DClass, SpawnTransform, Params);
 			if (!A3) continue;
 
 			A3->Scale = FileScale;
@@ -274,6 +417,7 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 
 				A3->Control.Add(FVector(X, Y, Z));
 			}
+
 			if (A3->Control.Num() < 2)
 			{
 				A3->Destroy();
@@ -283,11 +427,11 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 			A3->UI_SetInitialControlFromCurrent();
 			A3->OverwriteSplineFromControl();
 			A3->UI_SetClosedLoop(bClosed);
-			Spawned.Add(A3);
+			UI_RegisterSpawned(A3);
 		}
 		else
 		{
-			ABezierCurve2DActor* A2 = World->SpawnActor<ABezierCurve2DActor>(Curve2DClass, GetActorTransform(), Params);
+			ABezierCurve2DActor* A2 = World->SpawnActor<ABezierCurve2DActor>(Curve2DClass, SpawnTransform, Params);
 			if (!A2) continue;
 
 			A2->Scale = FileScale;
@@ -307,6 +451,7 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 
 				A2->Control.Add(FVector2D(X, Y));
 			}
+
 			if (A2->Control.Num() < 2)
 			{
 				A2->Destroy();
@@ -316,9 +461,17 @@ void ABezierCurveSetActor::ImportCurveSetJson()
 			A2->UI_SetInitialControlFromCurrent();
 			A2->OverwriteSplineFromControl();
 			A2->UI_SetClosedLoop(bClosed);
-			Spawned.Add(A2);
+			UI_RegisterSpawned(A2);
 		}
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("BezierCurveSetActor: Loaded curve set from %s"), *AbsPath);
+	return true;
+}
+
+void ABezierCurveSetActor::ImportCurveSetJson()
+{
+	ImportCurveSetJsonFromFile(CurveSetFile);
 }
 
 void ABezierCurveSetActor::UI_ImportCurveSetJson()
@@ -326,80 +479,20 @@ void ABezierCurveSetActor::UI_ImportCurveSetJson()
 	ImportCurveSetJson();
 }
 
+void ABezierCurveSetActor::UI_LoadDemoCurveSetJson()
+{
+	ImportCurveSetJsonFromFile(DemoCurveSetFile);
+}
+
 void ABezierCurveSetActor::UI_ExportCurveSetJson()
 {
-	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
-	TArray<TSharedPtr<FJsonValue>> Curves;
+	WriteCurveSetJsonToFile(CurveSetFile, bWriteBackupOnExport);
+}
 
-	const int32 CurrentVersion = 1;
-	double ScaleValue = 100.0;
-	bool bScaleSet = false;
-
-	for (AActor* A : Spawned)
-	{
-		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
-		{
-			if (!bScaleSet) { ScaleValue = A3->Scale; bScaleSet = true; }
-			TSharedRef<FJsonObject> CurveObj = MakeShared<FJsonObject>();
-			CurveObj->SetStringField(TEXT("name"), A3->GetName());
-			CurveObj->SetStringField(TEXT("space"), TEXT("3D"));
-			CurveObj->SetBoolField(TEXT("closed"), A3->UI_IsClosedLoop());
-
-			TArray<TSharedPtr<FJsonValue>> ControlValues;
-			for (const FVector& P : A3->Control)
-			{
-				TArray<TSharedPtr<FJsonValue>> PointValues;
-				PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
-				PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
-				PointValues.Add(MakeShared<FJsonValueNumber>(P.Z));
-				ControlValues.Add(MakeShared<FJsonValueArray>(PointValues));
-			}
-			CurveObj->SetArrayField(TEXT("control"), ControlValues);
-			Curves.Add(MakeShared<FJsonValueObject>(CurveObj));
-		}
-		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
-		{
-			if (!bScaleSet) { ScaleValue = A2->Scale; bScaleSet = true; }
-			TSharedRef<FJsonObject> CurveObj = MakeShared<FJsonObject>();
-			CurveObj->SetStringField(TEXT("name"), A2->GetName());
-			CurveObj->SetStringField(TEXT("space"), TEXT("2D"));
-			CurveObj->SetBoolField(TEXT("closed"), A2->UI_IsClosedLoop());
-
-			TArray<TSharedPtr<FJsonValue>> ControlValues;
-			for (const FVector2D& P : A2->Control)
-			{
-				TArray<TSharedPtr<FJsonValue>> PointValues;
-				PointValues.Add(MakeShared<FJsonValueNumber>(P.X));
-				PointValues.Add(MakeShared<FJsonValueNumber>(P.Y));
-				ControlValues.Add(MakeShared<FJsonValueArray>(PointValues));
-			}
-			CurveObj->SetArrayField(TEXT("control"), ControlValues);
-			Curves.Add(MakeShared<FJsonValueObject>(CurveObj));
-		}
-	}
-
-	Root->SetNumberField(TEXT("version"), CurrentVersion);
-	Root->SetNumberField(TEXT("scale"), ScaleValue);
-	Root->SetArrayField(TEXT("curves"), Curves);
-
-	const FString AbsPath = MakeAbs(CurveSetFile);
-	if (bWriteBackupOnExport && !BackupCurveSetFile.IsEmpty())
-	{
-		const FString BackupPath = MakeAbs(BackupCurveSetFile);
-		FString Existing;
-		if (ReadText(AbsPath, Existing))
-		{
-			if (!WriteText(BackupPath, Existing))
-			{
-				UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to write backup %s"), *BackupPath);
-			}
-		}
-	}
-
-	if (!TE_FileUtils::SaveJson(AbsPath, Root))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to write %s"), *AbsPath);
-	}
+void ABezierCurveSetActor::UI_SaveExportedCurveSetSnapshot()
+{
+	const FString NextFile = FindNextExportCurveSetFileName();
+	WriteCurveSetJsonToFile(NextFile, false);
 }
 
 void ABezierCurveSetActor::UI_ClearSpawned()
@@ -426,6 +519,11 @@ void ABezierCurveSetActor::UI_RegisterSpawned(AActor* Actor)
 
 	if (UWorld* World = GetWorld())
 	{
+		if (UBezierEditSubsystem* Subsystem = World->GetSubsystem<UBezierEditSubsystem>())
+		{
+			Subsystem->RegisterEditable(Actor);
+		}
+
 		for (TActorIterator<ABezierDebugActor> It(World); It; ++It)
 		{
 			It->SyncFromWorldState();
@@ -433,6 +531,31 @@ void ABezierCurveSetActor::UI_RegisterSpawned(AActor* Actor)
 			break;
 		}
 	}
+}
+
+bool ABezierCurveSetActor::UI_HasAnyCurves() const
+{
+	for (AActor* A : Spawned)
+	{
+		if (IsValid(A) && (Cast<ABezierCurve3DActor>(A) || Cast<ABezierCurve2DActor>(A)))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+int32 ABezierCurveSetActor::UI_GetCurveCount() const
+{
+	int32 Count = 0;
+	for (AActor* A : Spawned)
+	{
+		if (IsValid(A) && (Cast<ABezierCurve3DActor>(A) || Cast<ABezierCurve2DActor>(A)))
+		{
+			++Count;
+		}
+	}
+	return Count;
 }
 
 void ABezierCurveSetActor::UI_SetEditModeForAll(bool bInEditMode)
@@ -1061,7 +1184,6 @@ void ABezierCurveSetActor::UI_FocusDuplicateCurve()
 {
 	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		Subsystem->Focus_EnsureFocused();
 		Subsystem->Focus_DuplicateCurve();
 	}
 }

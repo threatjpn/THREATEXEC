@@ -92,6 +92,91 @@ bool ABezierEditPlayerController::GetMouseRay(FVector& OutOrigin, FVector& OutDi
 	return DeprojectScreenPositionToWorld(ScreenX, ScreenY, OutOrigin, OutDirection);
 }
 
+bool ABezierEditPlayerController::FindClosestControlPointOnMouseRay(AActor*& OutActor, int32& OutIndex) const
+{
+	OutActor = nullptr;
+	OutIndex = INDEX_NONE;
+
+	FVector RayOrigin;
+	FVector RayDirection;
+	if (!GetMouseRay(RayOrigin, RayDirection))
+	{
+		return false;
+	}
+
+	const FVector RayDir = RayDirection.GetSafeNormal();
+	if (RayDir.IsNearlyZero())
+	{
+		return false;
+	}
+
+	float BestDistSq = TNumericLimits<float>::Max();
+	AActor* BestActor = nullptr;
+	int32 BestIndex = INDEX_NONE;
+
+	auto TestPoint = [&](AActor* OwnerActor, int32 PointIndex, const FVector& WorldPoint)
+		{
+			const FVector ToPoint = WorldPoint - RayOrigin;
+			const float AlongRay = FVector::DotProduct(ToPoint, RayDir);
+
+			if (AlongRay < 0.0f || AlongRay > HoverMaxRayDistance)
+			{
+				return;
+			}
+
+			const FVector ClosestPointOnRay = RayOrigin + RayDir * AlongRay;
+			const float DistSq = FVector::DistSquared(WorldPoint, ClosestPointOnRay);
+
+			if (DistSq <= FMath::Square(HoverWorldRadius) && DistSq < BestDistSq)
+			{
+				BestDistSq = DistSq;
+				BestActor = OwnerActor;
+				BestIndex = PointIndex;
+			}
+		};
+
+	if (UWorld* W = GetWorld())
+	{
+		for (TActorIterator<ABezierCurve3DActor> It(W); It; ++It)
+		{
+			const ABezierCurve3DActor* Curve = *It;
+			if (!IsValid(Curve)) continue;
+			if (!Curve->UI_GetEditMode()) continue;
+			if (!Curve->bShowControlPoints) continue;
+
+			for (int32 i = 0; i < Curve->Control.Num(); ++i)
+			{
+				const FVector WorldPoint = Curve->GetActorTransform().TransformPosition(Curve->Control[i] * Curve->Scale);
+				TestPoint(const_cast<ABezierCurve3DActor*>(Curve), i, WorldPoint);
+			}
+		}
+
+		for (TActorIterator<ABezierCurve2DActor> It(W); It; ++It)
+		{
+			const ABezierCurve2DActor* Curve = *It;
+			if (!IsValid(Curve)) continue;
+			if (!Curve->UI_GetEditMode()) continue;
+			if (!Curve->bShowControlPoints) continue;
+
+			for (int32 i = 0; i < Curve->Control.Num(); ++i)
+			{
+				const FVector LocalPoint(Curve->Control[i].X * Curve->Scale, Curve->Control[i].Y * Curve->Scale, 0.0f);
+				const FVector WorldPoint = Curve->GetActorTransform().TransformPosition(LocalPoint);
+				TestPoint(const_cast<ABezierCurve2DActor*>(Curve), i, WorldPoint);
+			}
+		}
+	}
+
+	if (BestActor && BestIndex != INDEX_NONE)
+	{
+		OutActor = BestActor;
+		OutIndex = BestIndex;
+		return true;
+	}
+
+	return false;
+}
+
 void ABezierEditPlayerController::UpdateHover()
 {
 	FHitResult Hit;
@@ -100,14 +185,24 @@ void ABezierEditPlayerController::UpdateHover()
 	AActor* NewActor = bHit ? Hit.GetActor() : nullptr;
 	int32 NewIndex = bHit ? Hit.Item : -1;
 
-	if (!bHit || !NewActor)
+	if (!NewActor || NewIndex == INDEX_NONE)
+	{
+		AActor* FallbackActor = nullptr;
+		int32 FallbackIndex = INDEX_NONE;
+		if (FindClosestControlPointOnMouseRay(FallbackActor, FallbackIndex))
+		{
+			NewActor = FallbackActor;
+			NewIndex = FallbackIndex;
+		}
+	}
+
+	if (!NewActor || NewIndex == INDEX_NONE)
 	{
 		ReportDebugMessage(TEXT("Hover: none"));
 		ClearHovered();
 		return;
 	}
 
-	// If this is an editable actor, set focus in the edit subsystem.
 	if (UWorld* W = GetWorld())
 	{
 		if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
@@ -117,14 +212,6 @@ void ABezierEditPlayerController::UpdateHover()
 				Sub->SetFocused(NewActor);
 			}
 		}
-	}
-
-	// Hover only matters for control point instances (Hit.Item).
-	if (NewIndex == INDEX_NONE)
-	{
-		ReportDebugMessage(FString::Printf(TEXT("Hover: %s (no control point)"), *NewActor->GetName()));
-		ClearHovered();
-		return;
 	}
 
 	if (HoveredActor.Get() != NewActor || HoveredIndex != NewIndex)
@@ -169,28 +256,119 @@ void ABezierEditPlayerController::SetHoveredOnActor(AActor* Actor, int32 Control
 	}
 }
 
+void ABezierEditPlayerController::StartDragFromControlPoint(AActor* HitActor, int32 ControlPointIndex, const FVector& ImpactPoint)
+{
+	if (!HitActor || ControlPointIndex == INDEX_NONE)
+	{
+		return;
+	}
+
+	ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(HitActor);
+	ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(HitActor);
+	if (!A3 && !A2)
+	{
+		return;
+	}
+
+	const bool bAllSelected = A3 ? A3->UI_AreAllControlPointsSelected() : A2->UI_AreAllControlPointsSelected();
+	const bool bAllowAllDrag = bAllSelected;
+
+	DraggedActor = HitActor;
+	DraggedIndex = ControlPointIndex;
+	bDragging = true;
+	bDragAllControlPoints = false;
+	DragStartWorldPoints.Reset();
+
+	DragPlanePoint = ImpactPoint;
+
+	const FVector CamForward = PlayerCameraManager ? PlayerCameraManager->GetActorForwardVector() : FVector(1, 0, 0);
+
+	if (A2)
+	{
+		DragPlaneNormal = FVector::UpVector;
+	}
+	else
+	{
+		DragPlaneNormal = -CamForward.GetSafeNormal();
+		if (DragPlaneNormal.IsNearlyZero())
+		{
+			DragPlaneNormal = FVector::UpVector;
+		}
+	}
+
+	if (bAllowAllDrag)
+	{
+		bDragAllControlPoints = A3 ? A3->UI_GetAllControlPointsWorld(DragStartWorldPoints)
+			: A2->UI_GetAllControlPointsWorld(DragStartWorldPoints);
+
+		if (!bDragAllControlPoints)
+		{
+			StopDrag();
+			return;
+		}
+	}
+
+	ClearHovered();
+}
+
 void ABezierEditPlayerController::Input_PrimaryPressed()
 {
 	FHitResult Hit;
-	if (!TraceUnderCursor(Hit))
+	const bool bHit = TraceUnderCursor(Hit);
+
+	AActor* HitActor = bHit ? Hit.GetActor() : nullptr;
+	int32 HitIndex = bHit ? Hit.Item : INDEX_NONE;
+	FVector HitPoint = bHit ? Hit.ImpactPoint : FVector::ZeroVector;
+
+	// Fallback: if the cursor did not directly hit a control-point instance,
+	// use the nearest control point near the mouse ray.
+	if (!HitActor || HitIndex == INDEX_NONE)
+	{
+		AActor* FallbackActor = nullptr;
+		int32 FallbackIndex = INDEX_NONE;
+		if (FindClosestControlPointOnMouseRay(FallbackActor, FallbackIndex))
+		{
+			HitActor = FallbackActor;
+			HitIndex = FallbackIndex;
+
+			if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(FallbackActor))
+			{
+				if (A3->Control.IsValidIndex(FallbackIndex))
+				{
+					HitPoint = A3->GetActorTransform().TransformPosition(A3->Control[FallbackIndex] * A3->Scale);
+				}
+			}
+			else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(FallbackActor))
+			{
+				if (A2->Control.IsValidIndex(FallbackIndex))
+				{
+					const FVector LocalPoint(
+						A2->Control[FallbackIndex].X * A2->Scale,
+						A2->Control[FallbackIndex].Y * A2->Scale,
+						0.0f
+					);
+					HitPoint = A2->GetActorTransform().TransformPosition(LocalPoint);
+				}
+			}
+		}
+	}
+
+	if (!HitActor || HitIndex == INDEX_NONE)
 	{
 		ClearSelectedOnAllActors();
 		return;
 	}
 
-	AActor* HitActor = Hit.GetActor();
-	if (!HitActor) return;
-
 	const float NowSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
-	const bool bHasControlPoint = Hit.Item != INDEX_NONE;
-	const bool bSameClickTarget = (LastPrimaryClickActor.Get() == HitActor && LastPrimaryClickIndex == Hit.Item);
+	const bool bHasControlPoint = HitIndex != INDEX_NONE;
+	const bool bSameClickTarget = (LastPrimaryClickActor.Get() == HitActor && LastPrimaryClickIndex == HitIndex);
 	const bool bIsDoubleClick = bHasControlPoint && bSameClickTarget
 		&& (LastPrimaryClickTimeSeconds >= 0.0f)
 		&& ((NowSeconds - LastPrimaryClickTimeSeconds) <= DoubleClickTimeSeconds);
 
 	LastPrimaryClickTimeSeconds = NowSeconds;
 	LastPrimaryClickActor = HitActor;
-	LastPrimaryClickIndex = Hit.Item;
+	LastPrimaryClickIndex = HitIndex;
 
 	if (bIsDoubleClick)
 	{
@@ -204,7 +382,6 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 		}
 	}
 
-	// Focus editable actor on click.
 	if (UWorld* W = GetWorld())
 	{
 		if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
@@ -216,7 +393,7 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 		}
 	}
 
-	StartDrag(Hit);
+	StartDragFromControlPoint(HitActor, HitIndex, HitPoint);
 }
 
 void ABezierEditPlayerController::Input_PrimaryReleased()

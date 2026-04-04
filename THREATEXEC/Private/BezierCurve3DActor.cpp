@@ -783,7 +783,7 @@ bool ABezierCurve3DActor::ExportCurveSamplesToJson() const
 bool ABezierCurve3DActor::ExportDeCasteljauProofJson() const
 {
 	TArray<TArray<FVector>> Levels;
-	TEBezier::DeCasteljauLevels(Control, 0.5, Levels);
+	TEBezier::DeCasteljauLevels(Control, ProofT, Levels);
 
 	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
 	TArray<TSharedPtr<FJsonValue>> LevelValues;

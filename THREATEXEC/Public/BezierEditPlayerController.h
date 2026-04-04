@@ -29,11 +29,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName CancelActionName = "Cancel";
 
-	UPROPERTY(EditDefaultsOnly, Category = "Input", meta=(ClampMin="0.05"))
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (ClampMin = "0.05"))
 	float DoubleClickTimeSeconds = 0.3f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")
 	bool bDebugTrace = false;
+
+	// More forgiving mouse hover against tiny control-point instances.
+	UPROPERTY(EditAnywhere, Category = "Bezier|Trace", meta = (ClampMin = "0.1"))
+	float HoverWorldRadius = 18.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Trace", meta = (ClampMin = "1.0"))
+	float HoverMaxRayDistance = 100000.0f;
 
 	// Input
 	void Input_PrimaryPressed();
@@ -44,11 +51,13 @@ protected:
 	void UpdateHover();
 	bool TraceUnderCursor(FHitResult& OutHit) const;
 	bool GetMouseRay(FVector& OutOrigin, FVector& OutDirection) const;
+	bool FindClosestControlPointOnMouseRay(AActor*& OutActor, int32& OutIndex) const;
 
 	// Drag
 	void StartDrag(const FHitResult& Hit);
 	void UpdateDrag();
 	void StopDrag();
+	void StartDragFromControlPoint(AActor* HitActor, int32 ControlPointIndex, const FVector& ImpactPoint);
 
 	bool DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const;
 
@@ -85,7 +94,6 @@ private:
 
 	UPROPERTY(Transient)
 	bool bDragging = false;
-
 
 	UPROPERTY(Transient)
 	FVector DragPlanePoint = FVector::ZeroVector;
