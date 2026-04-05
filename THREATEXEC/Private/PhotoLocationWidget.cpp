@@ -28,7 +28,8 @@ void UPhotoLocationWidget::NativeConstruct()
         bAnimationBound = true;
     }
 
-    InitializeFirstPreview();
+    BuildPreviewTextureStack();
+    RefreshPreviewStackVisuals(false);
 }
 
 void UPhotoLocationWidget::BindEntries()
@@ -61,32 +62,27 @@ void UPhotoLocationWidget::BindEntries()
     }
 }
 
-void UPhotoLocationWidget::InitializeFirstPreview()
+void UPhotoLocationWidget::BuildPreviewTextureStack()
 {
+    PreviewTextureStack.Empty();
+
     for (UPhotoLocationEntryWidget* Entry : CachedEntries)
     {
-        if (Entry && Entry->GetPreviewTexture())
+        if (!Entry)
         {
-            ShowPreview(Entry->GetPreviewTexture(), true);
-            return;
+            continue;
         }
-    }
 
-    CurrentPreviewTexture = nullptr;
-    PendingPreviewTexture = nullptr;
+        UTexture2D* Texture = Entry->GetPreviewTexture();
+        if (!Texture)
+        {
+            continue;
+        }
 
-    if (PreviewImage_Current)
-    {
-        PreviewImage_Current->SetBrush(FSlateBrush());
-        PreviewImage_Current->SetRenderOpacity(0.0f);
-        PreviewImage_Current->SetRenderTranslation(FVector2D::ZeroVector);
-    }
-
-    if (PreviewImage_Next)
-    {
-        PreviewImage_Next->SetBrush(FSlateBrush());
-        PreviewImage_Next->SetRenderOpacity(0.0f);
-        PreviewImage_Next->SetRenderTranslation(FVector2D::ZeroVector);
+        if (!PreviewTextureStack.Contains(Texture))
+        {
+            PreviewTextureStack.Add(Texture);
+        }
     }
 }
 
@@ -107,94 +103,72 @@ void UPhotoLocationWidget::SetImageTexture(UImage* ImageWidget, UTexture2D* Text
     }
 }
 
-void UPhotoLocationWidget::ShowPreview(UTexture2D* Texture, bool bInstant)
+void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
 {
-    if (!Texture)
-    {
-        return;
-    }
-
-    if (CurrentPreviewTexture == Texture && !bInstant)
-    {
-        return;
-    }
-
     if (!PreviewImage_Current || !PreviewImage_Next)
     {
         return;
     }
 
-    if (bTransitionPlaying)
-    {
-        PendingPreviewTexture = Texture;
-        return;
-    }
+    UTexture2D* FrontTexture = PreviewTextureStack.Num() > 0 ? PreviewTextureStack[0] : nullptr;
+    UTexture2D* BackTexture = PreviewTextureStack.Num() > 1 ? PreviewTextureStack[1] : nullptr;
 
-    if (bInstant || !PreviewFade)
-    {
-        SetImageTexture(PreviewImage_Current, Texture);
-        PreviewImage_Current->SetRenderOpacity(1.0f);
-        PreviewImage_Current->SetRenderTranslation(FVector2D::ZeroVector);
+    SetImageTexture(PreviewImage_Current, FrontTexture);
+    SetImageTexture(PreviewImage_Next, BackTexture);
 
-        PreviewImage_Next->SetRenderOpacity(0.0f);
-        PreviewImage_Next->SetRenderTranslation(FVector2D::ZeroVector);
-
-        CurrentPreviewTexture = Texture;
-        PendingPreviewTexture = nullptr;
-        return;
-    }
-
-    SetImageTexture(PreviewImage_Next, Texture);
-
-    PreviewImage_Current->SetRenderOpacity(1.0f);
+    PreviewImage_Current->SetRenderOpacity(FrontTexture ? 1.0f : 0.0f);
     PreviewImage_Current->SetRenderTranslation(FVector2D::ZeroVector);
 
-    PreviewImage_Next->SetRenderOpacity(0.0f);
-    PreviewImage_Next->SetRenderTranslation(FVector2D(30.0f, 0.0f));
+    const float BackOpacity = BackTexture ? 0.75f : 0.0f;
+    PreviewImage_Next->SetRenderOpacity(BackOpacity);
+    PreviewImage_Next->SetRenderTranslation(FVector2D(26.0f, 12.0f));
 
-    bTransitionPlaying = true;
-    PendingPreviewTexture = nullptr;
-    CurrentPreviewTexture = Texture;
+    if (bAnimateFrontSwap && PreviewFade)
+    {
+        StopAnimation(PreviewFade);
+        PlayAnimationForward(PreviewFade);
+    }
+}
 
-    StopAnimation(PreviewFade);
-    PlayAnimationForward(PreviewFade);
+void UPhotoLocationWidget::BringTextureToFront(UTexture2D* Texture, bool bAnimateFrontSwap)
+{
+    if (!Texture || PreviewTextureStack.Num() == 0)
+    {
+        return;
+    }
+
+    if (!PreviewTextureStack.Contains(Texture))
+    {
+        return;
+    }
+
+    if (PreviewTextureStack[0] == Texture)
+    {
+        return;
+    }
+
+    UTexture2D* PreviousFront = PreviewTextureStack[0];
+
+    PreviewTextureStack.RemoveSingle(Texture);
+    PreviewTextureStack.RemoveSingle(PreviousFront);
+
+    PreviewTextureStack.Insert(Texture, 0);
+    PreviewTextureStack.Add(PreviousFront);
+
+    RefreshPreviewStackVisuals(bAnimateFrontSwap);
 }
 
 void UPhotoLocationWidget::HandleEntryHovered(UTexture2D* Texture)
 {
-    ShowPreview(Texture, false);
+    BringTextureToFront(Texture, true);
 }
 
 void UPhotoLocationWidget::HandleEntryClicked(UTexture2D* Texture)
 {
-    ShowPreview(Texture, false);
+    BringTextureToFront(Texture, true);
 }
 
 void UPhotoLocationWidget::HandlePreviewFadeFinished()
 {
-    if (!PreviewImage_Current || !PreviewImage_Next)
-    {
-        bTransitionPlaying = false;
-        return;
-    }
-
-    PreviewImage_Current->SetBrush(PreviewImage_Next->GetBrush());
-    PreviewImage_Current->SetRenderOpacity(1.0f);
-    PreviewImage_Current->SetRenderTranslation(FVector2D::ZeroVector);
-
-    PreviewImage_Next->SetRenderOpacity(0.0f);
-    PreviewImage_Next->SetRenderTranslation(FVector2D::ZeroVector);
-
-    bTransitionPlaying = false;
-
-    if (PendingPreviewTexture && PendingPreviewTexture != CurrentPreviewTexture)
-    {
-        UTexture2D* QueuedTexture = PendingPreviewTexture;
-        PendingPreviewTexture = nullptr;
-        ShowPreview(QueuedTexture, false);
-    }
-    else
-    {
-        PendingPreviewTexture = nullptr;
-    }
+    RefreshPreviewStackVisuals(false);
 }
