@@ -8,6 +8,7 @@ class UPanelWidget;
 class UImage;
 class UTexture2D;
 class UWidgetAnimation;
+class UWidget;
 class UPhotoLocationEntryWidget;
 class UTextBlock;
 
@@ -115,6 +116,7 @@ private:
     TMap<TObjectPtr<UTexture2D>, float> TextTargetOpacities;
 
     void BindEntries();
+    void CollectEntriesRecursive(UWidget* RootWidget, TArray<UPhotoLocationEntryWidget*>& OutEntries);
     void BuildPreviewTextureStack();
     void EnsureRuntimeStackImages();
     void EnsureRuntimeStackTexts();

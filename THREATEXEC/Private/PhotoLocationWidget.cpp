@@ -54,11 +54,11 @@ void UPhotoLocationWidget::BindEntries()
         return;
     }
 
-    const int32 ChildCount = PL_LIST->GetChildrenCount();
-    for (int32 i = 0; i < ChildCount; ++i)
+    TArray<UPhotoLocationEntryWidget*> FoundEntries;
+    CollectEntriesRecursive(PL_LIST, FoundEntries);
+
+    for (UPhotoLocationEntryWidget* Entry : FoundEntries)
     {
-        UWidget* Child = PL_LIST->GetChildAt(i);
-        UPhotoLocationEntryWidget* Entry = Cast<UPhotoLocationEntryWidget>(Child);
         if (!Entry)
         {
             continue;
@@ -71,6 +71,30 @@ void UPhotoLocationWidget::BindEntries()
 
         Entry->OnEntryClicked.RemoveDynamic(this, &UPhotoLocationWidget::HandleEntryClicked);
         Entry->OnEntryClicked.AddDynamic(this, &UPhotoLocationWidget::HandleEntryClicked);
+    }
+}
+
+
+void UPhotoLocationWidget::CollectEntriesRecursive(UWidget* RootWidget, TArray<UPhotoLocationEntryWidget*>& OutEntries)
+{
+    if (!RootWidget)
+    {
+        return;
+    }
+
+    if (UPhotoLocationEntryWidget* Entry = Cast<UPhotoLocationEntryWidget>(RootWidget))
+    {
+        OutEntries.Add(Entry);
+        return;
+    }
+
+    if (UPanelWidget* Panel = Cast<UPanelWidget>(RootWidget))
+    {
+        const int32 ChildCount = Panel->GetChildrenCount();
+        for (int32 ChildIndex = 0; ChildIndex < ChildCount; ++ChildIndex)
+        {
+            CollectEntriesRecursive(Panel->GetChildAt(ChildIndex), OutEntries);
+        }
     }
 }
 
