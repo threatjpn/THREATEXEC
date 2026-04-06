@@ -189,6 +189,28 @@ void UPhotoLocationWidget::SetImageTexture(UImage* ImageWidget, UTexture2D* Text
     }
 }
 
+void UPhotoLocationWidget::ApplyPreviewTextStyle(UTextBlock* TextWidget) const
+{
+    if (!TextWidget || !bOverridePreviewTextStyle)
+    {
+        return;
+    }
+
+    TextWidget->SetFont(PreviewTextFont);
+    TextWidget->SetColorAndOpacity(FSlateColor(PreviewTextColor));
+
+    if (PreviewTextWrapAt > 0.0f)
+    {
+        TextWidget->SetAutoWrapText(false);
+        TextWidget->SetWrapTextAt(PreviewTextWrapAt);
+    }
+    else
+    {
+        TextWidget->SetAutoWrapText(true);
+        TextWidget->SetWrapTextAt(0.0f);
+    }
+}
+
 FWidgetTransform UPhotoLocationWidget::BuildTargetTransformForDepth(int32 DepthIndex) const
 {
     FWidgetTransform Transform;
@@ -267,6 +289,7 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
                     UTextBlock* StackText = StackTextPtr->Get();
                     const FText* DescriptionText = PreviewDescriptionByTexture.Find(LayerTexture);
                     StackText->SetText(DescriptionText ? *DescriptionText : FText::GetEmpty());
+                    ApplyPreviewTextStyle(StackText);
 
                     const float LayerDepth = static_cast<float>(TextureIndex);
                     const FVector2D TextTargetTranslation(LayerDepth * TextStackOffsetX, LayerDepth * TextStackOffsetY);

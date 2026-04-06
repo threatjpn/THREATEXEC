@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Fonts/SlateFontInfo.h"
 #include "PhotoLocationWidget.generated.h"
 
 class UPanelWidget;
@@ -73,6 +74,18 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack")
     float TextStackOffsetY = 0.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack")
+    bool bOverridePreviewTextStyle = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack", meta = (EditCondition = "bOverridePreviewTextStyle"))
+    FSlateFontInfo PreviewTextFont;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack", meta = (EditCondition = "bOverridePreviewTextStyle"))
+    FLinearColor PreviewTextColor = FLinearColor::White;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack", meta = (ClampMin = "0.0", EditCondition = "bOverridePreviewTextStyle"))
+    float PreviewTextWrapAt = 0.0f;
+
     UFUNCTION()
     void HandleEntryHovered(UTexture2D* Texture);
 
@@ -125,4 +138,5 @@ private:
     FWidgetTransform BuildTargetTransformForDepth(int32 DepthIndex) const;
     void BringTextureToFront(UTexture2D* Texture, bool bAnimateFrontSwap = false);
     void SetImageTexture(UImage* ImageWidget, UTexture2D* Texture) const;
+    void ApplyPreviewTextStyle(UTextBlock* TextWidget) const;
 };
