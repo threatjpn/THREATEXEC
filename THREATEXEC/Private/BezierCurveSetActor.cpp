@@ -10,6 +10,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
+#include "HAL/FileManager.h"
 #include "Components/SplineComponent.h"
 #include "THREATEXEC_FileUtils.h"
 #include "TimerManager.h"
@@ -34,6 +35,49 @@ namespace
 		}
 		return Fallback;
 	}
+
+	static FString TE_FormatTimestampDDMMYYYY_HHMMSS(const FDateTime& InTime)
+	{
+		return FString::Printf(
+			TEXT("%02d-%02d-%04d %02d:%02d:%02d"),
+			InTime.GetDay(),
+			InTime.GetMonth(),
+			InTime.GetYear(),
+			InTime.GetHour(),
+			InTime.GetMinute(),
+			InTime.GetSecond());
+	}
+
+	static FString TE_FormatFileSizeLabel(const int64 InBytes)
+	{
+		constexpr double BytesPerKilobyte = 1024.0;
+		constexpr double BytesPerMegabyte = 1024.0 * 1024.0;
+
+		if (InBytes >= static_cast<int64>(BytesPerMegabyte))
+		{
+			return FString::Printf(TEXT("%.2f MB"), static_cast<double>(InBytes) / BytesPerMegabyte);
+		}
+
+		return FString::Printf(TEXT("%.1f KB"), static_cast<double>(InBytes) / BytesPerKilobyte);
+	}
+}
+
+FString ABezierCurveSetActor::SanitizeCurveSetFileName(const FString& InFileName)
+{
+	FString Sanitized = InFileName;
+	Sanitized.TrimStartAndEndInline();
+	Sanitized = FPaths::GetCleanFilename(Sanitized);
+	if (Sanitized.IsEmpty())
+	{
+		return FString();
+	}
+
+	if (!Sanitized.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase))
+	{
+		Sanitized += TEXT(".json");
+	}
+
+	return Sanitized;
 }
 
 ABezierCurveSetActor::ABezierCurveSetActor()
@@ -548,6 +592,83 @@ void ABezierCurveSetActor::UI_SaveExportedCurveSetSnapshot()
 {
 	const FString NextFile = FindNextExportCurveSetFileName();
 	WriteCurveSetJsonToFile(NextFile, false);
+}
+
+void ABezierCurveSetActor::UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileListRowData>& OutFiles) const
+{
+	OutFiles.Reset();
+
+	const FString Directory = TE_PathUtils::ResolveSavedDir(IOPathAbsolute, TEXT("Bezier"));
+	TArray<FString> FoundFiles;
+	IFileManager::Get().FindFiles(FoundFiles, *(Directory / TEXT("*.json")), true, false);
+
+	struct FSortableFileRow
+	{
+		FBezierCurveSetFileListRowData Row;
+		FDateTime SortTime = FDateTime::MinValue();
+	};
+
+	TArray<FSortableFileRow> Rows;
+	Rows.Reserve(FoundFiles.Num());
+
+	for (const FString& FileName : FoundFiles)
+	{
+		const FString FullPath = Directory / FileName;
+		const FFileStatData StatData = IFileManager::Get().GetStatData(*FullPath);
+		if (!StatData.bIsValid || StatData.bIsDirectory)
+		{
+			continue;
+		}
+
+		const FDateTime LocalModified = StatData.ModificationTime;
+
+		FSortableFileRow SortableRow;
+		SortableRow.Row.FileName = FileName;
+		SortableRow.Row.FileSizeBytes = StatData.FileSize;
+		SortableRow.Row.FileSize = TE_FormatFileSizeLabel(StatData.FileSize);
+		SortableRow.Row.Timestamp = TE_FormatTimestampDDMMYYYY_HHMMSS(LocalModified);
+		SortableRow.SortTime = LocalModified;
+		Rows.Add(MoveTemp(SortableRow));
+	}
+
+	Rows.Sort([](const FSortableFileRow& A, const FSortableFileRow& B)
+		{
+			if (A.SortTime == B.SortTime)
+			{
+				return A.Row.FileName < B.Row.FileName;
+			}
+			return A.SortTime > B.SortTime;
+		});
+
+	OutFiles.Reserve(Rows.Num());
+	for (const FSortableFileRow& Row : Rows)
+	{
+		OutFiles.Add(Row.Row);
+	}
+}
+
+bool ABezierCurveSetActor::UI_LoadCurveSetJsonByFileName(const FString& InFileName)
+{
+	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
+	if (NormalizedFileName.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_LoadCurveSetJsonByFileName received empty file name."));
+		return false;
+	}
+
+	return ImportCurveSetJsonFromFile(NormalizedFileName);
+}
+
+bool ABezierCurveSetActor::UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup)
+{
+	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
+	if (NormalizedFileName.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_SaveCurveSetJsonByFileName received empty file name."));
+		return false;
+	}
+
+	return WriteCurveSetJsonToFile(NormalizedFileName, bWriteBackup);
 }
 
 void ABezierCurveSetActor::UI_ClearSpawned()

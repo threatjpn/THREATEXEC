@@ -34,8 +34,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location", meta = (ExposeOnSpawn = "true"))
     TObjectPtr<UTexture2D> PressedButtonTexture = nullptr;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location", meta = (ExposeOnSpawn = "true"))
+    FText PreviewDescription;
+
     UFUNCTION(BlueprintCallable, Category = "Photo Location")
     UTexture2D* GetPreviewTexture() const { return PreviewTexture; }
+
+    UFUNCTION(BlueprintCallable, Category = "Photo Location")
+    FText GetPreviewDescription() const { return PreviewDescription; }
 
 protected:
     virtual void NativeOnInitialized() override;
