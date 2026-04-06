@@ -124,13 +124,16 @@ Use the focused-only functions from `UBezierEditSubsystem` to drive UI buttons:
 ### JSON format
 ```
 {
-  "version": 1,
+  "version": 2,
+  "point_space": "local",
   "scale": 100.0,
   "curves": [
     {
       "name": "CurveName",
       "space": "3D",
       "closed": false,
+      "sampling_mode": "parametric",
+      "sample_count": 64,
       "control": [[x,y,z], [x,y,z], ...]
     }
   ]

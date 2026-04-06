@@ -36,6 +36,60 @@ struct FBezierCurveSetFileListRowData
 	int64 FileSizeBytes = 0;
 };
 
+USTRUCT(BlueprintType)
+struct FBezierCurveSetFileListRowData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString FileName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString Timestamp;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString FileSize;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	int64 FileSizeBytes = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FBezierCurveSetFileRow
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString FileName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString Timestamp;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString FileSize;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	int64 FileSizeBytes = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FBezierCurveSetFileRow
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString FileName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString Timestamp;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString FileSize;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	int64 FileSizeBytes = 0;
+};
+
 UCLASS()
 class THREATEXEC_API ABezierCurveSetActor : public AActor
 {
@@ -140,6 +194,33 @@ public:
 	bool UI_LoadCurveSetJsonByFileName(const FString& InFileName);
 
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu", meta = (DeprecatedFunction, DeprecationMessage = "Use UI_FileMenuSaveCurveSetJsonByFileName"))
+	bool UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup = false);
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	void UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileListRowData>& OutFiles) const;
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	bool UI_LoadCurveSetJsonByFileName(const FString& InFileName);
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	bool UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup = false);
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	void UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileRow>& OutFiles) const;
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	bool UI_LoadCurveSetJsonByFileName(const FString& InFileName);
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	bool UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup = false);
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	void UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileRow>& OutFiles) const;
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	bool UI_LoadCurveSetJsonByFileName(const FString& InFileName);
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
 	bool UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup = false);
 
 	UFUNCTION(CallInEditor, Category = "BezierSet|Manage")
