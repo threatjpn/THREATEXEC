@@ -6,6 +6,7 @@
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/Widget.h"
+#include "Blueprint/WidgetTree.h"
 #include "Engine/Texture2D.h"
 
 void UPhotoLocationWidget::NativeOnInitialized()
@@ -28,7 +29,18 @@ void UPhotoLocationWidget::NativeConstruct()
         bAnimationBound = true;
     }
 
-    InitializeFirstPreview();
+    BuildPreviewTextureStack();
+    RefreshPreviewStackVisuals(false);
+}
+
+void UPhotoLocationWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+    Super::NativeTick(MyGeometry, InDeltaTime);
+
+    if (bStackAnimationPlaying)
+    {
+        AnimateStackTowardTargets(InDeltaTime);
+    }
 }
 
 void UPhotoLocationWidget::BindEntries()
@@ -61,32 +73,51 @@ void UPhotoLocationWidget::BindEntries()
     }
 }
 
-void UPhotoLocationWidget::InitializeFirstPreview()
+void UPhotoLocationWidget::BuildPreviewTextureStack()
 {
+    PreviewTextureStack.Empty();
+
     for (UPhotoLocationEntryWidget* Entry : CachedEntries)
     {
-        if (Entry && Entry->GetPreviewTexture())
+        if (!Entry)
         {
-            ShowPreview(Entry->GetPreviewTexture(), true);
-            return;
+            continue;
+        }
+
+        UTexture2D* Texture = Entry->GetPreviewTexture();
+        if (!Texture)
+        {
+            continue;
+        }
+
+        if (!PreviewTextureStack.Contains(Texture))
+        {
+            PreviewTextureStack.Add(Texture);
         }
     }
+}
 
-    CurrentPreviewTexture = nullptr;
-    PendingPreviewTexture = nullptr;
-
-    if (PreviewImage_Current)
+void UPhotoLocationWidget::EnsureRuntimeStackImages()
+{
+    if (!PreviewStackContainer || !WidgetTree)
     {
-        PreviewImage_Current->SetBrush(FSlateBrush());
-        PreviewImage_Current->SetRenderOpacity(0.0f);
-        PreviewImage_Current->SetRenderTranslation(FVector2D::ZeroVector);
+        return;
     }
 
-    if (PreviewImage_Next)
+    for (UTexture2D* Texture : PreviewTextureStack)
     {
-        PreviewImage_Next->SetBrush(FSlateBrush());
-        PreviewImage_Next->SetRenderOpacity(0.0f);
-        PreviewImage_Next->SetRenderTranslation(FVector2D::ZeroVector);
+        if (!Texture || RuntimeStackImages.Contains(Texture))
+        {
+            continue;
+        }
+
+        UImage* NewStackImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+        if (!NewStackImage)
+        {
+            continue;
+        }
+
+        RuntimeStackImages.Add(Texture, NewStackImage);
     }
 }
 
@@ -107,94 +138,219 @@ void UPhotoLocationWidget::SetImageTexture(UImage* ImageWidget, UTexture2D* Text
     }
 }
 
-void UPhotoLocationWidget::ShowPreview(UTexture2D* Texture, bool bInstant)
+FWidgetTransform UPhotoLocationWidget::BuildTargetTransformForDepth(int32 DepthIndex) const
 {
-    if (!Texture)
+    FWidgetTransform Transform;
+
+    const float Depth = static_cast<float>(DepthIndex);
+    Transform.Translation = FVector2D(Depth * StackOffsetX, Depth * StackOffsetY);
+
+    Transform.Angle = 0.0f;
+
+    const float DepthScale = FMath::Max(0.8f, 1.0f - (Depth * DepthScaleFalloff));
+    Transform.Scale = FVector2D(DepthScale, DepthScale);
+
+    if (DepthIndex == 0)
     {
-        return;
+        Transform.Scale = FVector2D(FrontCardLiftScale, FrontCardLiftScale);
     }
 
-    if (CurrentPreviewTexture == Texture && !bInstant)
-    {
-        return;
-    }
+    return Transform;
+}
 
-    if (!PreviewImage_Current || !PreviewImage_Next)
+void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
+{
+    if (PreviewStackContainer)
     {
-        return;
-    }
+        EnsureRuntimeStackImages();
 
-    if (bTransitionPlaying)
-    {
-        PendingPreviewTexture = Texture;
-        return;
-    }
+        PreviewStackContainer->ClearChildren();
 
-    if (bInstant || !PreviewFade)
+        StackStartTransforms.Empty();
+        StackTargetTransforms.Empty();
+        StackStartOpacities.Empty();
+        StackTargetOpacities.Empty();
+
+        for (int32 TextureIndex = PreviewTextureStack.Num() - 1; TextureIndex >= 0; --TextureIndex)
+        {
+            UTexture2D* LayerTexture = PreviewTextureStack[TextureIndex];
+            TObjectPtr<UImage>* StackImagePtr = RuntimeStackImages.Find(LayerTexture);
+            if (!StackImagePtr || !(*StackImagePtr))
+            {
+                continue;
+            }
+
+            UImage* StackImage = StackImagePtr->Get();
+            SetImageTexture(StackImage, LayerTexture);
+
+            const float LayerDepth = static_cast<float>(TextureIndex);
+            const float TargetOpacity = FMath::Max(MinStackOpacity, 1.0f - (LayerDepth * StackOpacityFalloff));
+            const FWidgetTransform TargetTransform = BuildTargetTransformForDepth(TextureIndex);
+
+            StackStartTransforms.Add(LayerTexture, StackImage->GetRenderTransform());
+            StackStartOpacities.Add(LayerTexture, StackImage->GetRenderOpacity());
+            StackTargetTransforms.Add(LayerTexture, TargetTransform);
+            StackTargetOpacities.Add(LayerTexture, TargetOpacity);
+
+            if (!bAnimateFrontSwap)
+            {
+                StackImage->SetRenderTransform(TargetTransform);
+                StackImage->SetRenderOpacity(TargetOpacity);
+            }
+
+            PreviewStackContainer->AddChild(StackImage);
+        }
+
+        for (const TPair<TObjectPtr<UTexture2D>, TObjectPtr<UImage>>& Pair : RuntimeStackImages)
+        {
+            UTexture2D* Texture = Pair.Key;
+            UImage* StackImage = Pair.Value;
+            if (!Texture || !StackImage)
+            {
+                continue;
+            }
+
+            if (!PreviewTextureStack.Contains(Texture))
+            {
+                StackImage->SetRenderOpacity(0.0f);
+            }
+        }
+
+        StackShuffleProgress = bAnimateFrontSwap ? 0.0f : 1.0f;
+        bStackAnimationPlaying = bAnimateFrontSwap;
+    }
+    else
     {
-        SetImageTexture(PreviewImage_Current, Texture);
-        PreviewImage_Current->SetRenderOpacity(1.0f);
+        if (!PreviewImage_Current || !PreviewImage_Next)
+        {
+            return;
+        }
+
+        UTexture2D* FrontTexture = PreviewTextureStack.Num() > 0 ? PreviewTextureStack[0] : nullptr;
+        UTexture2D* BackTexture = PreviewTextureStack.Num() > 1 ? PreviewTextureStack[1] : nullptr;
+
+        SetImageTexture(PreviewImage_Current, FrontTexture);
+        SetImageTexture(PreviewImage_Next, BackTexture);
+
+        PreviewImage_Current->SetRenderOpacity(FrontTexture ? 1.0f : 0.0f);
         PreviewImage_Current->SetRenderTranslation(FVector2D::ZeroVector);
 
-        PreviewImage_Next->SetRenderOpacity(0.0f);
-        PreviewImage_Next->SetRenderTranslation(FVector2D::ZeroVector);
+        const float BackOpacity = BackTexture ? 0.75f : 0.0f;
+        PreviewImage_Next->SetRenderOpacity(BackOpacity);
+        PreviewImage_Next->SetRenderTranslation(FVector2D(26.0f, 12.0f));
+    }
 
-        CurrentPreviewTexture = Texture;
-        PendingPreviewTexture = nullptr;
+    if (bAnimateFrontSwap && PreviewFade)
+    {
+        StopAnimation(PreviewFade);
+        PlayAnimationForward(PreviewFade);
+    }
+}
+
+void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
+{
+    if (StackShuffleDuration <= KINDA_SMALL_NUMBER)
+    {
+        StackShuffleProgress = 1.0f;
+    }
+    else
+    {
+        StackShuffleProgress = FMath::Clamp(StackShuffleProgress + (InDeltaTime / StackShuffleDuration), 0.0f, 1.0f);
+    }
+
+    const float EasedAlpha = FMath::InterpEaseInOut(0.0f, 1.0f, StackShuffleProgress, 2.4f);
+    const float FrontShufflePulse = FMath::Sin(EasedAlpha * PI);
+
+    for (UTexture2D* Texture : PreviewTextureStack)
+    {
+        TObjectPtr<UImage>* StackImagePtr = RuntimeStackImages.Find(Texture);
+        const FWidgetTransform* StartTransform = StackStartTransforms.Find(Texture);
+        const FWidgetTransform* TargetTransform = StackTargetTransforms.Find(Texture);
+        const float* StartOpacity = StackStartOpacities.Find(Texture);
+        const float* TargetOpacity = StackTargetOpacities.Find(Texture);
+
+        if (!StackImagePtr || !(*StackImagePtr) || !StartTransform || !TargetTransform || !StartOpacity || !TargetOpacity)
+        {
+            continue;
+        }
+
+        UImage* StackImage = StackImagePtr->Get();
+
+        FWidgetTransform InterpolatedTransform;
+        InterpolatedTransform.Translation = FMath::Lerp(StartTransform->Translation, TargetTransform->Translation, EasedAlpha);
+        InterpolatedTransform.Scale = FMath::Lerp(StartTransform->Scale, TargetTransform->Scale, EasedAlpha);
+        InterpolatedTransform.Shear = FMath::Lerp(StartTransform->Shear, TargetTransform->Shear, EasedAlpha);
+        InterpolatedTransform.Angle = FMath::Lerp(StartTransform->Angle, TargetTransform->Angle, EasedAlpha);
+
+        if (Texture == LastPromotedTexture)
+        {
+            // Adds a subtle shuffle arc for the promoted card.
+            InterpolatedTransform.Translation.X -= FrontShufflePulse * 7.0f;
+            InterpolatedTransform.Translation.Y -= FrontShufflePulse * 3.0f;
+        }
+
+        StackImage->SetRenderTransform(InterpolatedTransform);
+        StackImage->SetRenderOpacity(FMath::Lerp(*StartOpacity, *TargetOpacity, EasedAlpha));
+    }
+
+    if (StackShuffleProgress >= 1.0f)
+    {
+        bStackAnimationPlaying = false;
+        for (UTexture2D* Texture : PreviewTextureStack)
+        {
+            TObjectPtr<UImage>* StackImagePtr = RuntimeStackImages.Find(Texture);
+            const FWidgetTransform* TargetTransform = StackTargetTransforms.Find(Texture);
+            const float* TargetOpacity = StackTargetOpacities.Find(Texture);
+
+            if (StackImagePtr && *StackImagePtr && TargetTransform && TargetOpacity)
+            {
+                StackImagePtr->Get()->SetRenderTransform(*TargetTransform);
+                StackImagePtr->Get()->SetRenderOpacity(*TargetOpacity);
+            }
+        }
+    }
+}
+
+void UPhotoLocationWidget::BringTextureToFront(UTexture2D* Texture, bool bAnimateFrontSwap)
+{
+    if (!Texture || PreviewTextureStack.Num() == 0)
+    {
         return;
     }
 
-    SetImageTexture(PreviewImage_Next, Texture);
+    if (!PreviewTextureStack.Contains(Texture))
+    {
+        return;
+    }
 
-    PreviewImage_Current->SetRenderOpacity(1.0f);
-    PreviewImage_Current->SetRenderTranslation(FVector2D::ZeroVector);
+    if (PreviewTextureStack[0] == Texture)
+    {
+        return;
+    }
 
-    PreviewImage_Next->SetRenderOpacity(0.0f);
-    PreviewImage_Next->SetRenderTranslation(FVector2D(30.0f, 0.0f));
+    UTexture2D* PreviousFront = PreviewTextureStack[0];
 
-    bTransitionPlaying = true;
-    PendingPreviewTexture = nullptr;
-    CurrentPreviewTexture = Texture;
+    PreviewTextureStack.RemoveSingle(Texture);
+    PreviewTextureStack.RemoveSingle(PreviousFront);
 
-    StopAnimation(PreviewFade);
-    PlayAnimationForward(PreviewFade);
+    PreviewTextureStack.Insert(Texture, 0);
+    PreviewTextureStack.Add(PreviousFront);
+
+    LastPromotedTexture = Texture;
+    RefreshPreviewStackVisuals(bAnimateFrontSwap);
 }
 
 void UPhotoLocationWidget::HandleEntryHovered(UTexture2D* Texture)
 {
-    ShowPreview(Texture, false);
+    BringTextureToFront(Texture, true);
 }
 
 void UPhotoLocationWidget::HandleEntryClicked(UTexture2D* Texture)
 {
-    ShowPreview(Texture, false);
+    BringTextureToFront(Texture, true);
 }
 
 void UPhotoLocationWidget::HandlePreviewFadeFinished()
 {
-    if (!PreviewImage_Current || !PreviewImage_Next)
-    {
-        bTransitionPlaying = false;
-        return;
-    }
-
-    PreviewImage_Current->SetBrush(PreviewImage_Next->GetBrush());
-    PreviewImage_Current->SetRenderOpacity(1.0f);
-    PreviewImage_Current->SetRenderTranslation(FVector2D::ZeroVector);
-
-    PreviewImage_Next->SetRenderOpacity(0.0f);
-    PreviewImage_Next->SetRenderTranslation(FVector2D::ZeroVector);
-
-    bTransitionPlaying = false;
-
-    if (PendingPreviewTexture && PendingPreviewTexture != CurrentPreviewTexture)
-    {
-        UTexture2D* QueuedTexture = PendingPreviewTexture;
-        PendingPreviewTexture = nullptr;
-        ShowPreview(QueuedTexture, false);
-    }
-    else
-    {
-        PendingPreviewTexture = nullptr;
-    }
+    RefreshPreviewStackVisuals(false);
 }
