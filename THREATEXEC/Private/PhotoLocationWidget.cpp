@@ -33,6 +33,16 @@ void UPhotoLocationWidget::NativeConstruct()
     RefreshPreviewStackVisuals(false);
 }
 
+void UPhotoLocationWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+    Super::NativeTick(MyGeometry, InDeltaTime);
+
+    if (bStackAnimationPlaying)
+    {
+        AnimateStackTowardTargets(InDeltaTime);
+    }
+}
+
 void UPhotoLocationWidget::BindEntries()
 {
     CachedEntries.Empty();
@@ -94,15 +104,20 @@ void UPhotoLocationWidget::EnsureRuntimeStackImages()
         return;
     }
 
-    while (RuntimeStackImages.Num() < PreviewTextureStack.Num())
+    for (UTexture2D* Texture : PreviewTextureStack)
     {
+        if (!Texture || RuntimeStackImages.Contains(Texture))
+        {
+            continue;
+        }
+
         UImage* NewStackImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
         if (!NewStackImage)
         {
-            break;
+            continue;
         }
 
-        RuntimeStackImages.Add(NewStackImage);
+        RuntimeStackImages.Add(Texture, NewStackImage);
     }
 }
 
@@ -128,32 +143,58 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
     if (PreviewStackContainer)
     {
         EnsureRuntimeStackImages();
+
+        // Rebuild child order so the visual stack is back-to-front.
         PreviewStackContainer->ClearChildren();
 
-        constexpr float StackOffsetX = 18.0f;
-        constexpr float StackOffsetY = 8.0f;
-        constexpr float StackOpacityFalloff = 0.13f;
-        constexpr float MinStackOpacity = 0.2f;
+        StackTargetTranslations.Empty();
+        StackTargetOpacities.Empty();
 
         for (int32 TextureIndex = PreviewTextureStack.Num() - 1; TextureIndex >= 0; --TextureIndex)
         {
-            if (!RuntimeStackImages.IsValidIndex(TextureIndex))
+            UTexture2D* LayerTexture = PreviewTextureStack[TextureIndex];
+            UImage* const* StackImagePtr = RuntimeStackImages.Find(LayerTexture);
+            if (!StackImagePtr || !(*StackImagePtr))
             {
                 continue;
             }
 
-            UImage* StackImage = RuntimeStackImages[TextureIndex];
-            UTexture2D* LayerTexture = PreviewTextureStack[TextureIndex];
+            UImage* StackImage = *StackImagePtr;
             SetImageTexture(StackImage, LayerTexture);
 
             const float LayerDepth = static_cast<float>(TextureIndex);
-            const float LayerOpacity = FMath::Max(MinStackOpacity, 1.0f - (LayerDepth * StackOpacityFalloff));
+            const FVector2D TargetTranslation(LayerDepth * StackOffsetX, LayerDepth * StackOffsetY);
+            const float TargetOpacity = FMath::Max(MinStackOpacity, 1.0f - (LayerDepth * StackOpacityFalloff));
 
-            StackImage->SetRenderOpacity(LayerOpacity);
-            StackImage->SetRenderTranslation(FVector2D(LayerDepth * StackOffsetX, LayerDepth * StackOffsetY));
+            StackTargetTranslations.Add(LayerTexture, TargetTranslation);
+            StackTargetOpacities.Add(LayerTexture, TargetOpacity);
+
+            if (!bAnimateFrontSwap)
+            {
+                StackImage->SetRenderTranslation(TargetTranslation);
+                StackImage->SetRenderOpacity(TargetOpacity);
+            }
 
             PreviewStackContainer->AddChild(StackImage);
         }
+
+        // Hide any runtime image no longer represented in the stack.
+        for (const TPair<TObjectPtr<UTexture2D>, TObjectPtr<UImage>>& Pair : RuntimeStackImages)
+        {
+            UTexture2D* Texture = Pair.Key;
+            UImage* StackImage = Pair.Value;
+            if (!Texture || !StackImage)
+            {
+                continue;
+            }
+
+            if (!PreviewTextureStack.Contains(Texture))
+            {
+                StackImage->SetRenderOpacity(0.0f);
+            }
+        }
+
+        bStackAnimationPlaying = bAnimateFrontSwap;
     }
     else
     {
@@ -181,6 +222,49 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
         StopAnimation(PreviewFade);
         PlayAnimationForward(PreviewFade);
     }
+}
+
+void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
+{
+    bool bAnyStillMoving = false;
+
+    for (UTexture2D* Texture : PreviewTextureStack)
+    {
+        UImage* const* StackImagePtr = RuntimeStackImages.Find(Texture);
+        const FVector2D* TargetTranslation = StackTargetTranslations.Find(Texture);
+        const float* TargetOpacity = StackTargetOpacities.Find(Texture);
+
+        if (!StackImagePtr || !(*StackImagePtr) || !TargetTranslation || !TargetOpacity)
+        {
+            continue;
+        }
+
+        UImage* StackImage = *StackImagePtr;
+
+        const FWidgetTransform CurrentTransform = StackImage->GetRenderTransform();
+        const FVector2D CurrentTranslation = CurrentTransform.Translation;
+        const FVector2D NewTranslation = FMath::Vector2DInterpTo(
+            CurrentTranslation,
+            *TargetTranslation,
+            InDeltaTime,
+            StackAnimationSpeed);
+
+        const float CurrentOpacity = StackImage->GetRenderOpacity();
+        const float NewOpacity = FMath::FInterpTo(CurrentOpacity, *TargetOpacity, InDeltaTime, StackAnimationSpeed);
+
+        FWidgetTransform UpdatedTransform = CurrentTransform;
+        UpdatedTransform.Translation = NewTranslation;
+
+        StackImage->SetRenderTransform(UpdatedTransform);
+        StackImage->SetRenderOpacity(NewOpacity);
+
+        if (!NewTranslation.Equals(*TargetTranslation, 0.25f) || !FMath::IsNearlyEqual(NewOpacity, *TargetOpacity, 0.01f))
+        {
+            bAnyStillMoving = true;
+        }
+    }
+
+    bStackAnimationPlaying = bAnyStillMoving;
 }
 
 void UPhotoLocationWidget::BringTextureToFront(UTexture2D* Texture, bool bAnimateFrontSwap)
