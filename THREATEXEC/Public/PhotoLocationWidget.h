@@ -28,6 +28,9 @@ protected:
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UImage> PreviewImage_Next;
 
+    UPROPERTY(meta = (BindWidgetOptional))
+    TObjectPtr<UPanelWidget> PreviewStackContainer;
+
     UPROPERTY(Transient, meta = (BindWidgetAnimOptional))
     TObjectPtr<UWidgetAnimation> PreviewFade;
 
@@ -41,20 +44,21 @@ protected:
     void HandlePreviewFadeFinished();
 
 private:
-    bool bTransitionPlaying = false;
     bool bAnimationBound = false;
 
     UPROPERTY()
-    TObjectPtr<UTexture2D> CurrentPreviewTexture = nullptr;
-
-    UPROPERTY()
-    TObjectPtr<UTexture2D> PendingPreviewTexture = nullptr;
+    TArray<TObjectPtr<UTexture2D>> PreviewTextureStack;
 
     UPROPERTY()
     TArray<TObjectPtr<UPhotoLocationEntryWidget>> CachedEntries;
 
+    UPROPERTY(Transient)
+    TArray<TObjectPtr<UImage>> RuntimeStackImages;
+
     void BindEntries();
-    void InitializeFirstPreview();
-    void ShowPreview(UTexture2D* Texture, bool bInstant = false);
+    void BuildPreviewTextureStack();
+    void EnsureRuntimeStackImages();
+    void RefreshPreviewStackVisuals(bool bAnimateFrontSwap = false);
+    void BringTextureToFront(UTexture2D* Texture, bool bAnimateFrontSwap = false);
     void SetImageTexture(UImage* ImageWidget, UTexture2D* Texture) const;
 };
