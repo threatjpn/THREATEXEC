@@ -124,13 +124,16 @@ Use the focused-only functions from `UBezierEditSubsystem` to drive UI buttons:
 ### JSON format
 ```
 {
-  "version": 1,
+  "version": 2,
+  "point_space": "local",
   "scale": 100.0,
   "curves": [
     {
       "name": "CurveName",
       "space": "3D",
       "closed": false,
+      "sampling_mode": "parametric",
+      "sample_count": 64,
       "control": [[x,y,z], [x,y,z], ...]
     }
   ]
@@ -148,6 +151,85 @@ Place an `ABezierCurveSetActor` in the level:
 * Call:
   * `UI_ImportCurveSetJson()` to load and spawn curves.
   * `UI_ExportCurveSetJson()` to save all curves to one file.
+  * `UI_LoadDemoCurveSetJson()` to load `DemoCurveSetFile`.
+  * `UI_SaveExportedCurveSetSnapshot()` to save numbered snapshots (`exported_curve_set_N.json`).
+  * `UI_ListCurveSetJsonFiles()` to enumerate `.json` files in the Bezier folder for UMG list widgets.
+  * `UI_ImportCurveSetJsonByFileName(FileName)` to import a user-selected filename from that list.
+  * `UI_SaveCurveSetJsonAs(FileName)` to save using a user-provided name in that same folder.
+
+---
+
+## UMG implementation guide: scrollable load list + save-as textbox
+
+This is the recommended Blueprint graph flow to build the widget you described.
+
+### 1) Widget variables
+Create these variables in your UMG widget (for example `WBP_BezierFileMenu`):
+* `CurveSetActor` (`BezierCurveSetActor` object reference)
+* `FileNames` (`String Array`)
+* `SelectedFileName` (`String`)
+* `ListView_Files` (your `ListView`/`ScrollBox` reference)
+* `EditableText_SaveName` (text entry for save name)
+
+### 2) Resolve `CurveSetActor` at runtime
+In `Event Construct` (or when opening the menu):
+1. `Get All Actors Of Class` (`BezierCurveSetActor`)
+2. `Get` index 0
+3. `Set CurveSetActor`
+4. Call `RefreshFileList` (custom event)
+
+> Tip: if you have multiple set actors, store a specific reference on your HUD/Controller and pass it into the widget instead of `GetAllActorsOfClass`.
+
+### 3) Build `RefreshFileList` custom event
+`RefreshFileList` graph:
+1. Branch: `IsValid(CurveSetActor)`
+2. `CurveSetActor -> UI_ListCurveSetJsonFiles(true)`
+3. Set `FileNames`
+4. Clear your list widget (`Clear List Items` on `ListView` or clear children if using `ScrollBox`)
+5. Loop through `FileNames` and add one row/button per filename
+
+For each row/button, bind:
+* label text = filename
+* `OnClicked` => set `SelectedFileName` and optionally highlight selected row
+
+### 4) Load button graph
+`OnClicked(LoadButton)`:
+1. Branch: `IsValid(CurveSetActor)`
+2. Branch: `SelectedFileName` is not empty
+3. `CurveSetActor -> UI_ImportCurveSetJsonByFileName(SelectedFileName)` (returns bool)
+4. If `true`: optionally close menu / show success text
+5. If `false`: show error text (“Couldn’t import file”)
+
+### 5) Save button graph
+`OnClicked(SaveButton)`:
+1. Read text from `EditableText_SaveName`
+2. Convert to string
+3. Branch: `IsValid(CurveSetActor)`
+4. `CurveSetActor -> UI_SaveCurveSetJsonAs(SaveNameString, false)` (returns bool)
+5. If `true`: call `RefreshFileList` so new file appears in the scroll list
+6. If `false`: show error text (“Invalid save name” or “Save failed”)
+
+### 6) Optional quality-of-life graph hooks
+* `OnTextCommitted` for save name field:
+  * if commit method is Enter, trigger save.
+* Default save name:
+  * on open, prefill text box with `curve_set` or timestamp-based string.
+* Sort toggle:
+  * pass `false` to `UI_ListCurveSetJsonFiles(false)` for reverse order (newest by naming convention first if your names encode timestamps/indexes).
+
+### 7) Path behavior (important)
+The file APIs resolve relative paths under `Project/Saved/<IOPathAbsolute>`, with `Bezier` as default if empty.
+So by default, your widget is browsing and writing in:
+* `Project/Saved/Bezier`
+
+### 8) Filename behavior (important)
+`UI_SaveCurveSetJsonAs` / `UI_ImportCurveSetJsonByFileName` sanitize input:
+* trims whitespace
+* strips directory parts
+* forces `.json` extension if missing
+* removes invalid filename characters
+
+So a user can type `MyTrack01` and it saves as `MyTrack01.json` in the Bezier folder.
 
 ### Backup behavior
 * Set `bWriteBackupOnExport = true`.
