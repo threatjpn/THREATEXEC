@@ -11,18 +11,19 @@
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
 #include "HAL/FileManager.h"
-#include "Components/SplineComponent.h"
 #include "THREATEXEC_FileUtils.h"
 #include "TimerManager.h"
 #include "EngineUtils.h"
 
 namespace
 {
+	/** Converts a sampling mode enum into a stable JSON string. */
 	static FString TE_SamplingModeToString(EBezierSamplingMode Mode)
 	{
 		return Mode == EBezierSamplingMode::ArcLength ? TEXT("arc_length") : TEXT("parametric");
 	}
 
+	/** Converts a JSON sampling-mode string back into an enum. */
 	static EBezierSamplingMode TE_SamplingModeFromString(const FString& Value, EBezierSamplingMode Fallback)
 	{
 		if (Value.Equals(TEXT("arc_length"), ESearchCase::IgnoreCase) || Value.Equals(TEXT("arclength"), ESearchCase::IgnoreCase))
@@ -36,6 +37,7 @@ namespace
 		return Fallback;
 	}
 
+	/** Formats a timestamp for the file menu list. */
 	static FString TE_FormatTimestampDDMMYYYY_HHMMSS(const FDateTime& InTime)
 	{
 		return FString::Printf(
@@ -48,6 +50,7 @@ namespace
 			InTime.GetSecond());
 	}
 
+	/** Formats file size as a small readable label for the UI. */
 	static FString TE_FormatFileSizeLabel(const int64 InBytes)
 	{
 		constexpr double BytesPerKilobyte = 1024.0;
@@ -62,27 +65,46 @@ namespace
 	}
 }
 
+/** Normalises a user-entered file name and ensures the result is a valid JSON file name. */
 FString ABezierCurveSetActor::SanitizeCurveSetFileName(const FString& InFileName)
 {
-	FString Sanitized = InFileName;
-	Sanitized.TrimStartAndEndInline();
-	Sanitized = FPaths::GetCleanFilename(Sanitized);
-	if (Sanitized.IsEmpty())
+	FString FileName = InFileName;
+	FileName.TrimStartAndEndInline();
+
+	if (FileName.IsEmpty())
 	{
 		return FString();
 	}
 
-	if (!Sanitized.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase))
+	FileName = FPaths::GetCleanFilename(FileName);
+	if (FileName.IsEmpty())
 	{
-		Sanitized += TEXT(".json");
+		return FString();
 	}
 
-	return Sanitized;
+	if (!FileName.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase))
+	{
+		FileName += TEXT(".json");
+	}
+
+	FString BaseName = FPaths::GetBaseFilename(FileName, false);
+	FString Extension = FPaths::GetExtension(FileName, false);
+
+	FPaths::MakeValidFileName(BaseName);
+	FPaths::MakeValidFileName(Extension);
+
+	if (BaseName.IsEmpty())
+	{
+		return FString();
+	}
+
+	return Extension.IsEmpty() ? BaseName : FString::Printf(TEXT("%s.%s"), *BaseName, *Extension);
 }
 
 ABezierCurveSetActor::ABezierCurveSetActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
 	if (GridSizeCycleValues.Num() == 0)
 	{
 		GridSizeCycleValues = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
@@ -116,17 +138,23 @@ void ABezierCurveSetActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ABezierCurveSetActor::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	if (!Curve2DClass) Curve2DClass = ABezierCurve2DActor::StaticClass();
-	if (!Curve3DClass) Curve3DClass = ABezierCurve3DActor::StaticClass();
+
+	if (!Curve2DClass)
+	{
+		Curve2DClass = ABezierCurve2DActor::StaticClass();
+	}
+
+	if (!Curve3DClass)
+	{
+		Curve3DClass = ABezierCurve3DActor::StaticClass();
+	}
+
 	RefreshSpawnedFromWorld();
 }
 
+/** Resolves a curve-set file name according to the toolkit's Saved-folder IO rules. */
 FString ABezierCurveSetActor::MakeAbs(const FString& FileName) const
 {
-	// Match the rest of the toolkit IO behavior:
-	// - empty path resolves under Saved/Bezier
-	// - relative paths resolve under Saved/<path>
-	// - absolute paths are used as-is
 	return TE_PathUtils::ResolveFile(IOPathAbsolute, FileName, TEXT("Bezier"));
 }
 
@@ -140,43 +168,65 @@ bool ABezierCurveSetActor::WriteText(const FString& AbsPath, const FString& In) 
 	return FFileHelper::SaveStringToFile(In, *AbsPath);
 }
 
+/** Returns true if any managed curve is currently in runtime edit mode. */
 bool ABezierCurveSetActor::IsAnyEditModeActive() const
 {
 	for (AActor* A : Spawned)
 	{
 		if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
 		{
-			if (A3->UI_GetEditMode()) return true;
+			if (A3->UI_GetEditMode())
+			{
+				return true;
+			}
 		}
 		else if (const ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A))
 		{
-			if (A2->UI_GetEditMode()) return true;
+			if (A2->UI_GetEditMode())
+			{
+				return true;
+			}
 		}
 	}
 	return false;
 }
 
+/** Auto-save timer callback. */
 void ABezierCurveSetActor::HandleAutoSave()
 {
-	if (bAutoSaveOnlyWhenEditing && !IsAnyEditModeActive()) return;
+	if (bAutoSaveOnlyWhenEditing && !IsAnyEditModeActive())
+	{
+		return;
+	}
+
 	UI_ExportCurveSetJson();
 }
 
+/** Destroys all currently tracked spawned curve actors. */
 void ABezierCurveSetActor::ClearSpawned()
 {
 	for (AActor* A : Spawned)
 	{
-		if (IsValid(A)) A->Destroy();
+		if (IsValid(A))
+		{
+			A->Destroy();
+		}
 	}
+
 	Spawned.Reset();
 }
 
+/** Rebuilds the Spawned list by scanning the world for 2D/3D curve actors owned by this actor. */
 void ABezierCurveSetActor::RefreshSpawnedFromWorld()
 {
 	UWorld* World = GetWorld();
-	if (!World) return;
+	if (!World)
+	{
+		return;
+	}
 
 	Spawned.Reset();
+
 	for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
 	{
 		if (It->GetOwner() == this)
@@ -184,6 +234,7 @@ void ABezierCurveSetActor::RefreshSpawnedFromWorld()
 			Spawned.Add(*It);
 		}
 	}
+
 	for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
 	{
 		if (It->GetOwner() == this)
@@ -193,6 +244,7 @@ void ABezierCurveSetActor::RefreshSpawnedFromWorld()
 	}
 }
 
+/** Serialises the current set of managed curves into the standard curve_set JSON structure. */
 TSharedRef<FJsonObject> ABezierCurveSetActor::BuildCurveSetJson() const
 {
 	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
@@ -266,7 +318,6 @@ TSharedRef<FJsonObject> ABezierCurveSetActor::BuildCurveSetJson() const
 		}
 	}
 
-	// Unreal-authored saves are exported in local control space.
 	Root->SetNumberField(TEXT("version"), CurrentVersion);
 	Root->SetStringField(TEXT("point_space"), TEXT("local"));
 	Root->SetNumberField(TEXT("scale"), ScaleValue);
@@ -275,6 +326,7 @@ TSharedRef<FJsonObject> ABezierCurveSetActor::BuildCurveSetJson() const
 	return Root;
 }
 
+/** Writes the current curve set to disk, optionally writing a backup of the previous file contents first. */
 bool ABezierCurveSetActor::WriteCurveSetJsonToFile(const FString& FileName, bool bWriteBackup) const
 {
 	const FString AbsPath = MakeAbs(FileName);
@@ -284,6 +336,7 @@ bool ABezierCurveSetActor::WriteCurveSetJsonToFile(const FString& FileName, bool
 	{
 		const FString BackupPath = MakeAbs(BackupCurveSetFile);
 		FString Existing;
+
 		if (ReadText(AbsPath, Existing))
 		{
 			if (!WriteText(BackupPath, Existing))
@@ -303,6 +356,7 @@ bool ABezierCurveSetActor::WriteCurveSetJsonToFile(const FString& FileName, bool
 	return true;
 }
 
+/** Finds the next available export file name using the configured prefix and start index. */
 FString ABezierCurveSetActor::FindNextExportCurveSetFileName() const
 {
 	const FString SafePrefix = ExportedCurveSetPrefix.IsEmpty()
@@ -323,42 +377,12 @@ FString ABezierCurveSetActor::FindNextExportCurveSetFileName() const
 	return FString::Printf(TEXT("%s%d.json"), *SafePrefix, 99999);
 }
 
-FString ABezierCurveSetActor::SanitizeCurveSetFileName(const FString& InFileName) const
-{
-	FString FileName = InFileName;
-	FileName.TrimStartAndEndInline();
-	if (FileName.IsEmpty())
-	{
-		return FString();
-	}
-
-	FileName = FPaths::GetCleanFilename(FileName);
-	if (FileName.IsEmpty())
-	{
-		return FString();
-	}
-
-	if (!FileName.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase))
-	{
-		FileName += TEXT(".json");
-	}
-
-	FString BaseName = FPaths::GetBaseFilename(FileName, false);
-	FString Extension = FPaths::GetExtension(FileName, false);
-	FPaths::MakeValidFileName(BaseName);
-	FPaths::MakeValidFileName(Extension);
-	if (BaseName.IsEmpty())
-	{
-		return FString();
-	}
-
-	return Extension.IsEmpty() ? BaseName : FString::Printf(TEXT("%s.%s"), *BaseName, *Extension);
-}
-
+/** Imports a curve set from a specific file, replacing or merging into the current world according to ImportMode. */
 bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 {
 	FString JsonText;
 	const FString AbsPath = MakeAbs(FileName);
+
 	if (!ReadText(AbsPath, JsonText))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to read %s"), *AbsPath);
@@ -367,6 +391,7 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 
 	TSharedPtr<FJsonObject> Root;
 	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonText);
+
 	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to parse %s"), *AbsPath);
@@ -376,6 +401,7 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 	const int32 CurrentVersion = 2;
 	int32 Version = 0;
 	Root->TryGetNumberField(TEXT("version"), Version);
+
 	if (Version > CurrentVersion)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Curve set version %d is newer than supported %d."), Version, CurrentVersion);
@@ -396,13 +422,22 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 	}
 
 	UWorld* World = GetWorld();
-	if (!World) return false;
+	if (!World)
+	{
+		return false;
+	}
 
-	if (!Curve2DClass) Curve2DClass = ABezierCurve2DActor::StaticClass();
-	if (!Curve3DClass) Curve3DClass = ABezierCurve3DActor::StaticClass();
+	if (!Curve2DClass)
+	{
+		Curve2DClass = ABezierCurve2DActor::StaticClass();
+	}
 
-	// World-space exports from Max should spawn with identity transform so the
-	// control points land exactly where they were authored.
+	if (!Curve3DClass)
+	{
+		Curve3DClass = ABezierCurve3DActor::StaticClass();
+	}
+
+	// World-authored control points should spawn at identity so the imported points land exactly where authored.
 	const FTransform SpawnTransform = bWorldSpacePoints ? FTransform::Identity : GetActorTransform();
 
 	if (ImportMode == EBezierCurveSetImportMode::ReplaceAll)
@@ -415,7 +450,11 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 	{
 		for (AActor* A : Spawned)
 		{
-			if (!IsValid(A)) continue;
+			if (!IsValid(A))
+			{
+				continue;
+			}
+
 			const FName NameKey = A->GetFName();
 			if (!NameKey.IsNone())
 			{
@@ -460,6 +499,7 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 
 		const bool bIs3D = Space.Equals(TEXT("3D"), ESearchCase::IgnoreCase);
 		const bool bIs2D = Space.Equals(TEXT("2D"), ESearchCase::IgnoreCase);
+
 		if (!bIs3D && !bIs2D)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Curve '%s' has invalid space '%s'."), *CurveName, *Space);
@@ -499,6 +539,7 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		Params.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
+
 		if (!CurveName.IsEmpty())
 		{
 			Params.Name = MakeUniqueObjectName(World, bIs3D ? Curve3DClass : Curve2DClass, FName(*CurveName));
@@ -507,18 +548,26 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 		if (bIs3D)
 		{
 			ABezierCurve3DActor* A3 = World->SpawnActor<ABezierCurve3DActor>(Curve3DClass, SpawnTransform, Params);
-			if (!A3) continue;
+			if (!A3)
+			{
+				continue;
+			}
 
 			A3->Scale = FileScale;
 			A3->Control.Reset();
+
 			for (const TSharedPtr<FJsonValue>& Entry : *ControlArray)
 			{
 				const TArray<TSharedPtr<FJsonValue>>* PointArray = nullptr;
-				if (!Entry.IsValid() || !Entry->TryGetArray(PointArray) || !PointArray || PointArray->Num() < 3) continue;
+				if (!Entry.IsValid() || !Entry->TryGetArray(PointArray) || !PointArray || PointArray->Num() < 3)
+				{
+					continue;
+				}
 
 				double X = 0.0;
 				double Y = 0.0;
 				double Z = 0.0;
+
 				if (!(*PointArray)[0].IsValid() || !(*PointArray)[0]->TryGetNumber(X)
 					|| !(*PointArray)[1].IsValid() || !(*PointArray)[1]->TryGetNumber(Y)
 					|| !(*PointArray)[2].IsValid() || !(*PointArray)[2]->TryGetNumber(Z))
@@ -538,32 +587,43 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 			A3->UI_SetInitialControlFromCurrent();
 			A3->OverwriteSplineFromControl();
 			A3->UI_SetClosedLoop(bClosed);
+
 			const EBezierSamplingMode SamplingMode = TE_SamplingModeFromString(SamplingModeStr, EBezierSamplingMode::Parametric);
 			A3->UI_SetSamplingMode(SamplingMode);
 
 			const int32 ImportedSampleCount = SampleCount > 0 ? SampleCount : A3->Control.Num();
 			A3->UI_SetSampleCount(FMath::Clamp(ImportedSampleCount, 2, 2048));
+
 			if (SourceProfile.Equals(TEXT("max_sampled"), ESearchCase::IgnoreCase))
 			{
 				A3->UI_SetSamplingMode(EBezierSamplingMode::ArcLength);
 				A3->UI_SetSampleCount(FMath::Clamp(FMath::Max(ImportedSampleCount, A3->Control.Num()), 2, 2048));
 			}
+
 			UI_RegisterSpawned(A3);
 		}
 		else
 		{
 			ABezierCurve2DActor* A2 = World->SpawnActor<ABezierCurve2DActor>(Curve2DClass, SpawnTransform, Params);
-			if (!A2) continue;
+			if (!A2)
+			{
+				continue;
+			}
 
 			A2->Scale = FileScale;
 			A2->Control.Reset();
+
 			for (const TSharedPtr<FJsonValue>& Entry : *ControlArray)
 			{
 				const TArray<TSharedPtr<FJsonValue>>* PointArray = nullptr;
-				if (!Entry.IsValid() || !Entry->TryGetArray(PointArray) || !PointArray || PointArray->Num() < 2) continue;
+				if (!Entry.IsValid() || !Entry->TryGetArray(PointArray) || !PointArray || PointArray->Num() < 2)
+				{
+					continue;
+				}
 
 				double X = 0.0;
 				double Y = 0.0;
+
 				if (!(*PointArray)[0].IsValid() || !(*PointArray)[0]->TryGetNumber(X)
 					|| !(*PointArray)[1].IsValid() || !(*PointArray)[1]->TryGetNumber(Y))
 				{
@@ -582,16 +642,19 @@ bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
 			A2->UI_SetInitialControlFromCurrent();
 			A2->OverwriteSplineFromControl();
 			A2->UI_SetClosedLoop(bClosed);
+
 			const EBezierSamplingMode SamplingMode = TE_SamplingModeFromString(SamplingModeStr, EBezierSamplingMode::Parametric);
 			A2->UI_SetSamplingMode(SamplingMode);
 
 			const int32 ImportedSampleCount = SampleCount > 0 ? SampleCount : A2->Control.Num();
 			A2->UI_SetSampleCount(FMath::Clamp(ImportedSampleCount, 2, 2048));
+
 			if (SourceProfile.Equals(TEXT("max_sampled"), ESearchCase::IgnoreCase))
 			{
 				A2->UI_SetSamplingMode(EBezierSamplingMode::ArcLength);
 				A2->UI_SetSampleCount(FMath::Clamp(FMath::Max(ImportedSampleCount, A2->Control.Num()), 2, 2048));
 			}
+
 			UI_RegisterSpawned(A2);
 		}
 	}
@@ -621,6 +684,7 @@ void ABezierCurveSetActor::UI_SaveExportedCurveSetSnapshot()
 	WriteCurveSetJsonToFile(NextFile, false);
 }
 
+/** Builds the UMG file-menu list by scanning the IO folder for JSON files and sorting newest first. */
 void ABezierCurveSetActor::UI_FileMenuListCurveSetJsonFiles(TArray<FBezierCurveSetFileListRowData>& OutFiles) const
 {
 	OutFiles.Reset();
@@ -642,6 +706,7 @@ void ABezierCurveSetActor::UI_FileMenuListCurveSetJsonFiles(TArray<FBezierCurveS
 	{
 		const FString FullPath = Directory / FileName;
 		const FFileStatData StatData = IFileManager::Get().GetStatData(*FullPath);
+
 		if (!StatData.bIsValid || StatData.bIsDirectory)
 		{
 			continue;
@@ -679,7 +744,7 @@ bool ABezierCurveSetActor::UI_FileMenuLoadCurveSetJsonByFileName(const FString& 
 	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
 	if (NormalizedFileName.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_LoadCurveSetJsonByFileName received empty file name."));
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_FileMenuLoadCurveSetJsonByFileName received empty file name."));
 		return false;
 	}
 
@@ -691,13 +756,14 @@ bool ABezierCurveSetActor::UI_FileMenuSaveCurveSetJsonByFileName(const FString& 
 	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
 	if (NormalizedFileName.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_SaveCurveSetJsonByFileName received empty file name."));
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_FileMenuSaveCurveSetJsonByFileName received empty file name."));
 		return false;
 	}
 
 	return WriteCurveSetJsonToFile(NormalizedFileName, bWriteBackup);
 }
 
+// Deprecated wrappers kept so existing Blueprints do not break immediately.
 void ABezierCurveSetActor::UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileListRowData>& OutFiles) const
 {
 	UI_FileMenuListCurveSetJsonFiles(OutFiles);
@@ -713,242 +779,12 @@ bool ABezierCurveSetActor::UI_SaveCurveSetJsonByFileName(const FString& InFileNa
 	return UI_FileMenuSaveCurveSetJsonByFileName(InFileName, bWriteBackup);
 }
 
-void ABezierCurveSetActor::UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileListRowData>& OutFiles) const
-{
-	OutFiles.Reset();
-
-	const FString Directory = TE_PathUtils::ResolveSavedDir(IOPathAbsolute, TEXT("Bezier"));
-	TArray<FString> FoundFiles;
-	IFileManager::Get().FindFiles(FoundFiles, *(Directory / TEXT("*.json")), true, false);
-
-	struct FSortableFileRow
-	{
-		FBezierCurveSetFileListRowData Row;
-		FDateTime SortTime = FDateTime::MinValue();
-	};
-
-	TArray<FSortableFileRow> Rows;
-	Rows.Reserve(FoundFiles.Num());
-
-	for (const FString& FileName : FoundFiles)
-	{
-		const FString FullPath = Directory / FileName;
-		const FFileStatData StatData = IFileManager::Get().GetStatData(*FullPath);
-		if (!StatData.bIsValid || StatData.bIsDirectory)
-		{
-			continue;
-		}
-
-		const FDateTime LocalModified = StatData.ModificationTime;
-
-		FSortableFileRow SortableRow;
-		SortableRow.Row.FileName = FileName;
-		SortableRow.Row.FileSizeBytes = StatData.FileSize;
-		SortableRow.Row.FileSize = TE_FormatFileSizeLabel(StatData.FileSize);
-		SortableRow.Row.Timestamp = TE_FormatTimestampDDMMYYYY_HHMMSS(LocalModified);
-		SortableRow.SortTime = LocalModified;
-		Rows.Add(MoveTemp(SortableRow));
-	}
-
-	Rows.Sort([](const FSortableFileRow& A, const FSortableFileRow& B)
-		{
-			if (A.SortTime == B.SortTime)
-			{
-				return A.Row.FileName < B.Row.FileName;
-			}
-			return A.SortTime > B.SortTime;
-		});
-
-	OutFiles.Reserve(Rows.Num());
-	for (const FSortableFileRow& Row : Rows)
-	{
-		OutFiles.Add(Row.Row);
-	}
-}
-
-bool ABezierCurveSetActor::UI_LoadCurveSetJsonByFileName(const FString& InFileName)
-{
-	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
-	if (NormalizedFileName.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_LoadCurveSetJsonByFileName received empty file name."));
-		return false;
-	}
-
-	return ImportCurveSetJsonFromFile(NormalizedFileName);
-}
-
-bool ABezierCurveSetActor::UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup)
-{
-	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
-	if (NormalizedFileName.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_SaveCurveSetJsonByFileName received empty file name."));
-		return false;
-	}
-
-	return WriteCurveSetJsonToFile(NormalizedFileName, bWriteBackup);
-}
-
-void ABezierCurveSetActor::UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileRow>& OutFiles) const
-{
-	OutFiles.Reset();
-
-	const FString Directory = TE_PathUtils::ResolveSavedDir(IOPathAbsolute, TEXT("Bezier"));
-	TArray<FString> FoundFiles;
-	IFileManager::Get().FindFiles(FoundFiles, *(Directory / TEXT("*.json")), true, false);
-
-	struct FSortableFileRow
-	{
-		FBezierCurveSetFileRow Row;
-		FDateTime SortTime = FDateTime::MinValue();
-	};
-
-	TArray<FSortableFileRow> Rows;
-	Rows.Reserve(FoundFiles.Num());
-
-	for (const FString& FileName : FoundFiles)
-	{
-		const FString FullPath = Directory / FileName;
-		const FFileStatData StatData = IFileManager::Get().GetStatData(*FullPath);
-		if (!StatData.bIsValid || StatData.bIsDirectory)
-		{
-			continue;
-		}
-
-		const FDateTime LocalModified = StatData.ModificationTime;
-
-		FSortableFileRow SortableRow;
-		SortableRow.Row.FileName = FileName;
-		SortableRow.Row.FileSizeBytes = StatData.FileSize;
-		SortableRow.Row.FileSize = TE_FormatFileSizeLabel(StatData.FileSize);
-		SortableRow.Row.Timestamp = TE_FormatTimestampDDMMYYYY_HHMMSS(LocalModified);
-		SortableRow.SortTime = LocalModified;
-		Rows.Add(MoveTemp(SortableRow));
-	}
-
-	Rows.Sort([](const FSortableFileRow& A, const FSortableFileRow& B)
-		{
-			if (A.SortTime == B.SortTime)
-			{
-				return A.Row.FileName < B.Row.FileName;
-			}
-			return A.SortTime > B.SortTime;
-		});
-
-	OutFiles.Reserve(Rows.Num());
-	for (const FSortableFileRow& Row : Rows)
-	{
-		OutFiles.Add(Row.Row);
-	}
-}
-
-bool ABezierCurveSetActor::UI_LoadCurveSetJsonByFileName(const FString& InFileName)
-{
-	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
-	if (NormalizedFileName.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_LoadCurveSetJsonByFileName received empty file name."));
-		return false;
-	}
-
-	return ImportCurveSetJsonFromFile(NormalizedFileName);
-}
-
-bool ABezierCurveSetActor::UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup)
-{
-	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
-	if (NormalizedFileName.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_SaveCurveSetJsonByFileName received empty file name."));
-		return false;
-	}
-
-	return WriteCurveSetJsonToFile(NormalizedFileName, bWriteBackup);
-}
-
-void ABezierCurveSetActor::UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileRow>& OutFiles) const
-{
-	OutFiles.Reset();
-
-	const FString Directory = TE_PathUtils::ResolveSavedDir(IOPathAbsolute, TEXT("Bezier"));
-	TArray<FString> FoundFiles;
-	IFileManager::Get().FindFiles(FoundFiles, *(Directory / TEXT("*.json")), true, false);
-
-	struct FSortableFileRow
-	{
-		FBezierCurveSetFileRow Row;
-		FDateTime SortTime = FDateTime::MinValue();
-	};
-
-	TArray<FSortableFileRow> Rows;
-	Rows.Reserve(FoundFiles.Num());
-
-	for (const FString& FileName : FoundFiles)
-	{
-		const FString FullPath = Directory / FileName;
-		const FFileStatData StatData = IFileManager::Get().GetStatData(*FullPath);
-		if (!StatData.bIsValid || StatData.bIsDirectory)
-		{
-			continue;
-		}
-
-		const FDateTime LocalModified = StatData.ModificationTime.ToLocalTime();
-
-		FSortableFileRow SortableRow;
-		SortableRow.Row.FileName = FileName;
-		SortableRow.Row.FileSizeBytes = StatData.FileSize;
-		SortableRow.Row.FileSize = TE_FormatFileSizeLabel(StatData.FileSize);
-		SortableRow.Row.Timestamp = TE_FormatTimestampDDMMYYYY_HHMMSS(LocalModified);
-		SortableRow.SortTime = LocalModified;
-		Rows.Add(MoveTemp(SortableRow));
-	}
-
-	Rows.Sort([](const FSortableFileRow& A, const FSortableFileRow& B)
-		{
-			if (A.SortTime == B.SortTime)
-			{
-				return A.Row.FileName < B.Row.FileName;
-			}
-			return A.SortTime > B.SortTime;
-		});
-
-	OutFiles.Reserve(Rows.Num());
-	for (const FSortableFileRow& Row : Rows)
-	{
-		OutFiles.Add(Row.Row);
-	}
-}
-
-bool ABezierCurveSetActor::UI_LoadCurveSetJsonByFileName(const FString& InFileName)
-{
-	const FString NormalizedFileName = TE_NormalizeCurveSetFileName(InFileName);
-	if (NormalizedFileName.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_LoadCurveSetJsonByFileName received empty file name."));
-		return false;
-	}
-
-	return ImportCurveSetJsonFromFile(NormalizedFileName);
-}
-
-bool ABezierCurveSetActor::UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup)
-{
-	const FString NormalizedFileName = TE_NormalizeCurveSetFileName(InFileName);
-	if (NormalizedFileName.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_SaveCurveSetJsonByFileName received empty file name."));
-		return false;
-	}
-
-	return WriteCurveSetJsonToFile(NormalizedFileName, bWriteBackup);
-}
-
 void ABezierCurveSetActor::UI_ClearSpawned()
 {
 	ClearSpawned();
 }
 
+/** Registers a curve actor with this set actor and updates editor integration state where needed. */
 void ABezierCurveSetActor::UI_RegisterSpawned(AActor* Actor)
 {
 	if (!IsValid(Actor))
@@ -1086,7 +922,9 @@ void ABezierCurveSetActor::UI_SetSnapToGridForAll(bool bInSnap)
 		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A)) { A3->UI_SetSnapToGrid(bInSnap); }
 		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(A)) { A2->UI_SetSnapToGrid(bInSnap); }
 	}
+
 	UI_SetShowGridForAll(bInSnap);
+
 	if (bInSnap)
 	{
 		UI_SetShowGridXYForAll(true);
@@ -1099,6 +937,7 @@ bool ABezierCurveSetActor::UI_ToggleSnapToGridForAll()
 {
 	bool bCurrent = false;
 	bool bFound = false;
+
 	for (AActor* A : Spawned)
 	{
 		if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
@@ -1114,16 +953,17 @@ bool ABezierCurveSetActor::UI_ToggleSnapToGridForAll()
 			break;
 		}
 	}
+
 	if (!bFound)
 	{
 		return false;
 	}
+
 	const bool bNext = !bCurrent;
 	UI_SetSnapToGridForAll(bNext);
 	return bNext;
 }
 
-// Grid settings (single implementation to avoid accidental duplication).
 void ABezierCurveSetActor::UI_SetGridSizeForAll(float InGridSizeCm)
 {
 	for (AActor* A : Spawned)
@@ -1136,6 +976,7 @@ void ABezierCurveSetActor::UI_SetGridSizeForAll(float InGridSizeCm)
 void ABezierCurveSetActor::UI_SetGridSizeCycleValues(const TArray<float>& InValues)
 {
 	GridSizeCycleValues.Reset();
+
 	for (float Value : InValues)
 	{
 		if (Value > 0.0f)
@@ -1143,10 +984,12 @@ void ABezierCurveSetActor::UI_SetGridSizeCycleValues(const TArray<float>& InValu
 			GridSizeCycleValues.Add(Value);
 		}
 	}
+
 	if (GridSizeCycleValues.Num() == 0)
 	{
 		GridSizeCycleValues = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
 	}
+
 	GridSizeCycleIndex = 0;
 }
 
@@ -1227,7 +1070,11 @@ void ABezierCurveSetActor::UI_CycleGridSizeForAll()
 {
 	const TArray<float> Defaults = { 5.0f, 10.0f, 25.0f, 50.0f, 100.0f };
 	const TArray<float>& Values = GridSizeCycleValues.Num() > 0 ? GridSizeCycleValues : Defaults;
-	if (Values.Num() == 0) return;
+
+	if (Values.Num() == 0)
+	{
+		return;
+	}
 
 	GridSizeCycleIndex = (GridSizeCycleIndex + 1) % Values.Num();
 	UI_SetGridSizeForAll(Values[GridSizeCycleIndex]);
@@ -1283,20 +1130,11 @@ EBezierPlanarAxis ABezierCurveSetActor::UI_CycleForcePlanarAxisForAll()
 	EBezierPlanarAxis NextAxis = EBezierPlanarAxis::None;
 	switch (CurrentAxis)
 	{
-	case EBezierPlanarAxis::None:
-		NextAxis = EBezierPlanarAxis::XY;
-		break;
-	case EBezierPlanarAxis::XY:
-		NextAxis = EBezierPlanarAxis::XZ;
-		break;
-	case EBezierPlanarAxis::XZ:
-		NextAxis = EBezierPlanarAxis::YZ;
-		break;
-	case EBezierPlanarAxis::YZ:
-		NextAxis = EBezierPlanarAxis::None;
-		break;
-	default:
-		break;
+	case EBezierPlanarAxis::None: NextAxis = EBezierPlanarAxis::XY; break;
+	case EBezierPlanarAxis::XY:   NextAxis = EBezierPlanarAxis::XZ; break;
+	case EBezierPlanarAxis::XZ:   NextAxis = EBezierPlanarAxis::YZ; break;
+	case EBezierPlanarAxis::YZ:   NextAxis = EBezierPlanarAxis::None; break;
+	default: break;
 	}
 
 	ForcePlanarAxisCycle = NextAxis;
@@ -1334,20 +1172,11 @@ EBezierPlanarAxis ABezierCurveSetActor::UI_CycleLockAxisForAll()
 	EBezierPlanarAxis NextAxis = EBezierPlanarAxis::None;
 	switch (CurrentAxis)
 	{
-	case EBezierPlanarAxis::None:
-		NextAxis = EBezierPlanarAxis::XY;
-		break;
-	case EBezierPlanarAxis::XY:
-		NextAxis = EBezierPlanarAxis::XZ;
-		break;
-	case EBezierPlanarAxis::XZ:
-		NextAxis = EBezierPlanarAxis::YZ;
-		break;
-	case EBezierPlanarAxis::YZ:
-		NextAxis = EBezierPlanarAxis::None;
-		break;
-	default:
-		break;
+	case EBezierPlanarAxis::None: NextAxis = EBezierPlanarAxis::XY; break;
+	case EBezierPlanarAxis::XY:   NextAxis = EBezierPlanarAxis::XZ; break;
+	case EBezierPlanarAxis::XZ:   NextAxis = EBezierPlanarAxis::YZ; break;
+	case EBezierPlanarAxis::YZ:   NextAxis = EBezierPlanarAxis::None; break;
+	default: break;
 	}
 
 	LockAxisCycle = NextAxis;
@@ -1434,6 +1263,7 @@ bool ABezierCurveSetActor::UI_ToggleShowSamplePointsForAll()
 {
 	bool bCurrent = false;
 	bool bFound = false;
+
 	for (AActor* A : Spawned)
 	{
 		if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
@@ -1449,10 +1279,12 @@ bool ABezierCurveSetActor::UI_ToggleShowSamplePointsForAll()
 			break;
 		}
 	}
+
 	if (!bFound)
 	{
 		return false;
 	}
+
 	const bool bNext = !bCurrent;
 	UI_SetShowSamplePointsForAll(bNext);
 	return bNext;
@@ -1471,6 +1303,7 @@ bool ABezierCurveSetActor::UI_ToggleShowDeCasteljauLevelsForAll()
 {
 	bool bCurrent = false;
 	bool bFound = false;
+
 	for (AActor* A : Spawned)
 	{
 		if (const ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(A))
@@ -1486,10 +1319,12 @@ bool ABezierCurveSetActor::UI_ToggleShowDeCasteljauLevelsForAll()
 			break;
 		}
 	}
+
 	if (!bFound)
 	{
 		return false;
 	}
+
 	const bool bNext = !bCurrent;
 	UI_SetShowDeCasteljauLevelsForAll(bNext);
 	return bNext;
