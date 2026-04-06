@@ -36,24 +36,6 @@ namespace
 		return Fallback;
 	}
 
-	static FString TE_NormalizeCurveSetFileName(const FString& InFileName)
-	{
-		FString Sanitized = InFileName;
-		Sanitized.TrimStartAndEndInline();
-		Sanitized = FPaths::GetCleanFilename(Sanitized);
-		if (Sanitized.IsEmpty())
-		{
-			return FString();
-		}
-
-		if (!Sanitized.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase))
-		{
-			Sanitized += TEXT(".json");
-		}
-
-		return Sanitized;
-	}
-
 	static FString TE_FormatTimestampDDMMYYYY_HHMMSS(const FDateTime& InTime)
 	{
 		return FString::Printf(
@@ -78,6 +60,24 @@ namespace
 
 		return FString::Printf(TEXT("%.1f KB"), static_cast<double>(InBytes) / BytesPerKilobyte);
 	}
+}
+
+FString ABezierCurveSetActor::SanitizeCurveSetFileName(const FString& InFileName)
+{
+	FString Sanitized = InFileName;
+	Sanitized.TrimStartAndEndInline();
+	Sanitized = FPaths::GetCleanFilename(Sanitized);
+	if (Sanitized.IsEmpty())
+	{
+		return FString();
+	}
+
+	if (!Sanitized.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase))
+	{
+		Sanitized += TEXT(".json");
+	}
+
+	return Sanitized;
 }
 
 ABezierCurveSetActor::ABezierCurveSetActor()
@@ -620,7 +620,7 @@ void ABezierCurveSetActor::UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileRo
 			continue;
 		}
 
-		const FDateTime LocalModified = StatData.ModificationTime.ToLocalTime();
+		const FDateTime LocalModified = StatData.ModificationTime;
 
 		FSortableFileRow SortableRow;
 		SortableRow.Row.FileName = FileName;
@@ -649,7 +649,7 @@ void ABezierCurveSetActor::UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileRo
 
 bool ABezierCurveSetActor::UI_LoadCurveSetJsonByFileName(const FString& InFileName)
 {
-	const FString NormalizedFileName = TE_NormalizeCurveSetFileName(InFileName);
+	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
 	if (NormalizedFileName.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_LoadCurveSetJsonByFileName received empty file name."));
@@ -661,7 +661,7 @@ bool ABezierCurveSetActor::UI_LoadCurveSetJsonByFileName(const FString& InFileNa
 
 bool ABezierCurveSetActor::UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup)
 {
-	const FString NormalizedFileName = TE_NormalizeCurveSetFileName(InFileName);
+	const FString NormalizedFileName = SanitizeCurveSetFileName(InFileName);
 	if (NormalizedFileName.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: UI_SaveCurveSetJsonByFileName received empty file name."));

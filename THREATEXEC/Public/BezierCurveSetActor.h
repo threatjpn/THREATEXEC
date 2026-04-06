@@ -222,6 +222,7 @@ private:
 	bool WriteText(const FString& AbsPath, const FString& In) const;
 	bool IsAnyEditModeActive() const;
 	void HandleAutoSave();
+	static FString SanitizeCurveSetFileName(const FString& InFileName);
 
 	// Internal helpers for final prototype save/load flow
 	bool ImportCurveSetJsonFromFile(const FString& FileName);
