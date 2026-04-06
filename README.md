@@ -148,6 +148,30 @@ Place an `ABezierCurveSetActor` in the level:
 * Call:
   * `UI_ImportCurveSetJson()` to load and spawn curves.
   * `UI_ExportCurveSetJson()` to save all curves to one file.
+  * `UI_FileMenuSaveCurveSetJsonByFileName("my_save_name")` to save a user-named file from UMG.
+  * `UI_FileMenuLoadCurveSetJsonByFileName("my_save_name.json")` to load a selected file from UMG.
+  * `UI_FileMenuListCurveSetJsonFiles(...)` to populate a true `ListView` with file rows.
+  * (`UI_SaveCurveSetJsonByFileName`, `UI_LoadCurveSetJsonByFileName`, and `UI_ListCurveSetJsonFiles` remain as deprecated compatibility wrappers.)
+
+### UMG ListView file menu flow (true ListView)
+Recommended `WB_FileMenu` function split:
+* `RefreshFileList`:
+  * call `UI_FileMenuListCurveSetJsonFiles`.
+  * clear list items.
+  * add row objects/items from returned array.
+* `SaveCurrentCurveSet`:
+  * call `UI_FileMenuSaveCurveSetJsonByFileName(EditableText_SaveName)`.
+  * call `RefreshFileList`.
+* `LoadSelectedFile`:
+  * call `UI_FileMenuLoadCurveSetJsonByFileName(SelectedFileName)`.
+* `HandleRowSelected`:
+  * set `SelectedFileName` and apply single-select visual style in row widget.
+
+`UI_FileMenuListCurveSetJsonFiles` returns newest-first rows and includes:
+* `FileName`
+* `Timestamp` (formatted as `DD-MM-YYYY HH:MM:SS`)
+* `FileSize` (KB/MB label)
+* `FileSizeBytes` (raw bytes for custom formatting)
 
 ### Backup behavior
 * Set `bWriteBackupOnExport = true`.
