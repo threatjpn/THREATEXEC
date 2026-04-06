@@ -45,13 +45,10 @@ protected:
     float StackOffsetY = 8.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
-    float StackOpacityFalloff = 0.13f;
+    float StackOpacityFalloff = 0.18f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
-    float MinStackOpacity = 0.2f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
-    float MaxCardTiltDegrees = 5.0f;
+    float MinStackOpacity = 0.08f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
     float DepthScaleFalloff = 0.03f;

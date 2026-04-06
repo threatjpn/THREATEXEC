@@ -145,11 +145,7 @@ FWidgetTransform UPhotoLocationWidget::BuildTargetTransformForDepth(int32 DepthI
     const float Depth = static_cast<float>(DepthIndex);
     Transform.Translation = FVector2D(Depth * StackOffsetX, Depth * StackOffsetY);
 
-    const float TiltFraction = PreviewTextureStack.Num() > 1
-        ? (Depth / static_cast<float>(PreviewTextureStack.Num() - 1))
-        : 0.0f;
-    const float AlternatingTiltSign = (DepthIndex % 2 == 0) ? -1.0f : 1.0f;
-    Transform.Angle = MaxCardTiltDegrees * TiltFraction * AlternatingTiltSign;
+    Transform.Angle = 0.0f;
 
     const float DepthScale = FMath::Max(0.8f, 1.0f - (Depth * DepthScaleFalloff));
     Transform.Scale = FVector2D(DepthScale, DepthScale);
@@ -157,7 +153,6 @@ FWidgetTransform UPhotoLocationWidget::BuildTargetTransformForDepth(int32 DepthI
     if (DepthIndex == 0)
     {
         Transform.Scale = FVector2D(FrontCardLiftScale, FrontCardLiftScale);
-        Transform.Angle = 0.0f;
     }
 
     return Transform;
@@ -292,7 +287,6 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
             // Adds a subtle shuffle arc for the promoted card.
             InterpolatedTransform.Translation.X -= FrontShufflePulse * 7.0f;
             InterpolatedTransform.Translation.Y -= FrontShufflePulse * 3.0f;
-            InterpolatedTransform.Angle += FrontShufflePulse * 1.8f;
         }
 
         StackImage->SetRenderTransform(InterpolatedTransform);
