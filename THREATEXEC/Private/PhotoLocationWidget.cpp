@@ -138,16 +138,42 @@ void UPhotoLocationWidget::SetImageTexture(UImage* ImageWidget, UTexture2D* Text
     }
 }
 
+FWidgetTransform UPhotoLocationWidget::BuildTargetTransformForDepth(int32 DepthIndex) const
+{
+    FWidgetTransform Transform;
+
+    const float Depth = static_cast<float>(DepthIndex);
+    Transform.Translation = FVector2D(Depth * StackOffsetX, Depth * StackOffsetY);
+
+    const float TiltFraction = PreviewTextureStack.Num() > 1
+        ? (Depth / static_cast<float>(PreviewTextureStack.Num() - 1))
+        : 0.0f;
+    const float AlternatingTiltSign = (DepthIndex % 2 == 0) ? -1.0f : 1.0f;
+    Transform.Angle = MaxCardTiltDegrees * TiltFraction * AlternatingTiltSign;
+
+    const float DepthScale = FMath::Max(0.8f, 1.0f - (Depth * DepthScaleFalloff));
+    Transform.Scale = FVector2D(DepthScale, DepthScale);
+
+    if (DepthIndex == 0)
+    {
+        Transform.Scale = FVector2D(FrontCardLiftScale, FrontCardLiftScale);
+        Transform.Angle = 0.0f;
+    }
+
+    return Transform;
+}
+
 void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
 {
     if (PreviewStackContainer)
     {
         EnsureRuntimeStackImages();
 
-        // Rebuild child order so the visual stack is back-to-front.
         PreviewStackContainer->ClearChildren();
 
-        StackTargetTranslations.Empty();
+        StackStartTransforms.Empty();
+        StackTargetTransforms.Empty();
+        StackStartOpacities.Empty();
         StackTargetOpacities.Empty();
 
         for (int32 TextureIndex = PreviewTextureStack.Num() - 1; TextureIndex >= 0; --TextureIndex)
@@ -163,22 +189,23 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
             SetImageTexture(StackImage, LayerTexture);
 
             const float LayerDepth = static_cast<float>(TextureIndex);
-            const FVector2D TargetTranslation(LayerDepth * StackOffsetX, LayerDepth * StackOffsetY);
             const float TargetOpacity = FMath::Max(MinStackOpacity, 1.0f - (LayerDepth * StackOpacityFalloff));
+            const FWidgetTransform TargetTransform = BuildTargetTransformForDepth(TextureIndex);
 
-            StackTargetTranslations.Add(LayerTexture, TargetTranslation);
+            StackStartTransforms.Add(LayerTexture, StackImage->GetRenderTransform());
+            StackStartOpacities.Add(LayerTexture, StackImage->GetRenderOpacity());
+            StackTargetTransforms.Add(LayerTexture, TargetTransform);
             StackTargetOpacities.Add(LayerTexture, TargetOpacity);
 
             if (!bAnimateFrontSwap)
             {
-                StackImage->SetRenderTranslation(TargetTranslation);
+                StackImage->SetRenderTransform(TargetTransform);
                 StackImage->SetRenderOpacity(TargetOpacity);
             }
 
             PreviewStackContainer->AddChild(StackImage);
         }
 
-        // Hide any runtime image no longer represented in the stack.
         for (const TPair<TObjectPtr<UTexture2D>, TObjectPtr<UImage>>& Pair : RuntimeStackImages)
         {
             UTexture2D* Texture = Pair.Key;
@@ -194,6 +221,7 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
             }
         }
 
+        StackShuffleProgress = bAnimateFrontSwap ? 0.0f : 1.0f;
         bStackAnimationPlaying = bAnimateFrontSwap;
     }
     else
@@ -226,45 +254,67 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
 
 void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
 {
-    bool bAnyStillMoving = false;
+    if (StackShuffleDuration <= KINDA_SMALL_NUMBER)
+    {
+        StackShuffleProgress = 1.0f;
+    }
+    else
+    {
+        StackShuffleProgress = FMath::Clamp(StackShuffleProgress + (InDeltaTime / StackShuffleDuration), 0.0f, 1.0f);
+    }
+
+    const float EasedAlpha = FMath::InterpEaseInOut(0.0f, 1.0f, StackShuffleProgress, 2.4f);
+    const float FrontShufflePulse = FMath::Sin(EasedAlpha * PI);
 
     for (UTexture2D* Texture : PreviewTextureStack)
     {
         UImage* const* StackImagePtr = RuntimeStackImages.Find(Texture);
-        const FVector2D* TargetTranslation = StackTargetTranslations.Find(Texture);
+        const FWidgetTransform* StartTransform = StackStartTransforms.Find(Texture);
+        const FWidgetTransform* TargetTransform = StackTargetTransforms.Find(Texture);
+        const float* StartOpacity = StackStartOpacities.Find(Texture);
         const float* TargetOpacity = StackTargetOpacities.Find(Texture);
 
-        if (!StackImagePtr || !(*StackImagePtr) || !TargetTranslation || !TargetOpacity)
+        if (!StackImagePtr || !(*StackImagePtr) || !StartTransform || !TargetTransform || !StartOpacity || !TargetOpacity)
         {
             continue;
         }
 
         UImage* StackImage = *StackImagePtr;
 
-        const FWidgetTransform CurrentTransform = StackImage->GetRenderTransform();
-        const FVector2D CurrentTranslation = CurrentTransform.Translation;
-        const FVector2D NewTranslation = FMath::Vector2DInterpTo(
-            CurrentTranslation,
-            *TargetTranslation,
-            InDeltaTime,
-            StackAnimationSpeed);
+        FWidgetTransform InterpolatedTransform;
+        InterpolatedTransform.Translation = FMath::Lerp(StartTransform->Translation, TargetTransform->Translation, EasedAlpha);
+        InterpolatedTransform.Scale = FMath::Lerp(StartTransform->Scale, TargetTransform->Scale, EasedAlpha);
+        InterpolatedTransform.Shear = FMath::Lerp(StartTransform->Shear, TargetTransform->Shear, EasedAlpha);
+        InterpolatedTransform.Angle = FMath::Lerp(StartTransform->Angle, TargetTransform->Angle, EasedAlpha);
 
-        const float CurrentOpacity = StackImage->GetRenderOpacity();
-        const float NewOpacity = FMath::FInterpTo(CurrentOpacity, *TargetOpacity, InDeltaTime, StackAnimationSpeed);
-
-        FWidgetTransform UpdatedTransform = CurrentTransform;
-        UpdatedTransform.Translation = NewTranslation;
-
-        StackImage->SetRenderTransform(UpdatedTransform);
-        StackImage->SetRenderOpacity(NewOpacity);
-
-        if (!NewTranslation.Equals(*TargetTranslation, 0.25f) || !FMath::IsNearlyEqual(NewOpacity, *TargetOpacity, 0.01f))
+        if (Texture == LastPromotedTexture)
         {
-            bAnyStillMoving = true;
+            // Adds a subtle shuffle arc for the promoted card.
+            InterpolatedTransform.Translation.X -= FrontShufflePulse * 7.0f;
+            InterpolatedTransform.Translation.Y -= FrontShufflePulse * 3.0f;
+            InterpolatedTransform.Angle += FrontShufflePulse * 1.8f;
         }
+
+        StackImage->SetRenderTransform(InterpolatedTransform);
+        StackImage->SetRenderOpacity(FMath::Lerp(*StartOpacity, *TargetOpacity, EasedAlpha));
     }
 
-    bStackAnimationPlaying = bAnyStillMoving;
+    if (StackShuffleProgress >= 1.0f)
+    {
+        bStackAnimationPlaying = false;
+        for (UTexture2D* Texture : PreviewTextureStack)
+        {
+            UImage* const* StackImagePtr = RuntimeStackImages.Find(Texture);
+            const FWidgetTransform* TargetTransform = StackTargetTransforms.Find(Texture);
+            const float* TargetOpacity = StackTargetOpacities.Find(Texture);
+
+            if (StackImagePtr && *StackImagePtr && TargetTransform && TargetOpacity)
+            {
+                (*StackImagePtr)->SetRenderTransform(*TargetTransform);
+                (*StackImagePtr)->SetRenderOpacity(*TargetOpacity);
+            }
+        }
+    }
 }
 
 void UPhotoLocationWidget::BringTextureToFront(UTexture2D* Texture, bool bAnimateFrontSwap)
@@ -292,6 +342,7 @@ void UPhotoLocationWidget::BringTextureToFront(UTexture2D* Texture, bool bAnimat
     PreviewTextureStack.Insert(Texture, 0);
     PreviewTextureStack.Add(PreviousFront);
 
+    LastPromotedTexture = Texture;
     RefreshPreviewStackVisuals(bAnimateFrontSwap);
 }
 

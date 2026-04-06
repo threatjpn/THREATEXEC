@@ -36,7 +36,7 @@ protected:
     TObjectPtr<UWidgetAnimation> PreviewFade;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
-    float StackAnimationSpeed = 12.0f;
+    float StackShuffleDuration = 0.28f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
     float StackOffsetX = 18.0f;
@@ -50,6 +50,15 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
     float MinStackOpacity = 0.2f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
+    float MaxCardTiltDegrees = 5.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
+    float DepthScaleFalloff = 0.03f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Stack Animation")
+    float FrontCardLiftScale = 1.03f;
+
     UFUNCTION()
     void HandleEntryHovered(UTexture2D* Texture);
 
@@ -62,6 +71,7 @@ protected:
 private:
     bool bAnimationBound = false;
     bool bStackAnimationPlaying = false;
+    float StackShuffleProgress = 1.0f;
 
     UPROPERTY()
     TArray<TObjectPtr<UTexture2D>> PreviewTextureStack;
@@ -72,7 +82,12 @@ private:
     UPROPERTY(Transient)
     TMap<TObjectPtr<UTexture2D>, TObjectPtr<UImage>> RuntimeStackImages;
 
-    TMap<TObjectPtr<UTexture2D>, FVector2D> StackTargetTranslations;
+    UPROPERTY(Transient)
+    TObjectPtr<UTexture2D> LastPromotedTexture = nullptr;
+
+    TMap<TObjectPtr<UTexture2D>, FWidgetTransform> StackStartTransforms;
+    TMap<TObjectPtr<UTexture2D>, FWidgetTransform> StackTargetTransforms;
+    TMap<TObjectPtr<UTexture2D>, float> StackStartOpacities;
     TMap<TObjectPtr<UTexture2D>, float> StackTargetOpacities;
 
     void BindEntries();
@@ -80,6 +95,7 @@ private:
     void EnsureRuntimeStackImages();
     void RefreshPreviewStackVisuals(bool bAnimateFrontSwap = false);
     void AnimateStackTowardTargets(float InDeltaTime);
+    FWidgetTransform BuildTargetTransformForDepth(int32 DepthIndex) const;
     void BringTextureToFront(UTexture2D* Texture, bool bAnimateFrontSwap = false);
     void SetImageTexture(UImage* ImageWidget, UTexture2D* Texture) const;
 };
