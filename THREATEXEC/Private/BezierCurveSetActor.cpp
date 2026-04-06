@@ -15,6 +15,8 @@
 #include "THREATEXEC_FileUtils.h"
 #include "TimerManager.h"
 #include "EngineUtils.h"
+#include "HAL/PlatformFileManager.h"
+#include "Algo/Reverse.h"
 
 namespace
 {
@@ -321,6 +323,38 @@ FString ABezierCurveSetActor::FindNextExportCurveSetFileName() const
 	}
 
 	return FString::Printf(TEXT("%s%d.json"), *SafePrefix, 99999);
+}
+
+FString ABezierCurveSetActor::SanitizeCurveSetFileName(const FString& InFileName) const
+{
+	FString FileName = InFileName;
+	FileName.TrimStartAndEndInline();
+	if (FileName.IsEmpty())
+	{
+		return FString();
+	}
+
+	FileName = FPaths::GetCleanFilename(FileName);
+	if (FileName.IsEmpty())
+	{
+		return FString();
+	}
+
+	if (!FileName.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase))
+	{
+		FileName += TEXT(".json");
+	}
+
+	FString BaseName = FPaths::GetBaseFilename(FileName, false);
+	FString Extension = FPaths::GetExtension(FileName, false);
+	FPaths::MakeValidFileName(BaseName);
+	FPaths::MakeValidFileName(Extension);
+	if (BaseName.IsEmpty())
+	{
+		return FString();
+	}
+
+	return Extension.IsEmpty() ? BaseName : FString::Printf(TEXT("%s.%s"), *BaseName, *Extension);
 }
 
 bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
