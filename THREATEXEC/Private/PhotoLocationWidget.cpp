@@ -6,7 +6,7 @@
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/Widget.h"
-#include "Components/WidgetTree.h"
+#include "Blueprint/WidgetTree.h"
 #include "Engine/Texture2D.h"
 
 void UPhotoLocationWidget::NativeOnInitialized()
@@ -179,13 +179,13 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
         for (int32 TextureIndex = PreviewTextureStack.Num() - 1; TextureIndex >= 0; --TextureIndex)
         {
             UTexture2D* LayerTexture = PreviewTextureStack[TextureIndex];
-            UImage* const* StackImagePtr = RuntimeStackImages.Find(LayerTexture);
+            TObjectPtr<UImage>* StackImagePtr = RuntimeStackImages.Find(LayerTexture);
             if (!StackImagePtr || !(*StackImagePtr))
             {
                 continue;
             }
 
-            UImage* StackImage = *StackImagePtr;
+            UImage* StackImage = StackImagePtr->Get();
             SetImageTexture(StackImage, LayerTexture);
 
             const float LayerDepth = static_cast<float>(TextureIndex);
@@ -268,7 +268,7 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
 
     for (UTexture2D* Texture : PreviewTextureStack)
     {
-        UImage* const* StackImagePtr = RuntimeStackImages.Find(Texture);
+        TObjectPtr<UImage>* StackImagePtr = RuntimeStackImages.Find(Texture);
         const FWidgetTransform* StartTransform = StackStartTransforms.Find(Texture);
         const FWidgetTransform* TargetTransform = StackTargetTransforms.Find(Texture);
         const float* StartOpacity = StackStartOpacities.Find(Texture);
@@ -279,7 +279,7 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
             continue;
         }
 
-        UImage* StackImage = *StackImagePtr;
+        UImage* StackImage = StackImagePtr->Get();
 
         FWidgetTransform InterpolatedTransform;
         InterpolatedTransform.Translation = FMath::Lerp(StartTransform->Translation, TargetTransform->Translation, EasedAlpha);
@@ -304,14 +304,14 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
         bStackAnimationPlaying = false;
         for (UTexture2D* Texture : PreviewTextureStack)
         {
-            UImage* const* StackImagePtr = RuntimeStackImages.Find(Texture);
+            TObjectPtr<UImage>* StackImagePtr = RuntimeStackImages.Find(Texture);
             const FWidgetTransform* TargetTransform = StackTargetTransforms.Find(Texture);
             const float* TargetOpacity = StackTargetOpacities.Find(Texture);
 
             if (StackImagePtr && *StackImagePtr && TargetTransform && TargetOpacity)
             {
-                (*StackImagePtr)->SetRenderTransform(*TargetTransform);
-                (*StackImagePtr)->SetRenderOpacity(*TargetOpacity);
+                StackImagePtr->Get()->SetRenderTransform(*TargetTransform);
+                StackImagePtr->Get()->SetRenderOpacity(*TargetOpacity);
             }
         }
     }
