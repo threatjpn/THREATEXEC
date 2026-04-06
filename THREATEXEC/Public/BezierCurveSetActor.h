@@ -18,6 +18,24 @@ enum class EBezierCurveSetImportMode : uint8
 	Append UMETA(DisplayName = "Append")
 };
 
+USTRUCT(BlueprintType)
+struct FBezierCurveSetFileRow
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString FileName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString Timestamp;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	FString FileSize;
+
+	UPROPERTY(BlueprintReadOnly, Category = "BezierSet|IO")
+	int64 FileSizeBytes = 0;
+};
+
 UCLASS()
 class THREATEXEC_API ABezierCurveSetActor : public AActor
 {
@@ -109,18 +127,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
 	void UI_SaveExportedCurveSetSnapshot();
 
-	// UMG-friendly browser helpers:
-	// - enumerate *.json files in the IO folder (default Saved/Bezier)
-	// - import one selected file from that list
-	// - save with a user-provided filename into the same folder
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
-	TArray<FString> UI_ListCurveSetJsonFiles(bool bSortAscending = true) const;
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	void UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileRow>& OutFiles) const;
 
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
-	bool UI_ImportCurveSetJsonByFileName(const FString& FileName);
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	bool UI_LoadCurveSetJsonByFileName(const FString& InFileName);
 
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
-	bool UI_SaveCurveSetJsonAs(const FString& InFileName, bool bWriteBackup = false);
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
+	bool UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup = false);
 
 	UFUNCTION(CallInEditor, Category = "BezierSet|Manage")
 	void ClearSpawned();
@@ -214,5 +228,4 @@ private:
 	TSharedRef<FJsonObject> BuildCurveSetJson() const;
 	bool WriteCurveSetJsonToFile(const FString& FileName, bool bWriteBackup) const;
 	FString FindNextExportCurveSetFileName() const;
-	FString SanitizeCurveSetFileName(const FString& InFileName) const;
 };

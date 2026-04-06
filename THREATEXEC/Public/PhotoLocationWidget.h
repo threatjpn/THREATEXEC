@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/TextBlock.h"
 #include "Fonts/SlateFontInfo.h"
 #include "PhotoLocationWidget.generated.h"
 
@@ -11,7 +12,7 @@ class UTexture2D;
 class UWidgetAnimation;
 class UWidget;
 class UPhotoLocationEntryWidget;
-class UTextBlock;
+class UScrollBox;
 
 UCLASS()
 class THREATEXEC_API UPhotoLocationWidget : public UUserWidget
@@ -86,6 +87,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack", meta = (ClampMin = "0.0", EditCondition = "bOverridePreviewTextStyle"))
     float PreviewTextWrapAt = 0.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack")
+    TEnumAsByte<ETextJustify::Type> PreviewTextJustification = ETextJustify::Left;
+
     UFUNCTION()
     void HandleEntryHovered(UTexture2D* Texture);
 
@@ -111,6 +115,9 @@ private:
 
     UPROPERTY(Transient)
     TMap<TObjectPtr<UTexture2D>, TObjectPtr<UTextBlock>> RuntimeStackTexts;
+
+    UPROPERTY(Transient)
+    TMap<TObjectPtr<UTexture2D>, TObjectPtr<UScrollBox>> RuntimeStackTextBoxes;
 
     UPROPERTY()
     TMap<TObjectPtr<UTexture2D>, FText> PreviewDescriptionByTexture;

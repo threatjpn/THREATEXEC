@@ -6,6 +6,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
+#include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
 #include "Engine/Texture2D.h"
@@ -162,12 +163,20 @@ void UPhotoLocationWidget::EnsureRuntimeStackTexts()
             continue;
         }
 
+        UScrollBox* NewStackTextBox = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+        if (!NewStackTextBox)
+        {
+            continue;
+        }
+
         UTextBlock* NewStackText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
         if (!NewStackText)
         {
             continue;
         }
 
+        NewStackTextBox->AddChild(NewStackText);
+        RuntimeStackTextBoxes.Add(Texture, NewStackTextBox);
         RuntimeStackTexts.Add(Texture, NewStackText);
     }
 }
@@ -198,6 +207,7 @@ void UPhotoLocationWidget::ApplyPreviewTextStyle(UTextBlock* TextWidget) const
 
     TextWidget->SetFont(PreviewTextFont);
     TextWidget->SetColorAndOpacity(FSlateColor(PreviewTextColor));
+    TextWidget->SetJustification(PreviewTextJustification);
 
     if (PreviewTextWrapAt > 0.0f)
     {
@@ -284,9 +294,11 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
             if (PreviewTextStackContainer)
             {
                 TObjectPtr<UTextBlock>* StackTextPtr = RuntimeStackTexts.Find(LayerTexture);
-                if (StackTextPtr && *StackTextPtr)
+                TObjectPtr<UScrollBox>* StackTextBoxPtr = RuntimeStackTextBoxes.Find(LayerTexture);
+                if (StackTextPtr && *StackTextPtr && StackTextBoxPtr && *StackTextBoxPtr)
                 {
                     UTextBlock* StackText = StackTextPtr->Get();
+                    UScrollBox* StackTextBox = StackTextBoxPtr->Get();
                     const FText* DescriptionText = PreviewDescriptionByTexture.Find(LayerTexture);
                     StackText->SetText(DescriptionText ? *DescriptionText : FText::GetEmpty());
                     ApplyPreviewTextStyle(StackText);
@@ -295,18 +307,18 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
                     const FVector2D TextTargetTranslation(LayerDepth * TextStackOffsetX, LayerDepth * TextStackOffsetY);
                     const float TextTargetOpacity = FMath::Max(MinTextOpacity, 1.0f - (LayerDepth * TextOpacityFalloff));
 
-                    TextStartTranslations.Add(LayerTexture, StackText->GetRenderTransform().Translation);
+                    TextStartTranslations.Add(LayerTexture, StackTextBox->GetRenderTransform().Translation);
                     TextTargetTranslations.Add(LayerTexture, TextTargetTranslation);
-                    TextStartOpacities.Add(LayerTexture, StackText->GetRenderOpacity());
+                    TextStartOpacities.Add(LayerTexture, StackTextBox->GetRenderOpacity());
                     TextTargetOpacities.Add(LayerTexture, TextTargetOpacity);
 
                     if (!bAnimateFrontSwap)
                     {
-                        StackText->SetRenderTranslation(TextTargetTranslation);
-                        StackText->SetRenderOpacity(TextTargetOpacity);
+                        StackTextBox->SetRenderTranslation(TextTargetTranslation);
+                        StackTextBox->SetRenderOpacity(TextTargetOpacity);
                     }
 
-                    PreviewTextStackContainer->AddChild(StackText);
+                    PreviewTextStackContainer->AddChild(StackTextBox);
                 }
             }
         }
@@ -387,14 +399,15 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
         if (PreviewTextStackContainer)
         {
             TObjectPtr<UTextBlock>* StackTextPtr = RuntimeStackTexts.Find(Texture);
+            TObjectPtr<UScrollBox>* StackTextBoxPtr = RuntimeStackTextBoxes.Find(Texture);
             const FVector2D* StartTranslation = TextStartTranslations.Find(Texture);
             const FVector2D* TargetTranslation = TextTargetTranslations.Find(Texture);
             const float* StartTextOpacity = TextStartOpacities.Find(Texture);
             const float* TargetTextOpacity = TextTargetOpacities.Find(Texture);
 
-            if (StackTextPtr && *StackTextPtr && StartTranslation && TargetTranslation && StartTextOpacity && TargetTextOpacity)
+            if (StackTextPtr && *StackTextPtr && StackTextBoxPtr && *StackTextBoxPtr && StartTranslation && TargetTranslation && StartTextOpacity && TargetTextOpacity)
             {
-                UTextBlock* StackText = StackTextPtr->Get();
+                UScrollBox* StackTextBox = StackTextBoxPtr->Get();
                 FVector2D NewTextTranslation = FMath::Lerp(*StartTranslation, *TargetTranslation, EasedAlpha);
 
                 if (Texture == LastPromotedTexture)
@@ -402,8 +415,8 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
                     NewTextTranslation.X -= FrontShufflePulse * 4.0f;
                 }
 
-                StackText->SetRenderTranslation(NewTextTranslation);
-                StackText->SetRenderOpacity(FMath::Lerp(*StartTextOpacity, *TargetTextOpacity, EasedAlpha));
+                StackTextBox->SetRenderTranslation(NewTextTranslation);
+                StackTextBox->SetRenderOpacity(FMath::Lerp(*StartTextOpacity, *TargetTextOpacity, EasedAlpha));
             }
         }
     }
