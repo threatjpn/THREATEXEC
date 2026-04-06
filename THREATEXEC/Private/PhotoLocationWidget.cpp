@@ -3,10 +3,11 @@
 
 #include "Animation/WidgetAnimation.h"
 #include "Animation/WidgetAnimationEvents.h"
+#include "Blueprint/WidgetTree.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
+#include "Components/TextBlock.h"
 #include "Components/Widget.h"
-#include "Blueprint/WidgetTree.h"
 #include "Engine/Texture2D.h"
 
 void UPhotoLocationWidget::NativeOnInitialized()
@@ -53,11 +54,11 @@ void UPhotoLocationWidget::BindEntries()
         return;
     }
 
-    const int32 ChildCount = PL_LIST->GetChildrenCount();
-    for (int32 i = 0; i < ChildCount; ++i)
+    TArray<UPhotoLocationEntryWidget*> FoundEntries;
+    CollectEntriesRecursive(PL_LIST, FoundEntries);
+
+    for (UPhotoLocationEntryWidget* Entry : FoundEntries)
     {
-        UWidget* Child = PL_LIST->GetChildAt(i);
-        UPhotoLocationEntryWidget* Entry = Cast<UPhotoLocationEntryWidget>(Child);
         if (!Entry)
         {
             continue;
@@ -73,9 +74,34 @@ void UPhotoLocationWidget::BindEntries()
     }
 }
 
+
+void UPhotoLocationWidget::CollectEntriesRecursive(UWidget* RootWidget, TArray<UPhotoLocationEntryWidget*>& OutEntries)
+{
+    if (!RootWidget)
+    {
+        return;
+    }
+
+    if (UPhotoLocationEntryWidget* Entry = Cast<UPhotoLocationEntryWidget>(RootWidget))
+    {
+        OutEntries.Add(Entry);
+        return;
+    }
+
+    if (UPanelWidget* Panel = Cast<UPanelWidget>(RootWidget))
+    {
+        const int32 ChildCount = Panel->GetChildrenCount();
+        for (int32 ChildIndex = 0; ChildIndex < ChildCount; ++ChildIndex)
+        {
+            CollectEntriesRecursive(Panel->GetChildAt(ChildIndex), OutEntries);
+        }
+    }
+}
+
 void UPhotoLocationWidget::BuildPreviewTextureStack()
 {
     PreviewTextureStack.Empty();
+    PreviewDescriptionByTexture.Empty();
 
     for (UPhotoLocationEntryWidget* Entry : CachedEntries)
     {
@@ -93,6 +119,7 @@ void UPhotoLocationWidget::BuildPreviewTextureStack()
         if (!PreviewTextureStack.Contains(Texture))
         {
             PreviewTextureStack.Add(Texture);
+            PreviewDescriptionByTexture.Add(Texture, Entry->GetPreviewDescription());
         }
     }
 }
@@ -121,6 +148,30 @@ void UPhotoLocationWidget::EnsureRuntimeStackImages()
     }
 }
 
+void UPhotoLocationWidget::EnsureRuntimeStackTexts()
+{
+    if (!PreviewTextStackContainer || !WidgetTree)
+    {
+        return;
+    }
+
+    for (UTexture2D* Texture : PreviewTextureStack)
+    {
+        if (!Texture || RuntimeStackTexts.Contains(Texture))
+        {
+            continue;
+        }
+
+        UTextBlock* NewStackText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+        if (!NewStackText)
+        {
+            continue;
+        }
+
+        RuntimeStackTexts.Add(Texture, NewStackText);
+    }
+}
+
 void UPhotoLocationWidget::SetImageTexture(UImage* ImageWidget, UTexture2D* Texture) const
 {
     if (!ImageWidget)
@@ -144,7 +195,6 @@ FWidgetTransform UPhotoLocationWidget::BuildTargetTransformForDepth(int32 DepthI
 
     const float Depth = static_cast<float>(DepthIndex);
     Transform.Translation = FVector2D(Depth * StackOffsetX, Depth * StackOffsetY);
-
     Transform.Angle = 0.0f;
 
     const float DepthScale = FMath::Max(0.8f, 1.0f - (Depth * DepthScaleFalloff));
@@ -163,56 +213,78 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
     if (PreviewStackContainer)
     {
         EnsureRuntimeStackImages();
+        EnsureRuntimeStackTexts();
 
         PreviewStackContainer->ClearChildren();
+        if (PreviewTextStackContainer)
+        {
+            PreviewTextStackContainer->ClearChildren();
+        }
 
         StackStartTransforms.Empty();
         StackTargetTransforms.Empty();
         StackStartOpacities.Empty();
         StackTargetOpacities.Empty();
 
+        TextStartTranslations.Empty();
+        TextTargetTranslations.Empty();
+        TextStartOpacities.Empty();
+        TextTargetOpacities.Empty();
+
         for (int32 TextureIndex = PreviewTextureStack.Num() - 1; TextureIndex >= 0; --TextureIndex)
         {
             UTexture2D* LayerTexture = PreviewTextureStack[TextureIndex];
+
             TObjectPtr<UImage>* StackImagePtr = RuntimeStackImages.Find(LayerTexture);
-            if (!StackImagePtr || !(*StackImagePtr))
+            if (StackImagePtr && *StackImagePtr)
             {
-                continue;
+                UImage* StackImage = StackImagePtr->Get();
+                SetImageTexture(StackImage, LayerTexture);
+
+                const float LayerDepth = static_cast<float>(TextureIndex);
+                const float TargetOpacity = FMath::Max(MinStackOpacity, 1.0f - (LayerDepth * StackOpacityFalloff));
+                const FWidgetTransform TargetTransform = BuildTargetTransformForDepth(TextureIndex);
+
+                StackStartTransforms.Add(LayerTexture, StackImage->GetRenderTransform());
+                StackStartOpacities.Add(LayerTexture, StackImage->GetRenderOpacity());
+                StackTargetTransforms.Add(LayerTexture, TargetTransform);
+                StackTargetOpacities.Add(LayerTexture, TargetOpacity);
+
+                if (!bAnimateFrontSwap)
+                {
+                    StackImage->SetRenderTransform(TargetTransform);
+                    StackImage->SetRenderOpacity(TargetOpacity);
+                }
+
+                PreviewStackContainer->AddChild(StackImage);
             }
 
-            UImage* StackImage = StackImagePtr->Get();
-            SetImageTexture(StackImage, LayerTexture);
-
-            const float LayerDepth = static_cast<float>(TextureIndex);
-            const float TargetOpacity = FMath::Max(MinStackOpacity, 1.0f - (LayerDepth * StackOpacityFalloff));
-            const FWidgetTransform TargetTransform = BuildTargetTransformForDepth(TextureIndex);
-
-            StackStartTransforms.Add(LayerTexture, StackImage->GetRenderTransform());
-            StackStartOpacities.Add(LayerTexture, StackImage->GetRenderOpacity());
-            StackTargetTransforms.Add(LayerTexture, TargetTransform);
-            StackTargetOpacities.Add(LayerTexture, TargetOpacity);
-
-            if (!bAnimateFrontSwap)
+            if (PreviewTextStackContainer)
             {
-                StackImage->SetRenderTransform(TargetTransform);
-                StackImage->SetRenderOpacity(TargetOpacity);
-            }
+                TObjectPtr<UTextBlock>* StackTextPtr = RuntimeStackTexts.Find(LayerTexture);
+                if (StackTextPtr && *StackTextPtr)
+                {
+                    UTextBlock* StackText = StackTextPtr->Get();
+                    const FText* DescriptionText = PreviewDescriptionByTexture.Find(LayerTexture);
+                    StackText->SetText(DescriptionText ? *DescriptionText : FText::GetEmpty());
 
-            PreviewStackContainer->AddChild(StackImage);
-        }
+                    const float LayerDepth = static_cast<float>(TextureIndex);
+                    const FVector2D TextTargetTranslation(LayerDepth * TextStackOffsetX, LayerDepth * TextStackOffsetY);
+                    const float TextTargetOpacity = FMath::Max(MinTextOpacity, 1.0f - (LayerDepth * TextOpacityFalloff));
 
-        for (const TPair<TObjectPtr<UTexture2D>, TObjectPtr<UImage>>& Pair : RuntimeStackImages)
-        {
-            UTexture2D* Texture = Pair.Key;
-            UImage* StackImage = Pair.Value;
-            if (!Texture || !StackImage)
-            {
-                continue;
-            }
+                    TextStartTranslations.Add(LayerTexture, StackText->GetRenderTransform().Translation);
+                    TextTargetTranslations.Add(LayerTexture, TextTargetTranslation);
+                    TextStartOpacities.Add(LayerTexture, StackText->GetRenderOpacity());
+                    TextTargetOpacities.Add(LayerTexture, TextTargetOpacity);
 
-            if (!PreviewTextureStack.Contains(Texture))
-            {
-                StackImage->SetRenderOpacity(0.0f);
+                    if (!bAnimateFrontSwap)
+                    {
+                        StackText->SetRenderTranslation(TextTargetTranslation);
+                        StackText->SetRenderOpacity(TextTargetOpacity);
+                    }
+
+                    PreviewTextStackContainer->AddChild(StackText);
+                }
             }
         }
 
@@ -269,45 +341,53 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
         const float* StartOpacity = StackStartOpacities.Find(Texture);
         const float* TargetOpacity = StackTargetOpacities.Find(Texture);
 
-        if (!StackImagePtr || !(*StackImagePtr) || !StartTransform || !TargetTransform || !StartOpacity || !TargetOpacity)
+        if (StackImagePtr && *StackImagePtr && StartTransform && TargetTransform && StartOpacity && TargetOpacity)
         {
-            continue;
+            UImage* StackImage = StackImagePtr->Get();
+
+            FWidgetTransform InterpolatedTransform;
+            InterpolatedTransform.Translation = FMath::Lerp(StartTransform->Translation, TargetTransform->Translation, EasedAlpha);
+            InterpolatedTransform.Scale = FMath::Lerp(StartTransform->Scale, TargetTransform->Scale, EasedAlpha);
+            InterpolatedTransform.Shear = FMath::Lerp(StartTransform->Shear, TargetTransform->Shear, EasedAlpha);
+            InterpolatedTransform.Angle = 0.0f;
+
+            if (Texture == LastPromotedTexture)
+            {
+                InterpolatedTransform.Translation.X -= FrontShufflePulse * 7.0f;
+                InterpolatedTransform.Translation.Y -= FrontShufflePulse * 3.0f;
+            }
+
+            StackImage->SetRenderTransform(InterpolatedTransform);
+            StackImage->SetRenderOpacity(FMath::Lerp(*StartOpacity, *TargetOpacity, EasedAlpha));
         }
 
-        UImage* StackImage = StackImagePtr->Get();
-
-        FWidgetTransform InterpolatedTransform;
-        InterpolatedTransform.Translation = FMath::Lerp(StartTransform->Translation, TargetTransform->Translation, EasedAlpha);
-        InterpolatedTransform.Scale = FMath::Lerp(StartTransform->Scale, TargetTransform->Scale, EasedAlpha);
-        InterpolatedTransform.Shear = FMath::Lerp(StartTransform->Shear, TargetTransform->Shear, EasedAlpha);
-        InterpolatedTransform.Angle = FMath::Lerp(StartTransform->Angle, TargetTransform->Angle, EasedAlpha);
-
-        if (Texture == LastPromotedTexture)
+        if (PreviewTextStackContainer)
         {
-            // Adds a subtle shuffle arc for the promoted card.
-            InterpolatedTransform.Translation.X -= FrontShufflePulse * 7.0f;
-            InterpolatedTransform.Translation.Y -= FrontShufflePulse * 3.0f;
-        }
+            TObjectPtr<UTextBlock>* StackTextPtr = RuntimeStackTexts.Find(Texture);
+            const FVector2D* StartTranslation = TextStartTranslations.Find(Texture);
+            const FVector2D* TargetTranslation = TextTargetTranslations.Find(Texture);
+            const float* StartTextOpacity = TextStartOpacities.Find(Texture);
+            const float* TargetTextOpacity = TextTargetOpacities.Find(Texture);
 
-        StackImage->SetRenderTransform(InterpolatedTransform);
-        StackImage->SetRenderOpacity(FMath::Lerp(*StartOpacity, *TargetOpacity, EasedAlpha));
+            if (StackTextPtr && *StackTextPtr && StartTranslation && TargetTranslation && StartTextOpacity && TargetTextOpacity)
+            {
+                UTextBlock* StackText = StackTextPtr->Get();
+                FVector2D NewTextTranslation = FMath::Lerp(*StartTranslation, *TargetTranslation, EasedAlpha);
+
+                if (Texture == LastPromotedTexture)
+                {
+                    NewTextTranslation.X -= FrontShufflePulse * 4.0f;
+                }
+
+                StackText->SetRenderTranslation(NewTextTranslation);
+                StackText->SetRenderOpacity(FMath::Lerp(*StartTextOpacity, *TargetTextOpacity, EasedAlpha));
+            }
+        }
     }
 
     if (StackShuffleProgress >= 1.0f)
     {
         bStackAnimationPlaying = false;
-        for (UTexture2D* Texture : PreviewTextureStack)
-        {
-            TObjectPtr<UImage>* StackImagePtr = RuntimeStackImages.Find(Texture);
-            const FWidgetTransform* TargetTransform = StackTargetTransforms.Find(Texture);
-            const float* TargetOpacity = StackTargetOpacities.Find(Texture);
-
-            if (StackImagePtr && *StackImagePtr && TargetTransform && TargetOpacity)
-            {
-                StackImagePtr->Get()->SetRenderTransform(*TargetTransform);
-                StackImagePtr->Get()->SetRenderOpacity(*TargetOpacity);
-            }
-        }
     }
 }
 
