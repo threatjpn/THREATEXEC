@@ -14,6 +14,8 @@
 #include "THREATEXEC_FileUtils.h"
 #include "TimerManager.h"
 #include "EngineUtils.h"
+#include "HAL/PlatformFileManager.h"
+#include "Algo/Reverse.h"
 
 namespace
 {
@@ -277,6 +279,38 @@ FString ABezierCurveSetActor::FindNextExportCurveSetFileName() const
 	}
 
 	return FString::Printf(TEXT("%s%d.json"), *SafePrefix, 99999);
+}
+
+FString ABezierCurveSetActor::SanitizeCurveSetFileName(const FString& InFileName) const
+{
+	FString FileName = InFileName;
+	FileName.TrimStartAndEndInline();
+	if (FileName.IsEmpty())
+	{
+		return FString();
+	}
+
+	FileName = FPaths::GetCleanFilename(FileName);
+	if (FileName.IsEmpty())
+	{
+		return FString();
+	}
+
+	if (!FileName.EndsWith(TEXT(".json"), ESearchCase::IgnoreCase))
+	{
+		FileName += TEXT(".json");
+	}
+
+	FString BaseName = FPaths::GetBaseFilename(FileName, false);
+	FString Extension = FPaths::GetExtension(FileName, false);
+	FPaths::MakeValidFileName(BaseName);
+	FPaths::MakeValidFileName(Extension);
+	if (BaseName.IsEmpty())
+	{
+		return FString();
+	}
+
+	return Extension.IsEmpty() ? BaseName : FString::Printf(TEXT("%s.%s"), *BaseName, *Extension);
 }
 
 bool ABezierCurveSetActor::ImportCurveSetJsonFromFile(const FString& FileName)
@@ -548,6 +582,88 @@ void ABezierCurveSetActor::UI_SaveExportedCurveSetSnapshot()
 {
 	const FString NextFile = FindNextExportCurveSetFileName();
 	WriteCurveSetJsonToFile(NextFile, false);
+}
+
+TArray<FString> ABezierCurveSetActor::UI_ListCurveSetJsonFiles(bool bSortAscending) const
+{
+	TArray<FString> Result;
+
+	const FString Dir = TE_PathUtils::ResolveSavedDir(IOPathAbsolute, TEXT("Bezier"));
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	if (!PlatformFile.DirectoryExists(*Dir))
+	{
+		return Result;
+	}
+
+	PlatformFile.FindFiles(Result, *Dir, TEXT("json"));
+	for (FString& Entry : Result)
+	{
+		Entry = FPaths::GetCleanFilename(Entry);
+	}
+
+	Result.Sort([](const FString& A, const FString& B)
+	{
+		return A < B;
+	});
+
+	if (!bSortAscending)
+	{
+		Algo::Reverse(Result);
+	}
+
+	return Result;
+}
+
+bool ABezierCurveSetActor::UI_ImportCurveSetJsonByFileName(const FString& FileName)
+{
+	const FString Sanitized = SanitizeCurveSetFileName(FileName);
+	if (Sanitized.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Import requested with invalid filename '%s'"), *FileName);
+		return false;
+	}
+
+	return ImportCurveSetJsonFromFile(Sanitized);
+}
+
+bool ABezierCurveSetActor::UI_SaveCurveSetJsonAs(const FString& InFileName, bool bWriteBackup)
+{
+	const FString Sanitized = SanitizeCurveSetFileName(InFileName);
+	if (Sanitized.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Save requested with invalid filename '%s'"), *InFileName);
+		return false;
+	}
+
+	return WriteCurveSetJsonToFile(Sanitized, bWriteBackup);
+}
+
+bool ABezierCurveSetActor::UI_DeleteCurveSetJsonByFileName(const FString& FileName)
+{
+	const FString Sanitized = SanitizeCurveSetFileName(FileName);
+	if (Sanitized.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Delete requested with invalid filename '%s'"), *FileName);
+		return false;
+	}
+
+	const FString AbsPath = MakeAbs(Sanitized);
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	if (!PlatformFile.FileExists(*AbsPath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Delete requested for missing file %s"), *AbsPath);
+		return false;
+	}
+
+	if (!PlatformFile.DeleteFile(*AbsPath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierCurveSetActor: Failed to delete file %s"), *AbsPath);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("BezierCurveSetActor: Deleted curve set file %s"), *AbsPath);
+	return true;
 }
 
 void ABezierCurveSetActor::UI_ClearSpawned()
