@@ -1,5 +1,5 @@
 // BezierCurveSetActor.h
-// Imports and exports whole sets of Bézier curves, manages spawned curve actors,
+// Imports and exports whole sets of BÃ©zier curves, manages spawned curve actors,
 // and exposes editor / runtime helper functions for the UMG file menu and edit UI.
 
 #pragma once
@@ -51,7 +51,7 @@ struct FBezierCurveSetFileListRowData
 };
 
 /**
- * Actor responsible for importing, exporting, and managing sets of 2D/3D Bézier curves.
+ * Actor responsible for importing, exporting, and managing sets of 2D/3D BÃ©zier curves.
  * This is the bridge between JSON file IO, spawned curve actors, and the UMG file menu.
  */
 UCLASS()
@@ -147,13 +147,30 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
 	void UI_ExportCurveSetJson();
 
-	/** Loads the fixed demo file for the final prototype flow. */
+	// Final prototype helpers:
+	// - Load always reads the fixed demo file
+	// - Save always writes the next numbered exported_curve_set_N.json
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
 	void UI_LoadDemoCurveSetJson();
 
-	/** Saves a snapshot using the next available numbered export file name. */
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
 	void UI_SaveExportedCurveSetSnapshot();
+
+	// UMG-friendly browser helpers:
+	// - enumerate *.json files in the IO folder (default Saved/Bezier)
+	// - import one selected file from that list
+	// - save with a user-provided filename into the same folder
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
+	TArray<FString> UI_ListCurveSetJsonFiles(bool bSortAscending = true) const;
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
+	bool UI_ImportCurveSetJsonByFileName(const FString& FileName);
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
+	bool UI_SaveCurveSetJsonAs(const FString& InFileName, bool bWriteBackup = false);
+
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
+	bool UI_DeleteCurveSetJsonByFileName(const FString& FileName);
 
 	/** Returns all available JSON files for the UMG file menu. */
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
@@ -285,18 +302,10 @@ private:
 	/** Auto-save timer callback. */
 	void HandleAutoSave();
 
-	/** Sanitises a user-entered curve-set file name and guarantees a .json extension if valid. */
-	static FString SanitizeCurveSetFileName(const FString& InFileName);
-
-	/** Imports a curve set from a specific JSON file. */
+	// Internal helpers for final prototype save/load flow
 	bool ImportCurveSetJsonFromFile(const FString& FileName);
-
-	/** Builds a JSON object representing the current curve set. */
 	TSharedRef<FJsonObject> BuildCurveSetJson() const;
-
-	/** Writes the current curve set to a specific JSON file. */
 	bool WriteCurveSetJsonToFile(const FString& FileName, bool bWriteBackup) const;
-
-	/** Finds the next available numbered snapshot file name. */
 	FString FindNextExportCurveSetFileName() const;
+	FString SanitizeCurveSetFileName(const FString& InFileName) const;
 };
