@@ -184,18 +184,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu")
 	bool UI_FileMenuSaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup = false);
 
-	/** Deprecated wrapper kept so existing Blueprints still compile. */
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu", meta = (DeprecatedFunction, DeprecationMessage = "Use UI_FileMenuListCurveSetJsonFiles"))
-	void UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileListRowData>& OutFiles) const;
-
-	/** Deprecated wrapper kept so existing Blueprints still compile. */
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu", meta = (DeprecatedFunction, DeprecationMessage = "Use UI_FileMenuLoadCurveSetJsonByFileName"))
-	bool UI_LoadCurveSetJsonByFileName(const FString& InFileName);
-
-	/** Deprecated wrapper kept so existing Blueprints still compile. */
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO|FileMenu", meta = (DeprecatedFunction, DeprecationMessage = "Use UI_FileMenuSaveCurveSetJsonByFileName"))
-	bool UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup = false);
-
 	/** Destroys all currently managed spawned curve actors. */
 	UFUNCTION(CallInEditor, Category = "BezierSet|Manage")
 	void ClearSpawned();
