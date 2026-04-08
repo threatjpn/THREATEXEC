@@ -306,7 +306,11 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
 
                     const float LayerDepth = static_cast<float>(TextureIndex);
                     const FVector2D TextTargetTranslation(LayerDepth * TextStackOffsetX, LayerDepth * TextStackOffsetY);
-                    const float TextTargetOpacity = FMath::Max(MinTextOpacity, 1.0f - (LayerDepth * TextOpacityFalloff));
+                    const float TextTargetOpacity = (TextureIndex == 0)
+                        ? 1.0f
+                        : (bShowOnlyFrontDescription
+                            ? 0.0f
+                            : FMath::Max(MinTextOpacity, 1.0f - (LayerDepth * TextOpacityFalloff)));
 
                     TextStartTranslations.Add(LayerItemId, StackTextBox->GetRenderTransform().Translation);
                     TextTargetTranslations.Add(LayerItemId, TextTargetTranslation);
@@ -317,6 +321,7 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
                     {
                         StackTextBox->SetRenderTranslation(TextTargetTranslation);
                         StackTextBox->SetRenderOpacity(TextTargetOpacity);
+                        StackTextBox->SetVisibility(TextTargetOpacity > KINDA_SMALL_NUMBER ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
                     }
 
                     PreviewTextStackContainer->AddChild(StackTextBox);
@@ -417,8 +422,10 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
                     NewTextTranslation.X -= FrontShufflePulse * 4.0f;
                 }
 
+                const float NewTextOpacity = FMath::Lerp(*StartTextOpacity, *TargetTextOpacity, EasedAlpha);
                 StackTextBox->SetRenderTranslation(NewTextTranslation);
-                StackTextBox->SetRenderOpacity(FMath::Lerp(*StartTextOpacity, *TargetTextOpacity, EasedAlpha));
+                StackTextBox->SetRenderOpacity(NewTextOpacity);
+                StackTextBox->SetVisibility(NewTextOpacity > KINDA_SMALL_NUMBER ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
             }
         }
     }

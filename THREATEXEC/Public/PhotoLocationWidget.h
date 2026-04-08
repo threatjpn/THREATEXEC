@@ -91,6 +91,9 @@ protected:
     float TextStackOffsetY = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack")
+    bool bShowOnlyFrontDescription = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack")
     bool bOverridePreviewTextStyle = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Photo Location|Text Stack", meta = (EditCondition = "bOverridePreviewTextStyle"))
