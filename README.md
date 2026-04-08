@@ -70,6 +70,35 @@ If you rely on focused-only calls, ensure a focused curve exists (hover/click a 
 
 ---
 
+## Fade overlay widget replacement (`WBP_Fade`)
+
+If you want a reusable in-game fade UI (including map-transition loading spinner), use `UFadeRefWidget` as the C++ base for your replacement `WBP_Fade`.
+
+### Blueprint setup
+1. Create a new Widget Blueprint and set **Parent Class** to `FadeRefWidget`.
+2. Add a full-screen black widget (for example `Border`/`Image`) and bind it to variable name `FadeLayer`.
+3. Add your loading icon widget in the bottom-right and bind it to variable name `LoadingIcon`.
+   * Set anchors/alignment in UMG so it stays bottom-right at runtime.
+
+Both are `BindWidgetOptional`, but binding them is required for visible fade/spinner behavior.
+
+### Exposed calls (BlueprintCallable)
+Use whichever call style fits your graph:
+* `FadeIn()` → fades from transparent to black over **2 seconds** by default.
+* `FadeOut()` → fades from black to transparent over **2 seconds** by default.
+* `FadeTransition()` → runs fade-in then fade-out automatically (single call).
+* `FadeTransitionToLevel(LevelName)` → fades to black, shows spinning loading icon, then opens the target level.
+
+### Tuning + events
+* `FadeDurationSeconds` (default `2.0`) controls both in/out duration.
+* `LoadingSpinDegreesPerSecond` controls icon spin speed.
+* Bind to:
+  * `OnFadeInFinished`
+  * `OnFadeOutFinished`
+  for custom Blueprint logic around transitions.
+
+---
+
 ## Sampling & proof visualization (runtime)
 
 Both 2D and 3D curve actors expose runtime sampling settings:
