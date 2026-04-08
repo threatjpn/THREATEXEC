@@ -181,6 +181,34 @@ void UPhotoLocationWidget::EnsureRuntimeStackTexts()
     }
 }
 
+void UPhotoLocationWidget::RefreshActiveDescriptionWidget()
+{
+    if (!PreviewTextStackContainer)
+    {
+        return;
+    }
+
+    PreviewTextStackContainer->ClearChildren();
+
+    ActiveDescriptionItemId = PreviewStackItems.Num() > 0 ? PreviewStackItems[0].ItemId : INDEX_NONE;
+    if (ActiveDescriptionItemId == INDEX_NONE)
+    {
+        return;
+    }
+
+    TObjectPtr<UScrollBox>* ActiveTextBoxPtr = RuntimeStackTextBoxes.Find(ActiveDescriptionItemId);
+    if (!ActiveTextBoxPtr || !*ActiveTextBoxPtr)
+    {
+        return;
+    }
+
+    UScrollBox* ActiveTextBox = ActiveTextBoxPtr->Get();
+    ActiveTextBox->SetRenderTranslation(FVector2D::ZeroVector);
+    ActiveTextBox->SetRenderOpacity(1.0f);
+    ActiveTextBox->SetVisibility(ESlateVisibility::Visible);
+    PreviewTextStackContainer->AddChild(ActiveTextBox);
+}
+
 void UPhotoLocationWidget::SetImageTexture(UImage* ImageWidget, UTexture2D* Texture) const
 {
     if (!ImageWidget)
@@ -258,11 +286,6 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
         StackStartOpacities.Empty();
         StackTargetOpacities.Empty();
 
-        TextStartTranslations.Empty();
-        TextTargetTranslations.Empty();
-        TextStartOpacities.Empty();
-        TextTargetOpacities.Empty();
-
         for (int32 TextureIndex = PreviewStackItems.Num() - 1; TextureIndex >= 0; --TextureIndex)
         {
             const FPhotoPreviewStackItem& LayerItem = PreviewStackItems[TextureIndex];
@@ -304,30 +327,11 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
                     StackText->SetText(LayerItem.Description);
                     ApplyPreviewTextStyle(StackText);
 
-                    const float LayerDepth = static_cast<float>(TextureIndex);
-                    const FVector2D TextTargetTranslation(LayerDepth * TextStackOffsetX, LayerDepth * TextStackOffsetY);
-                    const float TextTargetOpacity = (TextureIndex == 0)
-                        ? 1.0f
-                        : (bShowOnlyFrontDescription
-                            ? 0.0f
-                            : FMath::Max(MinTextOpacity, 1.0f - (LayerDepth * TextOpacityFalloff)));
-
-                    TextStartTranslations.Add(LayerItemId, StackTextBox->GetRenderTransform().Translation);
-                    TextTargetTranslations.Add(LayerItemId, TextTargetTranslation);
-                    TextStartOpacities.Add(LayerItemId, StackTextBox->GetRenderOpacity());
-                    TextTargetOpacities.Add(LayerItemId, TextTargetOpacity);
-
-                    if (!bAnimateFrontSwap)
-                    {
-                        StackTextBox->SetRenderTranslation(TextTargetTranslation);
-                        StackTextBox->SetRenderOpacity(TextTargetOpacity);
-                        StackTextBox->SetVisibility(TextTargetOpacity > KINDA_SMALL_NUMBER ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
-                    }
-
-                    PreviewTextStackContainer->AddChild(StackTextBox);
                 }
             }
         }
+
+        RefreshActiveDescriptionWidget();
 
         StackShuffleProgress = bAnimateFrontSwap ? 0.0f : 1.0f;
         bStackAnimationPlaying = bAnimateFrontSwap;
@@ -351,6 +355,8 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
         const float BackOpacity = BackTexture ? 0.75f : 0.0f;
         PreviewImage_Next->SetRenderOpacity(BackOpacity);
         PreviewImage_Next->SetRenderTranslation(FVector2D(26.0f, 12.0f));
+
+        RefreshActiveDescriptionWidget();
     }
 
     if (bAnimateFrontSwap && PreviewFade)
@@ -401,32 +407,6 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
 
             StackImage->SetRenderTransform(InterpolatedTransform);
             StackImage->SetRenderOpacity(FMath::Lerp(*StartOpacity, *TargetOpacity, EasedAlpha));
-        }
-
-        if (PreviewTextStackContainer)
-        {
-            TObjectPtr<UTextBlock>* StackTextPtr = RuntimeStackTexts.Find(ItemId);
-            TObjectPtr<UScrollBox>* StackTextBoxPtr = RuntimeStackTextBoxes.Find(ItemId);
-            const FVector2D* StartTranslation = TextStartTranslations.Find(ItemId);
-            const FVector2D* TargetTranslation = TextTargetTranslations.Find(ItemId);
-            const float* StartTextOpacity = TextStartOpacities.Find(ItemId);
-            const float* TargetTextOpacity = TextTargetOpacities.Find(ItemId);
-
-            if (StackTextPtr && *StackTextPtr && StackTextBoxPtr && *StackTextBoxPtr && StartTranslation && TargetTranslation && StartTextOpacity && TargetTextOpacity)
-            {
-                UScrollBox* StackTextBox = StackTextBoxPtr->Get();
-                FVector2D NewTextTranslation = FMath::Lerp(*StartTranslation, *TargetTranslation, EasedAlpha);
-
-                if (ItemId == LastPromotedItemId)
-                {
-                    NewTextTranslation.X -= FrontShufflePulse * 4.0f;
-                }
-
-                const float NewTextOpacity = FMath::Lerp(*StartTextOpacity, *TargetTextOpacity, EasedAlpha);
-                StackTextBox->SetRenderTranslation(NewTextTranslation);
-                StackTextBox->SetRenderOpacity(NewTextOpacity);
-                StackTextBox->SetVisibility(NewTextOpacity > KINDA_SMALL_NUMBER ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
-            }
         }
     }
 

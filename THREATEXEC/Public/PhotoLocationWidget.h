@@ -146,16 +146,14 @@ private:
     TMap<int32, float> StackStartOpacities;
     TMap<int32, float> StackTargetOpacities;
 
-    TMap<int32, FVector2D> TextStartTranslations;
-    TMap<int32, FVector2D> TextTargetTranslations;
-    TMap<int32, float> TextStartOpacities;
-    TMap<int32, float> TextTargetOpacities;
+    int32 ActiveDescriptionItemId = INDEX_NONE;
 
     void BindEntries();
     void CollectEntriesRecursive(UWidget* RootWidget, TArray<UPhotoLocationEntryWidget*>& OutEntries);
     void BuildPreviewTextureStack();
     void EnsureRuntimeStackImages();
     void EnsureRuntimeStackTexts();
+    void RefreshActiveDescriptionWidget();
     void RefreshPreviewStackVisuals(bool bAnimateFrontSwap = false);
     void AnimateStackTowardTargets(float InDeltaTime);
     FWidgetTransform BuildTargetTransformForDepth(int32 DepthIndex) const;
