@@ -91,6 +91,14 @@ Use whichever call style fits your graph:
 * `CancelFade()` → immediately clears pending delays/transitions and resets fade back to transparent.
 * `IsFadeBusy()` → returns true while a fade or fade delay is running.
 
+### Async Blueprint nodes (wait-style execution)
+If you want Blueprint execution pins to continue only after fade completion, use:
+* `Fade In And Wait`
+* `Fade Out And Wait`
+* `Fade Transition And Wait`
+
+These are async action nodes and emit a `Completed` output pin when the fade flow is finished (`Failed` if target widget is invalid).
+
 ### Tuning + events
 * `FadeDurationSeconds` (default `2.0`) controls both in/out duration.
 * `LoadingSpinDegreesPerSecond` controls icon spin speed.
