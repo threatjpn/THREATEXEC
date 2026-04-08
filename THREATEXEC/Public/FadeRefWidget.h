@@ -16,7 +16,8 @@ enum class EFadeRefState : uint8
     FadingOut,
     TransitionIn,
     TransitionOut,
-    LevelSwitchIn
+    LevelSwitchIn,
+    LevelSwitchDelay
 };
 
 UCLASS()
@@ -40,6 +41,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Fade")
     void SetLoadingIconVisible(bool bVisible);
 
+    UFUNCTION(BlueprintCallable, Category = "Fade")
+    void CancelFade();
+
+    UFUNCTION(BlueprintPure, Category = "Fade")
+    bool IsFadeBusy() const;
+
     UPROPERTY(BlueprintAssignable, Category = "Fade")
     FFadeRefSimpleEvent OnFadeInFinished;
 
@@ -62,13 +69,29 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fade", meta = (ClampMin = "0.0"))
     float LoadingSpinDegreesPerSecond = 180.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fade|Delay", meta = (ClampMin = "0.0"))
+    float FadeInDelaySeconds = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fade|Delay", meta = (ClampMin = "0.0"))
+    float FadeOutDelaySeconds = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fade|Delay", meta = (ClampMin = "0.0"))
+    float TransitionHoldBlackSeconds = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fade|Delay", meta = (ClampMin = "0.0"))
+    float LevelLoadDelaySeconds = 0.0f;
+
 private:
+    void StartFadeWithDelay(EFadeRefState NewState, float DelaySeconds);
     void StartFade(EFadeRefState NewState);
     void ApplyFadeAlpha(float Alpha);
+    void ExecutePendingLevelTravel();
     void FinishFadeStep();
 
     EFadeRefState FadeState = EFadeRefState::Idle;
+    EFadeRefState DelayedFadeState = EFadeRefState::Idle;
     float FadeElapsedSeconds = 0.0f;
+    float FadeDelayRemainingSeconds = 0.0f;
     float CurrentFadeAlpha = 0.0f;
     float LoadingIconRotation = 0.0f;
     bool bShowLoadingIcon = false;

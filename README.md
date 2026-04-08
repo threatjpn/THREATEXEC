@@ -88,14 +88,24 @@ Use whichever call style fits your graph:
 * `FadeOut()` → fades from black to transparent over **2 seconds** by default.
 * `FadeTransition()` → runs fade-in then fade-out automatically (single call).
 * `FadeTransitionToLevel(LevelName)` → fades to black, shows spinning loading icon, then opens the target level.
+* `CancelFade()` → immediately clears pending delays/transitions and resets fade back to transparent.
+* `IsFadeBusy()` → returns true while a fade or fade delay is running.
 
 ### Tuning + events
 * `FadeDurationSeconds` (default `2.0`) controls both in/out duration.
 * `LoadingSpinDegreesPerSecond` controls icon spin speed.
+* Delay options:
+  * `FadeInDelaySeconds`
+  * `FadeOutDelaySeconds`
+  * `TransitionHoldBlackSeconds`
+  * `LevelLoadDelaySeconds`
 * Bind to:
   * `OnFadeInFinished`
   * `OnFadeOutFinished`
   for custom Blueprint logic around transitions.
+
+> Note: `OpenLevel` is blocking, so the game thread may still pause during map load.  
+> For true async-style loading screens (like Async Loading Screen plugin behavior), use a dedicated loading-screen plugin or a level-streaming based travel flow.
 
 ---
 

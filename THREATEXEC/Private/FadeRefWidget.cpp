@@ -8,7 +8,9 @@ void UFadeRefWidget::NativeConstruct()
     Super::NativeConstruct();
 
     FadeState = EFadeRefState::Idle;
+    DelayedFadeState = EFadeRefState::Idle;
     FadeElapsedSeconds = 0.0f;
+    FadeDelayRemainingSeconds = 0.0f;
     CurrentFadeAlpha = 0.0f;
     LoadingIconRotation = 0.0f;
 
@@ -20,7 +22,18 @@ void UFadeRefWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
 
-    if (FadeState != EFadeRefState::Idle)
+    if (FadeDelayRemainingSeconds > 0.0f)
+    {
+        FadeDelayRemainingSeconds = FMath::Max(0.0f, FadeDelayRemainingSeconds - InDeltaTime);
+        if (FadeDelayRemainingSeconds <= KINDA_SMALL_NUMBER && DelayedFadeState != EFadeRefState::Idle)
+        {
+            const EFadeRefState NextState = DelayedFadeState;
+            DelayedFadeState = EFadeRefState::Idle;
+            StartFade(NextState);
+        }
+    }
+
+    if (FadeState != EFadeRefState::Idle && FadeState != EFadeRefState::LevelSwitchDelay)
     {
         FadeElapsedSeconds += InDeltaTime;
 
@@ -47,6 +60,15 @@ void UFadeRefWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
             FinishFadeStep();
         }
     }
+    else if (FadeState == EFadeRefState::LevelSwitchDelay)
+    {
+        FadeElapsedSeconds += InDeltaTime;
+        if (FadeElapsedSeconds >= LevelLoadDelaySeconds)
+        {
+            ExecutePendingLevelTravel();
+            FadeState = EFadeRefState::Idle;
+        }
+    }
 
     if (LoadingIcon)
     {
@@ -66,28 +88,28 @@ void UFadeRefWidget::FadeIn()
 {
     PendingLevelToLoad = NAME_None;
     SetLoadingIconVisible(false);
-    StartFade(EFadeRefState::FadingIn);
+    StartFadeWithDelay(EFadeRefState::FadingIn, FadeInDelaySeconds);
 }
 
 void UFadeRefWidget::FadeOut()
 {
     PendingLevelToLoad = NAME_None;
     SetLoadingIconVisible(false);
-    StartFade(EFadeRefState::FadingOut);
+    StartFadeWithDelay(EFadeRefState::FadingOut, FadeOutDelaySeconds);
 }
 
 void UFadeRefWidget::FadeTransition()
 {
     PendingLevelToLoad = NAME_None;
     SetLoadingIconVisible(false);
-    StartFade(EFadeRefState::TransitionIn);
+    StartFadeWithDelay(EFadeRefState::TransitionIn, FadeInDelaySeconds);
 }
 
 void UFadeRefWidget::FadeTransitionToLevel(FName LevelName)
 {
     PendingLevelToLoad = LevelName;
     SetLoadingIconVisible(true);
-    StartFade(EFadeRefState::LevelSwitchIn);
+    StartFadeWithDelay(EFadeRefState::LevelSwitchIn, FadeInDelaySeconds);
 }
 
 void UFadeRefWidget::SetLoadingIconVisible(bool bVisible)
@@ -106,6 +128,39 @@ void UFadeRefWidget::SetLoadingIconVisible(bool bVisible)
     }
 }
 
+void UFadeRefWidget::CancelFade()
+{
+    FadeState = EFadeRefState::Idle;
+    DelayedFadeState = EFadeRefState::Idle;
+    FadeElapsedSeconds = 0.0f;
+    FadeDelayRemainingSeconds = 0.0f;
+    PendingLevelToLoad = NAME_None;
+    SetLoadingIconVisible(false);
+    ApplyFadeAlpha(0.0f);
+}
+
+bool UFadeRefWidget::IsFadeBusy() const
+{
+    return FadeState != EFadeRefState::Idle || FadeDelayRemainingSeconds > 0.0f || DelayedFadeState != EFadeRefState::Idle;
+}
+
+void UFadeRefWidget::StartFadeWithDelay(EFadeRefState NewState, float DelaySeconds)
+{
+    DelayedFadeState = EFadeRefState::Idle;
+    FadeDelayRemainingSeconds = 0.0f;
+
+    if (DelaySeconds > KINDA_SMALL_NUMBER)
+    {
+        DelayedFadeState = NewState;
+        FadeDelayRemainingSeconds = DelaySeconds;
+        FadeState = EFadeRefState::Idle;
+        FadeElapsedSeconds = 0.0f;
+        return;
+    }
+
+    StartFade(NewState);
+}
+
 void UFadeRefWidget::StartFade(EFadeRefState NewState)
 {
     FadeState = NewState;
@@ -118,6 +173,14 @@ void UFadeRefWidget::StartFade(EFadeRefState NewState)
     else if (NewState == EFadeRefState::FadingIn || NewState == EFadeRefState::TransitionIn || NewState == EFadeRefState::LevelSwitchIn)
     {
         ApplyFadeAlpha(0.0f);
+    }
+}
+
+void UFadeRefWidget::ExecutePendingLevelTravel()
+{
+    if (!PendingLevelToLoad.IsNone())
+    {
+        UGameplayStatics::OpenLevel(this, PendingLevelToLoad);
     }
 }
 
@@ -148,7 +211,7 @@ void UFadeRefWidget::FinishFadeStep()
 
     case EFadeRefState::TransitionIn:
         OnFadeInFinished.Broadcast();
-        StartFade(EFadeRefState::TransitionOut);
+        StartFadeWithDelay(EFadeRefState::TransitionOut, TransitionHoldBlackSeconds + FadeOutDelaySeconds);
         break;
 
     case EFadeRefState::TransitionOut:
@@ -158,11 +221,16 @@ void UFadeRefWidget::FinishFadeStep()
 
     case EFadeRefState::LevelSwitchIn:
         OnFadeInFinished.Broadcast();
-        if (!PendingLevelToLoad.IsNone())
+        if (LevelLoadDelaySeconds > KINDA_SMALL_NUMBER)
         {
-            UGameplayStatics::OpenLevel(this, PendingLevelToLoad);
+            FadeState = EFadeRefState::LevelSwitchDelay;
+            FadeElapsedSeconds = 0.0f;
         }
-        FadeState = EFadeRefState::Idle;
+        else
+        {
+            ExecutePendingLevelTravel();
+            FadeState = EFadeRefState::Idle;
+        }
         break;
 
     default:
