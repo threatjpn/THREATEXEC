@@ -14,6 +14,21 @@ class UWidget;
 class UPhotoLocationEntryWidget;
 class UScrollBox;
 
+USTRUCT()
+struct FPhotoPreviewStackItem
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    int32 ItemId = INDEX_NONE;
+
+    UPROPERTY()
+    TObjectPtr<UTexture2D> Texture = nullptr;
+
+    UPROPERTY()
+    FText Description;
+};
+
 UCLASS()
 class THREATEXEC_API UPhotoLocationWidget : public UUserWidget
 {
@@ -103,43 +118,39 @@ private:
     bool bAnimationBound = false;
     bool bStackAnimationPlaying = false;
     float StackShuffleProgress = 1.0f;
+    int32 NextPreviewItemId = 1;
 
     UPROPERTY()
-    TArray<TObjectPtr<UTexture2D>> PreviewTextureStack;
+    TArray<FPhotoPreviewStackItem> PreviewStackItems;
 
     UPROPERTY()
     TArray<TObjectPtr<UPhotoLocationEntryWidget>> CachedEntries;
 
     UPROPERTY(Transient)
-    TMap<TObjectPtr<UTexture2D>, TObjectPtr<UImage>> RuntimeStackImages;
+    TMap<int32, TObjectPtr<UImage>> RuntimeStackImages;
 
     UPROPERTY(Transient)
-    TMap<TObjectPtr<UTexture2D>, TObjectPtr<UTextBlock>> RuntimeStackTexts;
+    TMap<int32, TObjectPtr<UTextBlock>> RuntimeStackTexts;
 
     UPROPERTY(Transient)
-    TMap<TObjectPtr<UTexture2D>, TObjectPtr<UScrollBox>> RuntimeStackTextBoxes;
-
-    UPROPERTY()
-    TMap<TObjectPtr<UTexture2D>, FText> PreviewDescriptionByTexture;
+    TMap<int32, TObjectPtr<UScrollBox>> RuntimeStackTextBoxes;
 
     UPROPERTY(Transient)
-    TObjectPtr<UTexture2D> LastPromotedTexture = nullptr;
+    int32 LastPromotedItemId = INDEX_NONE;
 
-    TMap<TObjectPtr<UTexture2D>, FWidgetTransform> StackStartTransforms;
-    TMap<TObjectPtr<UTexture2D>, FWidgetTransform> StackTargetTransforms;
-    TMap<TObjectPtr<UTexture2D>, float> StackStartOpacities;
-    TMap<TObjectPtr<UTexture2D>, float> StackTargetOpacities;
+    TMap<int32, FWidgetTransform> StackStartTransforms;
+    TMap<int32, FWidgetTransform> StackTargetTransforms;
+    TMap<int32, float> StackStartOpacities;
+    TMap<int32, float> StackTargetOpacities;
 
-    TMap<TObjectPtr<UTexture2D>, FVector2D> TextStartTranslations;
-    TMap<TObjectPtr<UTexture2D>, FVector2D> TextTargetTranslations;
-    TMap<TObjectPtr<UTexture2D>, float> TextStartOpacities;
-    TMap<TObjectPtr<UTexture2D>, float> TextTargetOpacities;
+    int32 ActiveDescriptionItemId = INDEX_NONE;
 
     void BindEntries();
     void CollectEntriesRecursive(UWidget* RootWidget, TArray<UPhotoLocationEntryWidget*>& OutEntries);
     void BuildPreviewTextureStack();
     void EnsureRuntimeStackImages();
     void EnsureRuntimeStackTexts();
+    void RefreshActiveDescriptionWidget();
     void RefreshPreviewStackVisuals(bool bAnimateFrontSwap = false);
     void AnimateStackTowardTargets(float InDeltaTime);
     FWidgetTransform BuildTargetTransformForDepth(int32 DepthIndex) const;
