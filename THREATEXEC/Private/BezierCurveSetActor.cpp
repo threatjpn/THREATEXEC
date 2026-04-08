@@ -19,6 +19,45 @@
 
 namespace
 {
+	static FString TE_FormatFileSizeLabel(int64 InBytes)
+	{
+		const double Bytes = static_cast<double>(FMath::Max<int64>(InBytes, 0));
+		constexpr double KB = 1024.0;
+		constexpr double MB = 1024.0 * 1024.0;
+		constexpr double GB = 1024.0 * 1024.0 * 1024.0;
+
+		if (Bytes >= GB)
+		{
+			return FString::Printf(TEXT("%.2f GB"), Bytes / GB);
+		}
+		if (Bytes >= MB)
+		{
+			return FString::Printf(TEXT("%.2f MB"), Bytes / MB);
+		}
+		if (Bytes >= KB)
+		{
+			return FString::Printf(TEXT("%.1f KB"), Bytes / KB);
+		}
+		return FString::Printf(TEXT("%lld B"), static_cast<long long>(InBytes));
+	}
+
+	static FString TE_FormatTimestampDDMMYYYY_HHMMSS(const FDateTime& InDateTime)
+	{
+		if (InDateTime == FDateTime::MinValue())
+		{
+			return TEXT("Unknown");
+		}
+
+		return FString::Printf(
+			TEXT("%02d/%02d/%04d %02d:%02d:%02d"),
+			InDateTime.GetDay(),
+			InDateTime.GetMonth(),
+			InDateTime.GetYear(),
+			InDateTime.GetHour(),
+			InDateTime.GetMinute(),
+			InDateTime.GetSecond());
+	}
+
 	static FString TE_SamplingModeToString(EBezierSamplingMode Mode)
 	{
 		return Mode == EBezierSamplingMode::ArcLength ? TEXT("arc_length") : TEXT("parametric");
