@@ -813,22 +813,6 @@ bool ABezierCurveSetActor::UI_FileMenuSaveCurveSetJsonByFileName(const FString& 
 	return WriteCurveSetJsonToFile(NormalizedFileName, bWriteBackup);
 }
 
-// Deprecated wrappers kept so existing Blueprints do not break immediately.
-void ABezierCurveSetActor::UI_ListCurveSetJsonFiles(TArray<FBezierCurveSetFileListRowData>& OutFiles) const
-{
-	UI_FileMenuListCurveSetJsonFiles(OutFiles);
-}
-
-bool ABezierCurveSetActor::UI_LoadCurveSetJsonByFileName(const FString& InFileName)
-{
-	return UI_FileMenuLoadCurveSetJsonByFileName(InFileName);
-}
-
-bool ABezierCurveSetActor::UI_SaveCurveSetJsonByFileName(const FString& InFileName, bool bWriteBackup)
-{
-	return UI_FileMenuSaveCurveSetJsonByFileName(InFileName, bWriteBackup);
-}
-
 void ABezierCurveSetActor::UI_ClearSpawned()
 {
 	ClearSpawned();
