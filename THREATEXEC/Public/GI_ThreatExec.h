@@ -36,13 +36,13 @@ public:
     UFUNCTION(BlueprintPure, Category = "Fade")
     bool IsFadeBusy() const;
 
-    UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", DisplayName = "GI Fade In And Wait"), Category = "Fade|Async")
+    UFUNCTION(BlueprintCallable, meta = (DisplayName = "GI Fade In And Wait", Keywords = "GI Fade Wait Async"), Category = "Fade|Async")
     UFadeRefAsyncAction* FadeInAndWait();
 
-    UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", DisplayName = "GI Fade Out And Wait"), Category = "Fade|Async")
+    UFUNCTION(BlueprintCallable, meta = (DisplayName = "GI Fade Out And Wait", Keywords = "GI Fade Wait Async"), Category = "Fade|Async")
     UFadeRefAsyncAction* FadeOutAndWait();
 
-    UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", DisplayName = "GI Fade Transition And Wait"), Category = "Fade|Async")
+    UFUNCTION(BlueprintCallable, meta = (DisplayName = "GI Fade Transition And Wait", Keywords = "GI Fade Wait Async"), Category = "Fade|Async")
     UFadeRefAsyncAction* FadeTransitionAndWait();
 
     UFUNCTION(BlueprintCallable, Category = "Fade")
