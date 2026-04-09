@@ -5,6 +5,7 @@
 #include "FadeRefAsyncAction.generated.h"
 
 class UFadeRefWidget;
+class UGI_ThreatExec;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFadeRefAsyncOutput);
 
@@ -36,6 +37,15 @@ public:
 
     UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", DisplayName = "Fade Transition And Wait"), Category = "Fade|Async")
     static UFadeRefAsyncAction* FadeTransitionAndWait(UFadeRefWidget* FadeWidget);
+
+    UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", DisplayName = "GI Fade In And Wait"), Category = "Fade|Async")
+    static UFadeRefAsyncAction* GIFadeInAndWait(UGI_ThreatExec* ThreatExecGameInstance);
+
+    UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", DisplayName = "GI Fade Out And Wait"), Category = "Fade|Async")
+    static UFadeRefAsyncAction* GIFadeOutAndWait(UGI_ThreatExec* ThreatExecGameInstance);
+
+    UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", DisplayName = "GI Fade Transition And Wait"), Category = "Fade|Async")
+    static UFadeRefAsyncAction* GIFadeTransitionAndWait(UGI_ThreatExec* ThreatExecGameInstance);
 
     virtual void Activate() override;
 

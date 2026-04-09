@@ -1,6 +1,7 @@
 #include "FadeRefAsyncAction.h"
 
 #include "FadeRefWidget.h"
+#include "GI_ThreatExec.h"
 
 UFadeRefAsyncAction* UFadeRefAsyncAction::FadeInAndWait(UFadeRefWidget* FadeWidget)
 {
@@ -15,6 +16,39 @@ UFadeRefAsyncAction* UFadeRefAsyncAction::FadeOutAndWait(UFadeRefWidget* FadeWid
 UFadeRefAsyncAction* UFadeRefAsyncAction::FadeTransitionAndWait(UFadeRefWidget* FadeWidget)
 {
     return CreateAction(FadeWidget, EFadeRefAsyncMode::Transition);
+}
+
+UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeInAndWait(UGI_ThreatExec* ThreatExecGameInstance)
+{
+    if (!ThreatExecGameInstance)
+    {
+        return CreateAction(nullptr, EFadeRefAsyncMode::FadeIn);
+    }
+
+    ThreatExecGameInstance->InitFadeWidget();
+    return CreateAction(ThreatExecGameInstance->GetFadeWidget(), EFadeRefAsyncMode::FadeIn);
+}
+
+UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeOutAndWait(UGI_ThreatExec* ThreatExecGameInstance)
+{
+    if (!ThreatExecGameInstance)
+    {
+        return CreateAction(nullptr, EFadeRefAsyncMode::FadeOut);
+    }
+
+    ThreatExecGameInstance->InitFadeWidget();
+    return CreateAction(ThreatExecGameInstance->GetFadeWidget(), EFadeRefAsyncMode::FadeOut);
+}
+
+UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeTransitionAndWait(UGI_ThreatExec* ThreatExecGameInstance)
+{
+    if (!ThreatExecGameInstance)
+    {
+        return CreateAction(nullptr, EFadeRefAsyncMode::Transition);
+    }
+
+    ThreatExecGameInstance->InitFadeWidget();
+    return CreateAction(ThreatExecGameInstance->GetFadeWidget(), EFadeRefAsyncMode::Transition);
 }
 
 UFadeRefAsyncAction* UFadeRefAsyncAction::CreateAction(UFadeRefWidget* FadeWidget, EFadeRefAsyncMode InMode)
