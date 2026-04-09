@@ -84,7 +84,9 @@ void UFadeRefAsyncAction::Activate()
         break;
 
     case EFadeRefAsyncMode::Transition:
-        FadeWidget->OnFadeOutFinished.AddDynamic(this, &UFadeRefAsyncAction::HandleFadeOutFinished);
+        // For wait-style transition flows we complete when full black is reached,
+        // so caller logic can continue while still covered by fade.
+        FadeWidget->OnFadeInFinished.AddDynamic(this, &UFadeRefAsyncAction::HandleFadeInFinished);
         FadeWidget->FadeTransition();
         break;
 
