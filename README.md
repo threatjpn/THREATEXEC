@@ -97,7 +97,23 @@ If you want Blueprint execution pins to continue only after fade completion, use
 * `Fade Out And Wait`
 * `Fade Transition And Wait`
 
-These are async action nodes and emit a `Completed` output pin when the fade flow is finished (`Failed` if target widget is invalid).
+These are async action nodes and emit a `Completed` output pin when the wait point is reached (`Failed` if target widget is invalid):
+* `Fade In And Wait` / `GI Fade In And Wait` → `Completed` when screen reaches full black.
+* `Fade Out And Wait` / `GI Fade Out And Wait` → `Completed` when screen is fully visible again.
+* `Fade Transition And Wait` / `GI Fade Transition And Wait` → `Completed` when transition reaches full black (before fade-out), so downstream logic can run while still black.
+
+If you want the async node target to be your `GI_ThreatExec` directly (instead of passing a fade widget reference), use:
+* `GI Fade In And Wait`
+* `GI Fade Out And Wait`
+* `GI Fade Transition And Wait`
+
+Typical Blueprint flow:
+1. `Get Game Instance`
+2. `Cast To GI_ThreatExec`
+3. Drag from the casted GI reference and search for one of:
+   * `GI Fade In And Wait`
+   * `GI Fade Out And Wait`
+   * `GI Fade Transition And Wait`
 
 ### Tuning + events
 * `FadeDurationSeconds` (default `2.0`) controls both in/out duration.
