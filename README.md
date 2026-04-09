@@ -115,6 +115,19 @@ Typical Blueprint flow:
    * `GI Fade Out And Wait`
    * `GI Fade Transition And Wait`
 
+If you want the async node target to be your `GI_ThreatExec` directly (instead of passing a fade widget reference), use:
+* `GI Fade In And Wait`
+* `GI Fade Out And Wait`
+* `GI Fade Transition And Wait`
+
+Typical Blueprint flow:
+1. `Get Game Instance`
+2. `Cast To GI_ThreatExec`
+3. Drag from the casted GI reference and search for one of:
+   * `GI Fade In And Wait`
+   * `GI Fade Out And Wait`
+   * `GI Fade Transition And Wait`
+
 ### Tuning + events
 * `FadeDurationSeconds` (default `2.0`) controls both in/out duration.
 * `LoadingSpinDegreesPerSecond` controls icon spin speed.
