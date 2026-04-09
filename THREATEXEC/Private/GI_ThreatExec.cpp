@@ -1,4 +1,5 @@
 #include "GI_ThreatExec.h"
+#include "FadeRefAsyncAction.h"
 #include "FadeRefWidget.h"
 
 #include "Blueprint/UserWidget.h"
@@ -86,4 +87,35 @@ void UGI_ThreatExec::FadeTransitionToLevel(FName LevelName)
     {
         FadeWidget->FadeTransitionToLevel(LevelName);
     }
+}
+
+void UGI_ThreatExec::CancelFade()
+{
+    if (FadeWidget && IsValid(FadeWidget))
+    {
+        FadeWidget->CancelFade();
+    }
+}
+
+bool UGI_ThreatExec::IsFadeBusy() const
+{
+    return FadeWidget && IsValid(FadeWidget) && FadeWidget->IsFadeBusy();
+}
+
+UFadeRefAsyncAction* UGI_ThreatExec::FadeInAndWait()
+{
+    InitFadeWidget();
+    return UFadeRefAsyncAction::FadeInAndWait(FadeWidget);
+}
+
+UFadeRefAsyncAction* UGI_ThreatExec::FadeOutAndWait()
+{
+    InitFadeWidget();
+    return UFadeRefAsyncAction::FadeOutAndWait(FadeWidget);
+}
+
+UFadeRefAsyncAction* UGI_ThreatExec::FadeTransitionAndWait()
+{
+    InitFadeWidget();
+    return UFadeRefAsyncAction::FadeTransitionAndWait(FadeWidget);
 }
