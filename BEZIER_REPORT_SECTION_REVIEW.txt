@@ -1,0 +1,249 @@
+FINAL REPORT COMPLETION PLAN (BEZIER SCOPE ONLY)
+For the completed THREATEXEC Bezier project
+
+Purpose
+- This document is the execution plan to finish the FINAL report so it reflects the project as completed.
+- Scope is strictly the Bezier system (math core, actors, import/export, validation, tests).
+- Orbit camera, general UI/widget styling, and unrelated subsystems are intentionally excluded.
+
+================================================================================
+A. FINAL REPORT OUTCOME TARGET
+================================================================================
+By the end of writing, the report must prove three things clearly:
+1) The Bezier toolkit is implemented and operational end-to-end.
+2) The implementation is mathematically correct and test-backed.
+3) The project has a credible forward path (performance, schema hardening, extensions).
+
+Definition of done for the report
+- Every major claim is tied to code artefacts and/or tests.
+- Every requirement has evidence (table or matrix).
+- Conclusion is written in completed-project language (past tense, quantified outcomes).
+
+================================================================================
+B. SECTION-BY-SECTION FINAL REPORT PLAN
+================================================================================
+
+1) Abstract (rewrite in completed-project voice)
+Write this section to state delivered outcomes, not intentions.
+
+Must include
+- Implemented de Casteljau evaluator (1D/2D/3D).
+- Implemented runtime 2D/3D Bezier actors.
+- Implemented JSON import/export and proof artifacts.
+- Implemented automation tests across math, sampling, integration.
+
+Add a compact outcome sentence
+- "The project delivered a test-backed Bezier runtime pipeline from mathematical evaluation through Unreal actor interaction and JSON validation outputs."
+
+--------------------------------------------------------------------------------
+2) Introduction and Project Context
+Shift from motivation-only to motivation + delivered response.
+
+Must include
+- Initial gap: theory-heavy Bezier teaching versus practical runtime workflows.
+- Delivered response: engine-integrated, test-backed Bezier tooling.
+- Why this matters for graphics/design workflows.
+
+Evidence to reference
+- DeCasteljau evaluator, actor-level resampling, proof export, curve-set and scene export.
+
+--------------------------------------------------------------------------------
+3) Aims, Objectives, and Success Criteria (convert to achieved status)
+Each objective should be marked as Completed / Partially Completed / Deferred.
+
+Use this exact table structure
+- Objective ID
+- Objective statement
+- Completion status
+- Evidence file(s)
+- Evidence test(s)
+
+Minimum objective rows
+- O1: Mathematical evaluator correctness.
+- O2: 2D/3D actor integration.
+- O3: Arc-length and parametric sampling.
+- O4: JSON import/export (curve, set, scene/proof outputs).
+- O5: Automation validation coverage.
+
+--------------------------------------------------------------------------------
+4) Mathematical Foundation (final form)
+Keep the theory concise and directly connected to implementation.
+
+Must include
+- Formal Bezier definition (control points, parameter t in [0,1]).
+- de Casteljau recursion summary.
+- Properties validated in project context:
+  - endpoint interpolation
+  - affine consistency
+  - stable behaviour under degenerate cases
+
+Add implementation bridge paragraph
+- Explain how theoretical steps map to evaluator functions and proof-level exports.
+
+--------------------------------------------------------------------------------
+5) System Architecture (final form)
+Present the architecture as delivered components.
+
+Subsections to include
+- Core math layer (engine-agnostic evaluator).
+- Actor execution layer (2D and 3D runtime actors).
+- Data exchange layer (control/samples/proof/set/scene JSON outputs).
+- Validation layer (automation specs and integration tests).
+
+Required figure
+- One architecture diagram showing data flow:
+  control points -> evaluator -> samples/proof -> actor spline update -> JSON outputs.
+
+--------------------------------------------------------------------------------
+6) Implementation Details (completed project evidence)
+This section should be practical and code-grounded.
+
+Include
+- How control data is evaluated and resampled.
+- How proof levels are generated and exported.
+- How set-level operations aggregate multiple curves.
+- How scene-level export serializes selected Bezier actors.
+
+Do not include
+- Orbit camera details.
+- Non-Bezier widget implementation details.
+
+--------------------------------------------------------------------------------
+7) Sampling and Numerical Behaviour
+Turn this into a measured section rather than descriptive-only.
+
+Include
+- Arc-length sampling behaviour summary.
+- Parametric vs arc-length practical difference.
+- Any measured spacing consistency observations.
+
+If exact metrics are available
+- Add mean/variance/max spacing deviation.
+If exact metrics are not available
+- State this transparently and add to forward-work item list.
+
+--------------------------------------------------------------------------------
+8) Validation and Test Results (high priority)
+This is the strongest evidence section and must be explicit.
+
+Add test matrix with columns
+- Test family
+- Test identifier
+- Expected behaviour
+- Result
+- Notes
+
+Families to include
+- Math tests (1D/2D/3D interpolation and level correctness).
+- Robustness tests (degenerate inputs, stability).
+- Sampling tests (arc-length behaviour).
+- Integration tests (actor sync/export).
+- Scene exporter tests.
+
+Add short interpretation block
+- What the passing tests prove.
+- What they do not prove yet (e.g., exhaustive performance envelope).
+
+--------------------------------------------------------------------------------
+9) Deliverables and Artefacts
+Add a concise artefact inventory to prove completion.
+
+Include
+- Source artefacts (core headers/cpps and actor modules).
+- Output artefacts (JSON families for control/samples/proof/set/scene).
+- Test artefacts (automation spec files and categories).
+
+Purpose
+- Make final report auditable and reproducible.
+
+--------------------------------------------------------------------------------
+10) Discussion (strengths, limitations, trade-offs)
+Write this in balanced engineering terms.
+
+Strengths
+- End-to-end implementation achieved.
+- Clear separation between mathematical core and runtime integration.
+- Strong automated validation footprint.
+
+Limitations
+- Performance characterization depth may still be limited.
+- Formal JSON schema versioning may need hardening.
+- Surface-level extensions (beyond curve primitives) are future work.
+
+--------------------------------------------------------------------------------
+11) Final Conclusion (replace interim tone)
+This section must read as completion, not proposal.
+
+Mandatory bullets for conclusion
+- What was delivered.
+- What was validated.
+- Why the results are technically meaningful.
+- What next phase should prioritize.
+
+Recommended closing paragraph intent
+- Confirm that the project successfully bridges Bezier theory and practical runtime tooling in Unreal with verification evidence.
+
+================================================================================
+C. NEW SECTIONS TO ADD (RECOMMENDED FOR FINAL VERSION)
+================================================================================
+1) "Requirements-to-Evidence Traceability Matrix"
+- Map each functional/non-functional requirement to implementation files and tests.
+- This directly answers "how completion was verified".
+
+2) "JSON Contract and Compatibility"
+- Document expected keys, optional fields, defaults, and compatibility policy.
+- Include one minimal and one full JSON example.
+
+3) "Reproducibility Protocol"
+- Step-by-step build/test/export procedure.
+- Expected file outputs and locations.
+
+4) "Performance Characterization"
+- Benchmark method, dataset sizes, sample counts, and observed limits.
+
+================================================================================
+D. WRITING EXECUTION CHECKLIST (PRACTICAL PLAN)
+================================================================================
+Phase 1: Convert narrative tense and objectives (Completed-project framing)
+- Rewrite Abstract, Introduction, Objectives, and Conclusion in past tense.
+- Remove future-tense language where work is already complete.
+
+Phase 2: Insert evidence tables and matrices
+- Add objective completion table.
+- Add test matrix.
+- Add requirement traceability matrix.
+
+Phase 3: Tighten implementation and architecture sections
+- Add one architecture figure.
+- Ensure every subsystem claim points to concrete artefacts.
+
+Phase 4: Add final technical polish
+- Add limitations and transparent non-goals.
+- Add reproducibility steps and output paths.
+
+Phase 5: Final consistency pass
+- Terminology consistency (Bezier/de Casteljau/sampling modes).
+- Cross-reference consistency between sections and appendices.
+- Ensure no out-of-scope subsystems are discussed.
+
+================================================================================
+E. READY-TO-USE "FINAL CONCLUSION" BULLET TEMPLATE
+================================================================================
+Use this template directly in the final report conclusion section:
+- The project delivered a complete Bezier runtime pipeline from evaluator to engine-integrated actor tooling.
+- Mathematical correctness was validated through de Casteljau-focused tests across multiple dimensions and degenerate cases.
+- Sampling and export pathways produced stable, reproducible artifacts suitable for analysis and downstream workflows.
+- Integration tests confirmed practical operability for actor synchronization and scene/set export behavior.
+- The resulting system establishes a production-relevant foundation for extending curve workflows toward broader geometric modeling tasks.
+
+================================================================================
+F. BEZIER-ONLY CODE REFERENCE INDEX FOR REPORT EVIDENCE
+================================================================================
+- Math core: THREATEXEC/Public/DeCasteljau.h
+- Arc-length helpers: THREATEXEC/Public/BezierCurveLibrary.h, THREATEXEC/Private/BezierCurveLibrary.cpp
+- 2D actor: THREATEXEC/Public/BezierCurve2DActor.h, THREATEXEC/Private/BezierCurve2DActor.cpp
+- 3D actor: THREATEXEC/Public/BezierCurve3DActor.h, THREATEXEC/Private/BezierCurve3DActor.cpp
+- Curve set management/import-export: THREATEXEC/Public/BezierCurveSetActor.h, THREATEXEC/Private/BezierCurveSetActor.cpp
+- Scene export: THREATEXEC/Public/BezierSceneExporterActor.h, THREATEXEC/Private/BezierSceneExporterActor.cpp
+- File utility support: THREATEXEC/Public/THREATEXEC_FileUtils.h, THREATEXEC/Private/THREATEXEC_FileUtils.cpp
+- Validation suites: THREATEXEC/Private/Tests/BezierSpec.cpp, THREATEXEC/Private/Tests/BezierIntegrationSpec.cpp, THREATEXEC/Private/Tests/BezierUIAutomationSpec.cpp

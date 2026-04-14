@@ -382,4 +382,96 @@ bool FBezier_PerfSmoke1024::RunTest(const FString& Params)
 	return true;
 }
 
+// ---------------------------------------------------------------------------
+// Boundary / clamp behavior tests
+// ---------------------------------------------------------------------------
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_EvalTClamp,
+"Bezier.Math.ClampT",
+EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FBezier_EvalTClamp::RunTest(const FString& Params)
+{
+	TArray<FVector2D> C = { FVector2D(0,0), FVector2D(10,0) };
+
+	const FVector2D Neg = DeCasteljauEval(C, -5.0);
+	const FVector2D Over = DeCasteljauEval(C, 5.0);
+
+	TestTrue("t<0 clamps to first", Neg.Equals(FVector2D(0,0), 1e-6));
+	TestTrue("t>1 clamps to last", Over.Equals(FVector2D(10,0), 1e-6));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_LevelsTClamp,
+"Bezier.Math.Levels.ClampT",
+EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FBezier_LevelsTClamp::RunTest(const FString& Params)
+{
+	TArray<FVector2D> C = { FVector2D(1,1), FVector2D(3,1), FVector2D(5,1) };
+	TArray<TArray<FVector2D>> LNeg;
+	TArray<TArray<FVector2D>> LOver;
+
+	DeCasteljauLevels(C, -1.0, LNeg);
+	DeCasteljauLevels(C, 2.0, LOver);
+
+	TestTrue("levels exist for t<0", LNeg.Num() == 3 && LNeg.Last().Num() == 1);
+	TestTrue("levels exist for t>1", LOver.Num() == 3 && LOver.Last().Num() == 1);
+	TestTrue("t<0 final equals first", LNeg.Last()[0].Equals(C[0], 1e-6));
+	TestTrue("t>1 final equals last", LOver.Last()[0].Equals(C.Last(), 1e-6));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_SampleUniform_SingleControl,
+"Bezier.Sampling.Param.SingleControl",
+EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FBezier_SampleUniform_SingleControl::RunTest(const FString& Params)
+{
+	TArray<FVector2D> C = { FVector2D(7, 9) };
+	TArray<FVector2D> Out;
+	SampleUniform(C, 5, Out);
+
+	TestTrue("count==5", Out.Num() == 5);
+	for (const FVector2D& P : Out)
+	{
+		TestTrue("all equal control", P.Equals(C[0], 1e-6));
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_ArcLength_ClampAndInvalidInput,
+"Bezier.Sampling.ArcLength.ClampAndInvalidInput",
+EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FBezier_ArcLength_ClampAndInvalidInput::RunTest(const FString& Params)
+{
+	TArray<FVector2D> EmptyControl;
+	TArray<FVector2D> Out;
+	UniformArcLengthSample(EmptyControl, 10, Out);
+	TestTrue("empty control -> no output", Out.Num() == 0);
+
+	TArray<FVector2D> C2 = { FVector2D(0,0), FVector2D(10,0) };
+	UniformArcLengthSample(C2, 1, Out); // clamps to min 2
+	TestTrue("target<2 clamps to 2", Out.Num() == 2);
+
+	UniformArcLengthSample(C2, 5000, Out); // clamps to max 4096
+	TestTrue("target>4096 clamps to 4096", Out.Num() == 4096);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_JSON_InvalidShape,
+"Bezier.JSON.InvalidShape",
+EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FBezier_JSON_InvalidShape::RunTest(const FString& Params)
+{
+	const FString BadJ = TEXT("{\"control\": [ [0,1], }"); // malformed
+	TSharedPtr<FJsonObject> Root;
+	const auto Reader = TJsonReaderFactory<>::Create(BadJ);
+	const bool bParsed = FJsonSerializer::Deserialize(Reader, Root);
+	TestTrue("invalid json should fail parse", !bParsed);
+	return true;
+}
+
 #endif // WITH_EDITOR
