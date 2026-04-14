@@ -465,4 +465,56 @@ bool FBezier_UI_CurveSet_IO::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_CurveSet_FileMenuOps,
+	"Bezier/UI/CurveSet_FileMenuOps",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+
+bool FBezier_UI_CurveSet_FileMenuOps::RunTest(const FString&)
+{
+	UWorld* World = GetEditorWorldChecked_UI();
+	const FString OutDir = MakeTempDir_UI(TEXT("BezierUICurveSetMenu"));
+
+	const FString JsonA = TEXT("{\"scale\":100.0,\"curves\":[{\"name\":\"CurveA\",\"space\":\"2D\",\"closed\":false,\"control\":[[0,0],[1,0],[2,0]]}]}");
+	const FString JsonB = TEXT("{\"scale\":100.0,\"curves\":[{\"name\":\"CurveB\",\"space\":\"2D\",\"closed\":false,\"control\":[[0,0],[0,1],[0,2]]}]}");
+
+	const FString APath = OutDir / TEXT("a_curves.json");
+	const FString BPath = OutDir / TEXT("b_curves.json");
+	if (!FFileHelper::SaveStringToFile(JsonA, *APath) || !FFileHelper::SaveStringToFile(JsonB, *BPath))
+	{
+		AddError(TEXT("Failed to seed menu JSON files"));
+		return false;
+	}
+
+	FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	ABezierCurveSetActor* SetActor = World->SpawnActor<ABezierCurveSetActor>(P);
+	if (!TestNotNull(TEXT("Spawn curve set"), SetActor)) return false;
+
+	SetActor->IOPathAbsolute = OutDir;
+
+	// List files and ensure both seeded files are visible.
+	TArray<FString> Listed = SetActor->UI_ListCurveSetJsonFiles(true);
+	TestTrue(TEXT("List includes a_curves.json"), Listed.Contains(TEXT("a_curves.json")));
+	TestTrue(TEXT("List includes b_curves.json"), Listed.Contains(TEXT("b_curves.json")));
+
+	TArray<FBezierCurveSetFileListRowData> MenuRows;
+	SetActor->UI_FileMenuListCurveSetJsonFiles(MenuRows);
+	TestTrue(TEXT("FileMenu rows include seeded files"), MenuRows.Num() >= 2);
+
+	// Load one via file-menu API.
+	TestTrue(TEXT("Load by file menu name"), SetActor->UI_FileMenuLoadCurveSetJsonByFileName(TEXT("a_curves.json")));
+	TestTrue(TEXT("Has any curves after load"), SetActor->UI_HasAnyCurves());
+	TestTrue(TEXT("Curve count positive after load"), SetActor->UI_GetCurveCount() > 0);
+
+	// Save under a new name and then delete it.
+	const FString SavedName = TEXT("saved_from_menu.json");
+	TestTrue(TEXT("Save by file menu name"), SetActor->UI_FileMenuSaveCurveSetJsonByFileName(SavedName, false));
+	TestTrue(TEXT("Saved file exists"), FPaths::FileExists(OutDir / SavedName));
+
+	TestTrue(TEXT("Delete by filename"), SetActor->UI_DeleteCurveSetJsonByFileName(SavedName));
+	TestTrue(TEXT("Deleted file removed"), !FPaths::FileExists(OutDir / SavedName));
+
+	SetActor->Destroy();
+	return true;
+}
+
 #endif // WITH_EDITOR
