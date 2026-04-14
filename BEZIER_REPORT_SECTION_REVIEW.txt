@@ -1,0 +1,208 @@
+Bezier Interim Report (PDF) vs Current Bezier Codebase
+Detailed section-by-section alignment notes and final-section rewrite plan
+
+Scope note
+- This review focuses only on the Bezier/math/import-export/testing pipeline in THREATEXEC.
+- Orbit camera and non-Bezier UI/widget systems are intentionally excluded.
+
+================================================================================
+1) Title / Abstract / Executive Summary (PDF streams 3, 4)
+================================================================================
+Observed in PDF
+- The report frames the project as a bridge between Bezier mathematics and interactive automotive 3D workflow.
+- It claims an end-to-end path: theory -> evaluator -> Unreal integration -> exported validation artefacts.
+
+Current code alignment (Bezier-only)
+- De Casteljau evaluator and level reconstruction are implemented in a header-only, engine-agnostic core.
+  - File: THREATEXEC/Public/DeCasteljau.h
+- 2D/3D actor runtime sampling and proof export are implemented.
+  - Files: THREATEXEC/Private/BezierCurve2DActor.cpp, THREATEXEC/Private/BezierCurve3DActor.cpp
+- Curve-set and scene-level export/import pipelines exist.
+  - Files: THREATEXEC/Private/BezierCurveSetActor.cpp, THREATEXEC/Private/BezierSceneExporterActor.cpp
+
+What to tighten in final report version
+- Add one explicit statement quantifying what "end-to-end" means in code:
+  - Core evaluator (1D/2D/3D) implemented.
+  - Arc-length resampling implemented.
+  - Proof/samples/control JSON outputs implemented.
+  - Integration and automation coverage implemented.
+
+================================================================================
+2) Introduction and Problem Statement (PDF streams 5, 6)
+================================================================================
+Observed in PDF
+- Describes the gap between theoretical Bezier teaching and practical real-time 3D usage.
+- Positions project as closing that gap.
+
+Current code alignment
+- The codebase contains both mathematically grounded evaluation and editor-integrated actor tooling.
+- Arc-length and parametric sampling are both supported and selectable.
+  - Runtime type: EBezierSamplingMode in THREATEXEC/Public/BezierRuntimeTypes.h
+  - Set-wide controls: THREATEXEC/Private/BezierCurveSetActor.cpp
+
+What to tighten in final report version
+- Add a short "Gap closure evidence" subsection listing concrete implemented functions and tests.
+- Add one table mapping each identified gap to implementation artefacts.
+
+================================================================================
+3) Mathematical Foundation (Bezier and de Casteljau) (PDF streams 11, 12, 13)
+================================================================================
+Observed in PDF
+- Covers Bezier definition and key properties (convex hull, affine invariance, endpoint interpolation).
+- Explains de Casteljau recursive interpolation and stability motivation.
+
+Current code alignment
+- Core evaluator functions are present:
+  - SafeEval
+  - DeCasteljauEval
+  - DeCasteljauLevels
+  - UniformParamSample / UniformArcLengthSample
+  - File: THREATEXEC/Public/DeCasteljau.h
+- Affine-consistency and level-correctness tests are present.
+  - File: THREATEXEC/Private/Tests/BezierSpec.cpp
+
+What to tighten in final report version
+- Include one compact pseudocode block that directly mirrors DeCasteljauLevels.
+- Include complexity notes:
+  - Evaluation complexity vs control-point count.
+  - Arc-length LUT cost and lookup strategy.
+
+================================================================================
+4) Technical Architecture and Implementation (PDF streams 10, 15, 16, 17, 21)
+================================================================================
+Observed in PDF
+- Describes layered architecture: mathematical core, actor layer, import/export layer.
+- Mentions JSON-driven exchange and proof reconstruction outputs.
+
+Current code alignment
+- Clean separation is visible in code:
+  - Math core: THREATEXEC/Public/DeCasteljau.h
+  - Curve actors: THREATEXEC/Private/BezierCurve2DActor.cpp, THREATEXEC/Private/BezierCurve3DActor.cpp
+  - Set management + IO: THREATEXEC/Private/BezierCurveSetActor.cpp
+  - Scene export: THREATEXEC/Private/BezierSceneExporterActor.cpp
+  - File utilities: THREATEXEC/Private/THREATEXEC_FileUtils.cpp
+
+What to tighten in final report version
+- Add an explicit data contract section for JSON schemas (required keys, optional keys, versioning).
+- Add an architecture diagram that distinguishes:
+  - per-curve exports (proof/control/samples)
+  - set export (curve_set.json)
+  - scene export (selected actors).
+
+================================================================================
+5) Sampling and Numerical Behaviour (PDF streams 16, 23)
+================================================================================
+Observed in PDF
+- Claims uniform arc-length sample behaviour and stable output.
+
+Current code alignment
+- Arc-length utilities and LUT remapping exist in the Bezier library/core.
+  - Files: THREATEXEC/Public/DeCasteljau.h, THREATEXEC/Private/BezierCurveLibrary.cpp
+- Dedicated 2D/3D arc-length tests exist.
+  - File: THREATEXEC/Private/Tests/BezierSpec.cpp
+
+What to tighten in final report version
+- Add quantitative metrics section:
+  - sample spacing variance (mean, stddev, max error)
+  - performance time per N samples
+  - comparison parametric vs arc-length spacing error.
+
+================================================================================
+6) Validation and Testing (PDF streams 22-31)
+================================================================================
+Observed in PDF
+- Lists multi-level validation and many tests (math, robustness, sampling, JSON, integration).
+
+Current code alignment
+- Corresponding automation tests exist across:
+  - math and robustness
+  - sampling
+  - integration and scene exporter
+  - Files: THREATEXEC/Private/Tests/BezierSpec.cpp, THREATEXEC/Private/Tests/BezierIntegrationSpec.cpp, THREATEXEC/Private/Tests/BezierUIAutomationSpec.cpp
+
+What to tighten in final report version
+- Add a test matrix table with columns:
+  - Requirement ID
+  - Test name
+  - Deterministic pass criteria
+  - Status
+  - Last execution date/build identifier
+- Add one subsection for known non-goals and untested boundaries.
+
+================================================================================
+7) Project Planning / Progress / CW1 Positioning (PDF stream 32)
+================================================================================
+Observed in PDF
+- Documents timeline and claims track alignment.
+
+Current code alignment
+- Implementation and test footprint indicate substantial CW1 delivery for Bezier scope.
+
+What to tighten in final report version
+- Replace narrative-only progress claims with evidence references:
+  - number of Bezier-focused tests
+  - exported file families supported
+  - completed actor capabilities directly tied to objectives.
+
+================================================================================
+8) Conclusion + Final Section Rewrite (PDF streams 33, 34)
+================================================================================
+Observed in PDF
+- Concludes that goals are achieved and bridge between theory and practical tooling is established.
+
+Recommended final section (detailed bullet plan)
+- Final section title:
+  - "Conclusion and Forward Plan"
+- Bullet structure for the final section:
+  - Confirmed outcomes (implemented and verified)
+    - Engine-agnostic de Casteljau evaluator across dimensions.
+    - Runtime 2D/3D actor editing with deterministic resampling paths.
+    - Proof/control/sample export and set/scene export pathways.
+    - Automation coverage across math, robustness, sampling, JSON, integration.
+  - Measured confidence
+    - Summarize test coverage breadth and principal pass criteria.
+    - State numerical guarantees currently validated (affine consistency, degenerate stability, endpoint behaviour).
+  - Current limitations (transparent and technical)
+    - Performance bounds at high control counts/sampling densities not yet fully benchmarked.
+    - JSON contract evolution/versioning strategy should be formalized.
+    - Advanced continuity classes and surface-level extension (NURBS/surfaces) are future scope.
+  - Semester 2 / next-phase roadmap
+    - Add performance benchmark harness with reproducible datasets.
+    - Add schema versioning and compatibility tests for IO.
+    - Expand from curve primitives toward patch/surface workflows while preserving test-first validation.
+  - Final one-paragraph close
+    - State that the project now demonstrates a complete, test-backed Bezier runtime foundation suitable for extension.
+
+================================================================================
+Additional sections to add in the final report (new)
+================================================================================
+A) Section: "JSON Schema and Interoperability Contract"
+- Include canonical examples for control/samples/proof/curve_set/scene outputs.
+- Define mandatory fields, optional fields, defaults, and backward compatibility policy.
+
+B) Section: "Performance Characterisation"
+- Include benchmark methodology (dataset sizes, curve degrees, sample counts).
+- Provide time/memory graphs and identify operational envelopes.
+
+C) Section: "Failure Modes and Error Handling"
+- Document invalid-input behaviour (empty control arrays, malformed JSON, degenerate curves).
+- Map each mode to current handling strategy and test coverage.
+
+D) Section: "Traceability Matrix (Requirements -> Tests -> Code)"
+- Present a compact matrix linking each functional/non-functional requirement to specific tests and source files.
+
+E) Section: "Reproducibility and Build/Test Procedure"
+- Provide exact execution steps for automation tests and expected output artifacts.
+- Include path conventions used by exports in Saved directories.
+
+================================================================================
+Quick code-to-report reference index (Bezier-only)
+================================================================================
+- Math core: THREATEXEC/Public/DeCasteljau.h
+- Arc-length utilities: THREATEXEC/Public/BezierCurveLibrary.h, THREATEXEC/Private/BezierCurveLibrary.cpp
+- 2D actor: THREATEXEC/Public/BezierCurve2DActor.h, THREATEXEC/Private/BezierCurve2DActor.cpp
+- 3D actor: THREATEXEC/Public/BezierCurve3DActor.h, THREATEXEC/Private/BezierCurve3DActor.cpp
+- Curve set manager/import-export: THREATEXEC/Public/BezierCurveSetActor.h, THREATEXEC/Private/BezierCurveSetActor.cpp
+- Scene export: THREATEXEC/Public/BezierSceneExporterActor.h, THREATEXEC/Private/BezierSceneExporterActor.cpp
+- File utilities: THREATEXEC/Public/THREATEXEC_FileUtils.h, THREATEXEC/Private/THREATEXEC_FileUtils.cpp
+- Tests: THREATEXEC/Private/Tests/BezierSpec.cpp, THREATEXEC/Private/Tests/BezierIntegrationSpec.cpp, THREATEXEC/Private/Tests/BezierUIAutomationSpec.cpp
