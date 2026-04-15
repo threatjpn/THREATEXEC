@@ -37,7 +37,7 @@ FString TE_PathUtils::ResolveSavedDir(const FString& UserPath, const FString& De
 		const FString PackagedSavedPath = FPaths::ConvertRelativePathToFull(
 			FPaths::Combine(FPlatformProcess::BaseDir(), TEXT("../../../Saved"), DefaultSubfolder));
 
-		if (!PF.DirectoryExists(*ProjectSavedPath) && PF.DirectoryExists(*PackagedSavedPath))
+		if (PF.DirectoryExists(*PackagedSavedPath))
 		{
 			Result = PackagedSavedPath;
 		}
@@ -56,7 +56,7 @@ FString TE_PathUtils::ResolveSavedDir(const FString& UserPath, const FString& De
 		const FString PackagedSavedPath = FPaths::ConvertRelativePathToFull(
 			FPaths::Combine(FPlatformProcess::BaseDir(), TEXT("../../../Saved"), UserPath));
 
-		if (!PF.DirectoryExists(*ProjectSavedPath) && PF.DirectoryExists(*PackagedSavedPath))
+		if (PF.DirectoryExists(*PackagedSavedPath))
 		{
 			Result = PackagedSavedPath;
 		}
