@@ -5,7 +5,6 @@
 #include "GI_ThreatExec.generated.h"
 
 class UFadeRefWidget;
-class UFadeRefAsyncAction;
 
 UCLASS()
 class THREATEXEC_API UGI_ThreatExec : public UGameInstance
@@ -35,15 +34,6 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Fade")
     bool IsFadeBusy() const;
-
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "GI Fade In And Wait", Keywords = "GI Fade Wait Async"), Category = "Fade|Async")
-    UFadeRefAsyncAction* FadeInAndWait();
-
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "GI Fade Out And Wait", Keywords = "GI Fade Wait Async"), Category = "Fade|Async")
-    UFadeRefAsyncAction* FadeOutAndWait();
-
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "GI Fade Transition And Wait", Keywords = "GI Fade Wait Async"), Category = "Fade|Async")
-    UFadeRefAsyncAction* FadeTransitionAndWait();
 
     UFUNCTION(BlueprintCallable, Category = "Fade")
     UFadeRefWidget* GetFadeWidget() const { return FadeWidget; }
