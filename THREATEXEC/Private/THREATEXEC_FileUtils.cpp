@@ -8,6 +8,7 @@
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
 #include "HAL/PlatformFilemanager.h"
+#include "HAL/PlatformProcess.h"
 #include "Serialization/JsonWriter.h"
 #include "Serialization/JsonSerializer.h"
 #include "Policies/CondensedJsonPrintPolicy.h"
@@ -22,16 +23,44 @@ FString TE_PathUtils::ResolveSavedDir(const FString& UserPath, const FString& De
 {
 	// Base directory
 	FString Result;
+	IPlatformFile& PF = FPlatformFileManager::Get().GetPlatformFile();
 
 	if (UserPath.IsEmpty())
 	{
 		// Saved/<DefaultSubfolder>
-		Result = FPaths::Combine(FPaths::ProjectSavedDir(), DefaultSubfolder);
+		const FString ProjectSavedPath = FPaths::Combine(FPaths::ProjectSavedDir(), DefaultSubfolder);
+		Result = ProjectSavedPath;
+
+#if !WITH_EDITOR
+		// Packaged build fallback near executable:
+		// <PackageRoot>/Saved/<DefaultSubfolder>
+		const FString PackagedSavedPath = FPaths::ConvertRelativePathToFull(
+			FPaths::Combine(FPlatformProcess::BaseDir(), TEXT("../../../Saved"), DefaultSubfolder));
+
+		if (PF.DirectoryExists(*PackagedSavedPath))
+		{
+			Result = PackagedSavedPath;
+		}
+#endif
 	}
 	else if (FPaths::IsRelative(UserPath))
 	{
 		// Saved/<UserPath>
-		Result = FPaths::Combine(FPaths::ProjectSavedDir(), UserPath);
+		const FString ProjectSavedPath = FPaths::Combine(FPaths::ProjectSavedDir(), UserPath);
+		Result = ProjectSavedPath;
+
+#if !WITH_EDITOR
+		// In packaged builds, users commonly drop JSONs next to the packaged executable
+		// under <PackageRoot>/Saved. If that directory exists, prefer it for reads/lists.
+		// This keeps editor behavior unchanged while improving shipping discoverability.
+		const FString PackagedSavedPath = FPaths::ConvertRelativePathToFull(
+			FPaths::Combine(FPlatformProcess::BaseDir(), TEXT("../../../Saved"), UserPath));
+
+		if (PF.DirectoryExists(*PackagedSavedPath))
+		{
+			Result = PackagedSavedPath;
+		}
+#endif
 	}
 	else
 	{
@@ -42,7 +71,6 @@ FString TE_PathUtils::ResolveSavedDir(const FString& UserPath, const FString& De
 	// Normalise and ensure existence
 	Result = FPaths::ConvertRelativePathToFull(Result);
 
-	IPlatformFile& PF = FPlatformFileManager::Get().GetPlatformFile();
 	if (!PF.DirectoryExists(*Result))
 	{
 		if (!PF.CreateDirectoryTree(*Result))
