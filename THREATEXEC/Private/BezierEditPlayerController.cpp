@@ -217,17 +217,6 @@ void ABezierEditPlayerController::UpdateHover()
 		return;
 	}
 
-	if (UWorld* W = GetWorld())
-	{
-		if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
-		{
-			if (NewActor->GetClass()->ImplementsInterface(UBezierEditable::StaticClass()))
-			{
-				Sub->SetFocused(NewActor);
-			}
-		}
-	}
-
 	if (HoveredActor.Get() != NewActor || HoveredIndex != NewIndex)
 	{
 		ReportDebugMessage(FString::Printf(TEXT("Hover: %s idx %d"), *NewActor->GetName(), NewIndex));

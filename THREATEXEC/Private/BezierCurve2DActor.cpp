@@ -29,6 +29,11 @@ namespace
 			return nullptr;
 		}
 
+		if (IsValid(World->ForegroundLineBatcher))
+		{
+			return World->ForegroundLineBatcher;
+		}
+
 		static TMap<TWeakObjectPtr<const UObject>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
 		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(Owner);
 		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
@@ -57,7 +62,7 @@ namespace
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher2D(Owner, World);
 		if (LineBatcher)
 		{
-			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 0.0f);
+			LineBatcher->DrawLine(Start, End, FLinearColor(Color), SDPG_Foreground, Thickness, 0.0f);
 		}
 #endif
 	}
@@ -75,7 +80,7 @@ namespace
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher2D(Owner, World);
 		if (LineBatcher)
 		{
-			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 0.0f);
+			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, SDPG_Foreground, 0.0f);
 		}
 #endif
 	}
@@ -957,6 +962,7 @@ void ABezierCurve2DActor::UI_ToggleClosedLoop()
 	if (!Spline) return;
 	Spline->SetClosedLoop(!Spline->IsClosedLoop());
 	Spline->UpdateSpline();
+	UpdateStripMesh();
 }
 
 void ABezierCurve2DActor::UI_SetClosedLoop(bool bInClosed)
@@ -964,6 +970,7 @@ void ABezierCurve2DActor::UI_SetClosedLoop(bool bInClosed)
 	if (!Spline) return;
 	Spline->SetClosedLoop(bInClosed);
 	Spline->UpdateSpline();
+	UpdateStripMesh();
 }
 
 bool ABezierCurve2DActor::UI_IsClosedLoop() const
