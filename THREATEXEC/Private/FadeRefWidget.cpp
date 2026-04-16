@@ -13,6 +13,8 @@ void UFadeRefWidget::NativeConstruct()
     FadeDelayRemainingSeconds = 0.0f;
     CurrentFadeAlpha = 0.0f;
     LoadingIconRotation = 0.0f;
+    PendingLevelToLoad = NAME_None;
+    bShowLoadingIcon = false;
 
     ApplyFadeAlpha(0.0f);
     SetLoadingIconVisible(false);
@@ -47,10 +49,12 @@ void UFadeRefWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
         case EFadeRefState::LevelSwitchIn:
             ApplyFadeAlpha(Progress);
             break;
+
         case EFadeRefState::FadingOut:
         case EFadeRefState::TransitionOut:
             ApplyFadeAlpha(1.0f - Progress);
             break;
+
         default:
             break;
         }
@@ -75,6 +79,7 @@ void UFadeRefWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
         if (bShowLoadingIcon)
         {
             LoadingIconRotation = FMath::Fmod(LoadingIconRotation + (LoadingSpinDegreesPerSecond * InDeltaTime), 360.0f);
+
             FWidgetTransform Transform = LoadingIcon->GetRenderTransform();
             Transform.Angle = LoadingIconRotation;
             LoadingIcon->SetRenderTransform(Transform);
@@ -86,30 +91,32 @@ void UFadeRefWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UFadeRefWidget::FadeIn()
 {
+    // Public meaning: reveal scene from black
     PendingLevelToLoad = NAME_None;
     SetLoadingIconVisible(false);
-    StartFadeWithDelay(EFadeRefState::FadingIn, FadeInDelaySeconds);
+    StartFadeWithDelay(EFadeRefState::FadingOut, FadeInDelaySeconds);
 }
 
 void UFadeRefWidget::FadeOut()
 {
+    // Public meaning: cover scene to black
     PendingLevelToLoad = NAME_None;
     SetLoadingIconVisible(false);
-    StartFadeWithDelay(EFadeRefState::FadingOut, FadeOutDelaySeconds);
+    StartFadeWithDelay(EFadeRefState::FadingIn, FadeOutDelaySeconds);
 }
 
 void UFadeRefWidget::FadeTransition()
 {
     PendingLevelToLoad = NAME_None;
     SetLoadingIconVisible(false);
-    StartFadeWithDelay(EFadeRefState::TransitionIn, FadeInDelaySeconds);
+    StartFadeWithDelay(EFadeRefState::TransitionIn, FadeOutDelaySeconds);
 }
 
 void UFadeRefWidget::FadeTransitionToLevel(FName LevelName)
 {
     PendingLevelToLoad = LevelName;
     SetLoadingIconVisible(true);
-    StartFadeWithDelay(EFadeRefState::LevelSwitchIn, FadeInDelaySeconds);
+    StartFadeWithDelay(EFadeRefState::LevelSwitchIn, FadeOutDelaySeconds);
 }
 
 void UFadeRefWidget::SetLoadingIconVisible(bool bVisible)
@@ -119,6 +126,7 @@ void UFadeRefWidget::SetLoadingIconVisible(bool bVisible)
     if (!bShowLoadingIcon)
     {
         LoadingIconRotation = 0.0f;
+
         if (LoadingIcon)
         {
             FWidgetTransform Transform = LoadingIcon->GetRenderTransform();
@@ -141,7 +149,9 @@ void UFadeRefWidget::CancelFade()
 
 bool UFadeRefWidget::IsFadeBusy() const
 {
-    return FadeState != EFadeRefState::Idle || FadeDelayRemainingSeconds > 0.0f || DelayedFadeState != EFadeRefState::Idle;
+    return FadeState != EFadeRefState::Idle
+        || FadeDelayRemainingSeconds > 0.0f
+        || DelayedFadeState != EFadeRefState::Idle;
 }
 
 void UFadeRefWidget::StartFadeWithDelay(EFadeRefState NewState, float DelaySeconds)
@@ -211,7 +221,7 @@ void UFadeRefWidget::FinishFadeStep()
 
     case EFadeRefState::TransitionIn:
         OnFadeInFinished.Broadcast();
-        StartFadeWithDelay(EFadeRefState::TransitionOut, TransitionHoldBlackSeconds + FadeOutDelaySeconds);
+        StartFadeWithDelay(EFadeRefState::TransitionOut, TransitionHoldBlackSeconds + FadeInDelaySeconds);
         break;
 
     case EFadeRefState::TransitionOut:
@@ -221,6 +231,7 @@ void UFadeRefWidget::FinishFadeStep()
 
     case EFadeRefState::LevelSwitchIn:
         OnFadeInFinished.Broadcast();
+
         if (LevelLoadDelaySeconds > KINDA_SMALL_NUMBER)
         {
             FadeState = EFadeRefState::LevelSwitchDelay;
