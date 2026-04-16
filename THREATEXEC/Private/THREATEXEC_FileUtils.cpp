@@ -35,7 +35,7 @@ FString TE_PathUtils::ResolveSavedDir(const FString& UserPath, const FString& De
 		// Packaged build fallback near executable:
 		// <PackageRoot>/Saved/<DefaultSubfolder>
 		const FString PackagedSavedPath = FPaths::ConvertRelativePathToFull(
-			FPaths::Combine(FPlatformProcess::BaseDir(), TEXT("../../../Saved"), DefaultSubfolder));
+			FPaths::Combine(FPlatformProcess::BaseDir(), TEXT("../../Saved"), DefaultSubfolder));
 
 		if (PF.DirectoryExists(*PackagedSavedPath))
 		{
@@ -54,7 +54,7 @@ FString TE_PathUtils::ResolveSavedDir(const FString& UserPath, const FString& De
 		// under <PackageRoot>/Saved. If that directory exists, prefer it for reads/lists.
 		// This keeps editor behavior unchanged while improving shipping discoverability.
 		const FString PackagedSavedPath = FPaths::ConvertRelativePathToFull(
-			FPaths::Combine(FPlatformProcess::BaseDir(), TEXT("../../../Saved"), UserPath));
+			FPaths::Combine(FPlatformProcess::BaseDir(), TEXT("../../Saved"), UserPath));
 
 		if (PF.DirectoryExists(*PackagedSavedPath))
 		{
