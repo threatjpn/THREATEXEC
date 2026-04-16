@@ -46,7 +46,9 @@ namespace
 		}
 		if (LineBatcher)
 		{
-			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 0.0f);
+			// Use a very short lifetime so lines behave like per-frame debug overlays
+			// instead of accumulating trails in shipping runtime.
+			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 1.0f / 120.0f);
 		}
 #endif
 	}
@@ -75,7 +77,8 @@ namespace
 		}
 		if (LineBatcher)
 		{
-			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 0.0f);
+			// Match line behavior above: short-lived points prevent ghosting/stacking artifacts.
+			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 1.0f / 120.0f);
 		}
 #endif
 	}
