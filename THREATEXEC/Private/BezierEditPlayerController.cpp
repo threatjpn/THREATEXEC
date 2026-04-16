@@ -217,6 +217,30 @@ void ABezierEditPlayerController::UpdateHover()
 		return;
 	}
 
+	if (UWorld* W = GetWorld())
+	{
+		if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
+		{
+			bool bHasExplicitFocusedSelection = false;
+			if (AActor* FocusedActor = Sub->GetFocused())
+			{
+				if (ABezierCurve3DActor* Focused3D = Cast<ABezierCurve3DActor>(FocusedActor))
+				{
+					bHasExplicitFocusedSelection = Focused3D->UI_AreAllControlPointsSelected() || Focused3D->UI_GetSelectedControlPointIndex() != INDEX_NONE;
+				}
+				else if (ABezierCurve2DActor* Focused2D = Cast<ABezierCurve2DActor>(FocusedActor))
+				{
+					bHasExplicitFocusedSelection = Focused2D->UI_AreAllControlPointsSelected() || Focused2D->UI_GetSelectedControlPointIndex() != INDEX_NONE;
+				}
+			}
+
+			if (!bHasExplicitFocusedSelection && NewActor->GetClass()->ImplementsInterface(UBezierEditable::StaticClass()))
+			{
+				Sub->SetFocused(NewActor);
+			}
+		}
+	}
+
 	if (HoveredActor.Get() != NewActor || HoveredIndex != NewIndex)
 	{
 		ReportDebugMessage(FString::Printf(TEXT("Hover: %s idx %d"), *NewActor->GetName(), NewIndex));

@@ -29,10 +29,6 @@ namespace
 			return nullptr;
 		}
 
-		if (IsValid(World->ForegroundLineBatcher))
-		{
-			return World->ForegroundLineBatcher;
-		}
 
 		static TMap<TWeakObjectPtr<const UObject>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
 		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(Owner);
