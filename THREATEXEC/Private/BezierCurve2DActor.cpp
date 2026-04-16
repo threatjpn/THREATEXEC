@@ -22,7 +22,29 @@
 
 namespace
 {
-	static void TE_DrawRuntimeLine2D(UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
+	static ULineBatchComponent* TE_GetRuntimeLineBatcher2D(const UObject* Owner, UWorld* World)
+	{
+		if (!Owner || !World)
+		{
+			return nullptr;
+		}
+
+		static TMap<TWeakObjectPtr<const UObject>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
+		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(Owner);
+		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
+		if (!IsValid(LineBatcher))
+		{
+			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
+			if (LineBatcher)
+			{
+				LineBatcher->RegisterComponentWithWorld(World);
+				CachedBatcher = LineBatcher;
+			}
+		}
+		return LineBatcher;
+	}
+
+	static void TE_DrawRuntimeLine2D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!World)
 		{
@@ -32,28 +54,15 @@ namespace
 #if ENABLE_DRAW_DEBUG
 		DrawDebugLine(World, Start, End, Color, false, 0.0f, DepthPriority, Thickness);
 #else
-		static TMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
-		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(World);
-		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
-		if (!IsValid(LineBatcher))
-		{
-			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
-			if (LineBatcher)
-			{
-				LineBatcher->RegisterComponentWithWorld(World);
-				CachedBatcher = LineBatcher;
-			}
-		}
+		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher2D(Owner, World);
 		if (LineBatcher)
 		{
-			// Use a very short lifetime so lines behave like per-frame debug overlays
-			// instead of accumulating trails in shipping runtime.
-			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 1.0f / 120.0f);
+			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 0.0f);
 		}
 #endif
 	}
 
-	static void TE_DrawRuntimePoint2D(UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
+	static void TE_DrawRuntimePoint2D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
 	{
 		if (!World)
 		{
@@ -63,22 +72,10 @@ namespace
 #if ENABLE_DRAW_DEBUG
 		DrawDebugPoint(World, Position, PointSize, Color, false, 0.0f, DepthPriority);
 #else
-		static TMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
-		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(World);
-		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
-		if (!IsValid(LineBatcher))
-		{
-			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
-			if (LineBatcher)
-			{
-				LineBatcher->RegisterComponentWithWorld(World);
-				CachedBatcher = LineBatcher;
-			}
-		}
+		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher2D(Owner, World);
 		if (LineBatcher)
 		{
-			// Match line behavior above: short-lived points prevent ghosting/stacking artifacts.
-			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 1.0f / 120.0f);
+			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 0.0f);
 		}
 #endif
 	}
@@ -193,6 +190,12 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
+#if !ENABLE_DRAW_DEBUG
+	if (ULineBatchComponent* RuntimeBatcher = TE_GetRuntimeLineBatcher2D(this, GetWorld()))
+	{
+		RuntimeBatcher->Flush();
+	}
+#endif
 	const FTransform Xf = GetActorTransform();
 	const float PulseAlpha = bPulseDebugLines
 		? FMath::Lerp(DebugPulseMinAlpha, DebugPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
@@ -217,6 +220,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		for (int32 i = 0; i + 1 < Control.Num(); ++i)
 		{
 			TE_DrawRuntimeLine2D(
+				this,
 				GetWorld(),
 				Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
 				Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
@@ -236,6 +240,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
 			{
 				TE_DrawRuntimeLine2D(
+					this,
 					GetWorld(),
 					Xf.TransformPosition(FVector(Levels[L][i].X * Scale, Levels[L][i].Y * Scale, 0.0f)),
 					Xf.TransformPosition(FVector(Levels[L][i + 1].X * Scale, Levels[L][i + 1].Y * Scale, 0.0f)),
@@ -254,6 +259,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		for (const FVector2D& Sample : Samples)
 		{
 			TE_DrawRuntimePoint2D(
+				this,
 				GetWorld(),
 				Xf.TransformPosition(FVector(Sample.X * Scale, Sample.Y * Scale, 0.0f)),
 				6.0f,

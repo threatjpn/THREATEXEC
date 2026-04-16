@@ -23,7 +23,29 @@
 
 namespace
 {
-	static void TE_DrawRuntimeLine3D(UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
+	static ULineBatchComponent* TE_GetRuntimeLineBatcher3D(const UObject* Owner, UWorld* World)
+	{
+		if (!Owner || !World)
+		{
+			return nullptr;
+		}
+
+		static TMap<TWeakObjectPtr<const UObject>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers3D;
+		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers3D.FindOrAdd(Owner);
+		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
+		if (!IsValid(LineBatcher))
+		{
+			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
+			if (LineBatcher)
+			{
+				LineBatcher->RegisterComponentWithWorld(World);
+				CachedBatcher = LineBatcher;
+			}
+		}
+		return LineBatcher;
+	}
+
+	static void TE_DrawRuntimeLine3D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!World)
 		{
@@ -33,28 +55,15 @@ namespace
 #if ENABLE_DRAW_DEBUG
 		DrawDebugLine(World, Start, End, Color, false, 0.0f, DepthPriority, Thickness);
 #else
-		static TMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers3D;
-		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers3D.FindOrAdd(World);
-		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
-		if (!IsValid(LineBatcher))
-		{
-			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
-			if (LineBatcher)
-			{
-				LineBatcher->RegisterComponentWithWorld(World);
-				CachedBatcher = LineBatcher;
-			}
-		}
+		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
 		if (LineBatcher)
 		{
-			// Use a very short lifetime so lines behave like per-frame debug overlays
-			// instead of accumulating trails in shipping runtime.
-			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 1.0f / 120.0f);
+			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 0.0f);
 		}
 #endif
 	}
 
-	static void TE_DrawRuntimePoint3D(UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
+	static void TE_DrawRuntimePoint3D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
 	{
 		if (!World)
 		{
@@ -64,22 +73,10 @@ namespace
 #if ENABLE_DRAW_DEBUG
 		DrawDebugPoint(World, Position, PointSize, Color, false, 0.0f, DepthPriority);
 #else
-		static TMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers3D;
-		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers3D.FindOrAdd(World);
-		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
-		if (!IsValid(LineBatcher))
-		{
-			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
-			if (LineBatcher)
-			{
-				LineBatcher->RegisterComponentWithWorld(World);
-				CachedBatcher = LineBatcher;
-			}
-		}
+		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
 		if (LineBatcher)
 		{
-			// Match line behavior above: short-lived points prevent ghosting/stacking artifacts.
-			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 1.0f / 120.0f);
+			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 0.0f);
 		}
 #endif
 	}
@@ -207,6 +204,12 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
+#if !ENABLE_DRAW_DEBUG
+	if (ULineBatchComponent* RuntimeBatcher = TE_GetRuntimeLineBatcher3D(this, GetWorld()))
+	{
+		RuntimeBatcher->Flush();
+	}
+#endif
 
 	const FTransform Xf = GetActorTransform();
 	const float PulseAlpha = bPulseDebugLines
@@ -232,6 +235,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		for (int32 i = 0; i + 1 < Control.Num(); ++i)
 		{
 			TE_DrawRuntimeLine3D(
+				this,
 				GetWorld(),
 				Xf.TransformPosition(Control[i] * Scale),
 				Xf.TransformPosition(Control[i + 1] * Scale),
@@ -251,6 +255,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
 			{
 				TE_DrawRuntimeLine3D(
+					this,
 					GetWorld(),
 					Xf.TransformPosition(Levels[L][i] * Scale),
 					Xf.TransformPosition(Levels[L][i + 1] * Scale),
@@ -269,6 +274,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		for (const FVector& Sample : Samples)
 		{
 			TE_DrawRuntimePoint3D(
+				this,
 				GetWorld(),
 				Xf.TransformPosition(Sample * Scale),
 				6.0f,
