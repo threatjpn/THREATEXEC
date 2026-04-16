@@ -297,6 +297,7 @@ bool FBezier_UI_3D_Core::RunTest(const FString&)
 
 	A->Control = { FVector(0,0,1), FVector(2,3,4), FVector(5,8,13) };
 	A->OverwriteSplineFromControl();
+	A->UI_SetForcePlanar(false);
 	A->UI_SetForcePlanarAxis(EBezierPlanarAxis::XY);
 	const EBezierPlanarAxis Cycle1 = A->UI_CycleForcePlanarAxis();
 	const EBezierPlanarAxis Cycle2 = A->UI_CycleForcePlanarAxis();
@@ -338,7 +339,8 @@ bool FBezier_UI_Focused_PointOps::RunTest(const FString&)
 	if (!TestNotNull(TEXT("Spawn 2D"), A2)) return false;
 	A2->Control = { FVector2D(0,0), FVector2D(1,0), FVector2D(2,0) };
 	A2->OverwriteSplineFromControl();
-	A2->SelectedControlPointIndex = 0;
+	A2->UI_SetEditMode(true);
+	A2->UI_SelectControlPoint(0);
 	Subsystem->RegisterEditable(A2);
 	Subsystem->SetFocused(A2);
 
@@ -361,7 +363,8 @@ bool FBezier_UI_Focused_PointOps::RunTest(const FString&)
 	if (!TestNotNull(TEXT("Respawn 2D"), A2b)) return false;
 	A2b->Control = { FVector2D(0,0), FVector2D(1,0), FVector2D(2,0) };
 	A2b->OverwriteSplineFromControl();
-	A2b->SelectedControlPointIndex = 0;
+	A2b->UI_SetEditMode(true);
+	A2b->UI_SelectControlPoint(0);
 	Subsystem->RegisterEditable(A2b);
 	Subsystem->SetFocused(A2b);
 	TestTrue(TEXT("Set actor add after selected 2D"), SetActor->UI_FocusAddControlPointAfterSelected());
@@ -379,7 +382,8 @@ bool FBezier_UI_Focused_PointOps::RunTest(const FString&)
 	if (!TestNotNull(TEXT("Spawn 3D"), A3)) return false;
 	A3->Control = { FVector(0,0,0), FVector(1,0,0), FVector(2,0,0) };
 	A3->OverwriteSplineFromControl();
-	A3->SelectedControlPointIndex = 0;
+	A3->UI_SetEditMode(true);
+	A3->UI_SelectControlPoint(0);
 	Subsystem->RegisterEditable(A3);
 	Subsystem->SetFocused(A3);
 
