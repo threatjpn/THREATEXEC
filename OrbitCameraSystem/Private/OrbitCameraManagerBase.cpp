@@ -496,7 +496,20 @@ void AOrbitCameraManagerBase::OnLookYaw(float Value)
 	FRotator OrbitRot = OrbitTargetRootRotation;
 	const float YawMin = FMath::Min(ActiveOrbitCamera->MinYaw, ActiveOrbitCamera->MaxYaw);
 	const float YawMax = FMath::Max(ActiveOrbitCamera->MinYaw, ActiveOrbitCamera->MaxYaw);
-	OrbitRot.Yaw = FMath::Clamp(OrbitRot.Yaw + (Value * OrbitLookYawSpeed * DeltaSeconds), YawMin, YawMax);
+	const float YawDelta = Value * OrbitLookYawSpeed * DeltaSeconds;
+
+	// Treat the default (-359..359) range as effectively unbounded so users can keep orbiting
+	// through multiple full rotations without hitting a hard yaw stop.
+	const bool bYawIsEffectivelyUnbounded = (YawMin <= -359.0f && YawMax >= 359.0f);
+	if (bYawIsEffectivelyUnbounded)
+	{
+		OrbitRot.Yaw += YawDelta;
+	}
+	else
+	{
+		OrbitRot.Yaw = FMath::Clamp(OrbitRot.Yaw + YawDelta, YawMin, YawMax);
+	}
+
 	OrbitTargetRootRotation = OrbitRot;
 }
 
