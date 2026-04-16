@@ -30,6 +30,7 @@ namespace
 			return nullptr;
 		}
 
+
 		static TMap<TWeakObjectPtr<const UObject>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers3D;
 		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers3D.FindOrAdd(Owner);
 		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
@@ -768,6 +769,12 @@ void ABezierCurve3DActor::SyncControlFromSpline()
 
 void ABezierCurve3DActor::OverwriteSplineFromControl()
 {
+	if (bForcePlanar)
+	{
+		ForcePlanarBaseControl = Control;
+		bForcePlanarHasBase = true;
+	}
+
 	WriteControlToSpline();
 	RefreshControlPointVisuals();
 	UpdateStripMesh();
@@ -957,6 +964,7 @@ void ABezierCurve3DActor::UI_ToggleClosedLoop()
 	{
 		Spline->SetClosedLoop(!Spline->IsClosedLoop());
 		Spline->UpdateSpline();
+		UpdateStripMesh();
 	}
 }
 
@@ -966,6 +974,7 @@ void ABezierCurve3DActor::UI_SetClosedLoop(bool bInClosed)
 	{
 		Spline->SetClosedLoop(bInClosed);
 		Spline->UpdateSpline();
+		UpdateStripMesh();
 	}
 }
 
@@ -1296,7 +1305,13 @@ bool ABezierCurve3DActor::UI_DeleteSelectedControlPoint()
 		return Destroy();
 	}
 
-	return UI_DeleteControlPoint(SelectedControlPointIndex);
+	if (Control.IsValidIndex(SelectedControlPointIndex))
+	{
+		return UI_DeleteControlPoint(SelectedControlPointIndex);
+	}
+
+	// Programmatic safety fallback for UI/subsystem calls when no explicit index is set.
+	return UI_DeleteControlPoint(Control.Num() - 1);
 }
 
 bool ABezierCurve3DActor::UI_DuplicateControlPoint(int32 Index)
@@ -1309,7 +1324,16 @@ bool ABezierCurve3DActor::UI_DuplicateControlPoint(int32 Index)
 	UpdateStripMesh();
 	return true;
 }
-bool ABezierCurve3DActor::UI_DuplicateSelectedControlPoint() { return UI_DuplicateControlPoint(SelectedControlPointIndex); }
+bool ABezierCurve3DActor::UI_DuplicateSelectedControlPoint()
+{
+	if (Control.IsValidIndex(SelectedControlPointIndex))
+	{
+		return UI_DuplicateControlPoint(SelectedControlPointIndex);
+	}
+
+	// Programmatic safety fallback for UI/subsystem calls when no explicit index is set.
+	return UI_DuplicateControlPoint(0);
+}
 
 bool ABezierCurve3DActor::UI_SelectFromHit(const FHitResult& Hit)
 {
@@ -1418,7 +1442,7 @@ void ABezierCurve3DActor::UI_ClearSelectedControlPoint()
 
 void ABezierCurve3DActor::UI_SelectAllControlPoints()
 {
-	if (!bEnableRuntimeEditing || !bEditMode) return;
+	if (!bEnableRuntimeEditing) return;
 	bSelectAllControlPoints = true;
 	SelectedControlPointIndex = -1;
 	UpdateControlPointInstanceColors();

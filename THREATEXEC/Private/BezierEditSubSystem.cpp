@@ -10,7 +10,19 @@
 
 bool UBezierEditSubsystem::IsEditable(AActor* Actor) const
 {
-	return Actor && Actor->GetClass()->ImplementsInterface(UBezierEditable::StaticClass());
+	if (!Actor)
+	{
+		return false;
+	}
+
+	// Prefer interface check, but keep native curve actors editable even if interface metadata
+	// is not available in a given automation/build context.
+	if (Actor->GetClass()->ImplementsInterface(UBezierEditable::StaticClass()))
+	{
+		return true;
+	}
+
+	return Cast<ABezierCurve2DActor>(Actor) != nullptr || Cast<ABezierCurve3DActor>(Actor) != nullptr;
 }
 
 void UBezierEditSubsystem::CompactRegistry()
@@ -86,6 +98,38 @@ void UBezierEditSubsystem::ForFocused(TFunctionRef<void(UObject* Obj)> Fn)
 				break;
 			}
 		}
+
+		// Recovery path for contexts where registry was not yet populated (automation/world init timing).
+		if (!IsEditable(A))
+		{
+			if (UWorld* World = GetWorld())
+			{
+				for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
+				{
+					if (IsEditable(*It))
+					{
+						A = *It;
+						FocusedActor = A;
+						OnFocusChanged.Broadcast(A);
+						break;
+					}
+				}
+
+				if (!IsEditable(A))
+				{
+					for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
+					{
+						if (IsEditable(*It))
+						{
+							A = *It;
+							FocusedActor = A;
+							OnFocusChanged.Broadcast(A);
+							break;
+						}
+					}
+				}
+			}
+		}
 	}
 
 	if (!IsEditable(A)) return;
@@ -101,10 +145,40 @@ void UBezierEditSubsystem::ForAll(TFunctionRef<void(UObject* Obj)> Fn)
 	}
 
 	CompactRegistry();
+	bool bAppliedAny = false;
 	for (const auto& P : Editables)
 	{
 		AActor* A = P.Get();
-		if (IsEditable(A)) Fn(A);
+		if (IsEditable(A))
+		{
+			Fn(A);
+			bAppliedAny = true;
+		}
+	}
+
+	// Recovery path for contexts where registry was not yet populated.
+	if (!bAppliedAny)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
+			{
+				if (IsEditable(*It))
+				{
+					Fn(*It);
+					bAppliedAny = true;
+				}
+			}
+
+			for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
+			{
+				if (IsEditable(*It))
+				{
+					Fn(*It);
+					bAppliedAny = true;
+				}
+			}
+		}
 	}
 }
 
@@ -703,6 +777,29 @@ bool UBezierEditSubsystem::Focus_EnsureFocused()
 			FocusedActor = A;
 			OnFocusChanged.Broadcast(A);
 			return true;
+		}
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
+		{
+			if (IsEditable(*It))
+			{
+				FocusedActor = *It;
+				OnFocusChanged.Broadcast(*It);
+				return true;
+			}
+		}
+
+		for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
+		{
+			if (IsEditable(*It))
+			{
+				FocusedActor = *It;
+				OnFocusChanged.Broadcast(*It);
+				return true;
+			}
 		}
 	}
 
