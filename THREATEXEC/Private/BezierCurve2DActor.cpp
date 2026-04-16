@@ -22,7 +22,7 @@
 
 namespace
 {
-	static void TE_DrawRuntimeLine(UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
+	static void TE_DrawRuntimeLine2D(UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!World)
 		{
@@ -39,7 +39,7 @@ namespace
 #endif
 	}
 
-	static void TE_DrawRuntimePoint(UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
+	static void TE_DrawRuntimePoint2D(UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
 	{
 		if (!World)
 		{
@@ -189,7 +189,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	{
 		for (int32 i = 0; i + 1 < Control.Num(); ++i)
 		{
-			TE_DrawRuntimeLine(
+			TE_DrawRuntimeLine2D(
 				GetWorld(),
 				Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
 				Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
@@ -208,7 +208,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			FColor C = (L == Levels.Num() - 1) ? FColor::Red : FColor(128, 200, 255, 255);
 			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
 			{
-				TE_DrawRuntimeLine(
+				TE_DrawRuntimeLine2D(
 					GetWorld(),
 					Xf.TransformPosition(FVector(Levels[L][i].X * Scale, Levels[L][i].Y * Scale, 0.0f)),
 					Xf.TransformPosition(FVector(Levels[L][i + 1].X * Scale, Levels[L][i + 1].Y * Scale, 0.0f)),
@@ -226,7 +226,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		SampleCurvePoints(SampleCount, Samples);
 		for (const FVector2D& Sample : Samples)
 		{
-			TE_DrawRuntimePoint(
+			TE_DrawRuntimePoint2D(
 				GetWorld(),
 				Xf.TransformPosition(FVector(Sample.X * Scale, Sample.Y * Scale, 0.0f)),
 				6.0f,
