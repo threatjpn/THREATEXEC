@@ -14,10 +14,72 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Engine/EngineTypes.h"
+#include "Components/LineBatchComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
+
+namespace
+{
+	static void TE_DrawRuntimeLine2D(UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
+	{
+		if (!World)
+		{
+			return;
+		}
+
+#if ENABLE_DRAW_DEBUG
+		DrawDebugLine(World, Start, End, Color, false, 0.0f, DepthPriority, Thickness);
+#else
+		static TMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
+		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(World);
+		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
+		if (!IsValid(LineBatcher))
+		{
+			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
+			if (LineBatcher)
+			{
+				LineBatcher->RegisterComponentWithWorld(World);
+				CachedBatcher = LineBatcher;
+			}
+		}
+		if (LineBatcher)
+		{
+			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 0.0f);
+		}
+#endif
+	}
+
+	static void TE_DrawRuntimePoint2D(UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
+	{
+		if (!World)
+		{
+			return;
+		}
+
+#if ENABLE_DRAW_DEBUG
+		DrawDebugPoint(World, Position, PointSize, Color, false, 0.0f, DepthPriority);
+#else
+		static TMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
+		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(World);
+		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
+		if (!IsValid(LineBatcher))
+		{
+			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
+			if (LineBatcher)
+			{
+				LineBatcher->RegisterComponentWithWorld(World);
+				CachedBatcher = LineBatcher;
+			}
+		}
+		if (LineBatcher)
+		{
+			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 0.0f);
+		}
+#endif
+	}
+}
 
 static void SetInstanceColorRGB2D(UInstancedStaticMeshComponent* ISM, int32 InstanceIndex, const FLinearColor& C, float Alpha)
 {
@@ -151,12 +213,13 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	{
 		for (int32 i = 0; i + 1 < Control.Num(); ++i)
 		{
-			DrawDebugLine(
+			TE_DrawRuntimeLine2D(
 				GetWorld(),
 				Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
 				Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
-					FColor(255, 255, 255, DebugAlpha), false, 0.f, DebugDepthPriority, FinalDebugThickness
-				);
+				FColor(255, 255, 255, DebugAlpha),
+				DebugDepthPriority,
+				FinalDebugThickness);
 		}
 	}
 
@@ -169,12 +232,13 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			FColor C = (L == Levels.Num() - 1) ? FColor::Red : FColor(128, 200, 255, 255);
 			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
 			{
-				DrawDebugLine(
+				TE_DrawRuntimeLine2D(
 					GetWorld(),
 					Xf.TransformPosition(FVector(Levels[L][i].X * Scale, Levels[L][i].Y * Scale, 0.0f)),
 					Xf.TransformPosition(FVector(Levels[L][i + 1].X * Scale, Levels[L][i + 1].Y * Scale, 0.0f)),
-						FColor(C.R, C.G, C.B, DebugAlpha), false, 0.f, DebugDepthPriority, FinalDebugThickness
-					);
+					FColor(C.R, C.G, C.B, DebugAlpha),
+					DebugDepthPriority,
+					FinalDebugThickness);
 			}
 		}
 	}
@@ -186,15 +250,12 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		SampleCurvePoints(SampleCount, Samples);
 		for (const FVector2D& Sample : Samples)
 		{
-			DrawDebugPoint(
+			TE_DrawRuntimePoint2D(
 				GetWorld(),
 				Xf.TransformPosition(FVector(Sample.X * Scale, Sample.Y * Scale, 0.0f)),
 				6.0f,
 				FColor(64, 220, 255, DebugAlpha),
-				false,
-					0.0f,
-					DebugDepthPriority
-				);
+				DebugDepthPriority);
 		}
 	}
 
