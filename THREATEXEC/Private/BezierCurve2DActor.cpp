@@ -290,11 +290,11 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				const float Offset = i * G;
 				const FVector A(-Extent, Offset, 0.0f);
 				const FVector B(Extent, Offset, 0.0f);
-					DrawDebugLine(GetWorld(), A + Origin, B + Origin, GridLineColor, false, 0.f, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine2D(this, GetWorld(), A + Origin, B + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
 
 				const FVector C(Offset, -Extent, 0.0f);
 				const FVector D(Offset, Extent, 0.0f);
-					DrawDebugLine(GetWorld(), C + Origin, D + Origin, GridLineColor, false, 0.f, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine2D(this, GetWorld(), C + Origin, D + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
 			}
 		}
 	}
