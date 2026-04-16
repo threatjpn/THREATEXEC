@@ -677,6 +677,7 @@ void ABezierCurveSetActor::UI_ImportCurveSetJson()
 
 void ABezierCurveSetActor::UI_LoadDemoCurveSetJson()
 {
+	ClearSpawned();
 	ImportCurveSetJsonFromFile(DemoCurveSetFile);
 }
 
@@ -837,6 +838,7 @@ bool ABezierCurveSetActor::UI_FileMenuLoadCurveSetJsonByFileName(const FString& 
 		return false;
 	}
 
+	ClearSpawned();
 	return ImportCurveSetJsonFromFile(NormalizedFileName);
 }
 
