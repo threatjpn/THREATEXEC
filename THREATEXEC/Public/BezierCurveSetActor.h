@@ -83,7 +83,7 @@ public:
 
 	/** Fixed demo file used by the prototype Load button. */
 	UPROPERTY(EditAnywhere, Category = "BezierSet|IO")
-	FString DemoCurveSetFile = TEXT("curve_set.json");
+	FString DemoCurveSetFile = TEXT("curve_set_DEMO.json");
 
 	/** Prefix used by the snapshot-style save button. */
 	UPROPERTY(EditAnywhere, Category = "BezierSet|IO")
