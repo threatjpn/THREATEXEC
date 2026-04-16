@@ -8,6 +8,83 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 
+namespace
+{
+bool ToggleSnapForEditable(UObject* Obj, bool& bOutNewSnapState)
+{
+	if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
+	{
+		bOutNewSnapState = !A2->bSnapToGrid;
+		A2->UI_SetSnapToGrid(bOutNewSnapState);
+		return true;
+	}
+
+	if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Obj))
+	{
+		bOutNewSnapState = !A3->bSnapToGrid;
+		A3->UI_SetSnapToGrid(bOutNewSnapState);
+		return true;
+	}
+
+	if (Obj && Obj->GetClass()->ImplementsInterface(UBezierEditable::StaticClass()))
+	{
+		const bool bCur = IBezierEditable::Execute_BEZ_GetSnapToGrid(Obj);
+		bOutNewSnapState = !bCur;
+		return true;
+	}
+
+	return false;
+}
+
+bool AddControlPointAfterSelectedForEditable(UObject* Obj)
+{
+	if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
+	{
+		return A2->UI_AddControlPointAfterSelected();
+	}
+
+	if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Obj))
+	{
+		return A3->UI_AddControlPointAfterSelected();
+	}
+
+	return Obj && Obj->GetClass()->ImplementsInterface(UBezierEditable::StaticClass()) &&
+		IBezierEditable::Execute_BEZ_AddControlPointAfterSelected(Obj);
+}
+
+bool DeleteSelectedControlPointForEditable(UObject* Obj)
+{
+	if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
+	{
+		return A2->UI_DeleteSelectedControlPoint();
+	}
+
+	if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Obj))
+	{
+		return A3->UI_DeleteSelectedControlPoint();
+	}
+
+	return Obj && Obj->GetClass()->ImplementsInterface(UBezierEditable::StaticClass()) &&
+		IBezierEditable::Execute_BEZ_DeleteSelectedControlPoint(Obj);
+}
+
+bool DuplicateSelectedControlPointForEditable(UObject* Obj)
+{
+	if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
+	{
+		return A2->UI_DuplicateSelectedControlPoint();
+	}
+
+	if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Obj))
+	{
+		return A3->UI_DuplicateSelectedControlPoint();
+	}
+
+	return Obj && Obj->GetClass()->ImplementsInterface(UBezierEditable::StaticClass()) &&
+		IBezierEditable::Execute_BEZ_DuplicateSelectedControlPoint(Obj);
+}
+}
+
 bool UBezierEditSubsystem::IsEditable(AActor* Actor) const
 {
 	if (!Actor)
@@ -307,21 +384,21 @@ void UBezierEditSubsystem::Focus_ResetCurveState()
 bool UBezierEditSubsystem::Focus_AddControlPointAfterSelected()
 {
 	bool bResult = false;
-	ForFocused([&](UObject* Obj){ bResult = IBezierEditable::Execute_BEZ_AddControlPointAfterSelected(Obj); });
+	ForFocused([&](UObject* Obj){ bResult = AddControlPointAfterSelectedForEditable(Obj); });
 	return bResult;
 }
 
 bool UBezierEditSubsystem::Focus_DeleteSelectedControlPoint()
 {
 	bool bResult = false;
-	ForFocused([&](UObject* Obj){ bResult = IBezierEditable::Execute_BEZ_DeleteSelectedControlPoint(Obj); });
+	ForFocused([&](UObject* Obj){ bResult = DeleteSelectedControlPointForEditable(Obj); });
 	return bResult;
 }
 
 bool UBezierEditSubsystem::Focus_DuplicateSelectedControlPoint()
 {
 	bool bResult = false;
-	ForFocused([&](UObject* Obj){ bResult = IBezierEditable::Execute_BEZ_DuplicateSelectedControlPoint(Obj); });
+	ForFocused([&](UObject* Obj){ bResult = DuplicateSelectedControlPointForEditable(Obj); });
 	return bResult;
 }
 
@@ -938,7 +1015,21 @@ void UBezierEditSubsystem::All_ToggleShowStrip()
 
 void UBezierEditSubsystem::All_SetSnapToGrid(bool bInSnap)
 {
-	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetSnapToGrid(Obj, bInSnap); });
+	ForAll([&](UObject* Obj)
+	{
+		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
+		{
+			A2->UI_SetSnapToGrid(bInSnap);
+		}
+		else if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Obj))
+		{
+			A3->UI_SetSnapToGrid(bInSnap);
+		}
+		else if (Obj && Obj->GetClass()->ImplementsInterface(UBezierEditable::StaticClass()))
+		{
+			IBezierEditable::Execute_BEZ_SetSnapToGrid(Obj, bInSnap);
+		}
+	});
 }
 
 void UBezierEditSubsystem::All_ToggleSnapToGrid()
@@ -947,8 +1038,15 @@ void UBezierEditSubsystem::All_ToggleSnapToGrid()
 	{
 		ForFocused([&](UObject* Obj)
 		{
-			const bool bCur = IBezierEditable::Execute_BEZ_GetSnapToGrid(Obj);
-			All_SetSnapToGrid(!bCur);
+			bool bNewSnapState = true;
+			if (ToggleSnapForEditable(Obj, bNewSnapState))
+			{
+				All_SetSnapToGrid(bNewSnapState);
+			}
+			else
+			{
+				All_SetSnapToGrid(true);
+			}
 		});
 	}
 	else
