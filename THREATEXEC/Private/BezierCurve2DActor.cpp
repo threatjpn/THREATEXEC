@@ -32,7 +32,19 @@ namespace
 #if ENABLE_DRAW_DEBUG
 		DrawDebugLine(World, Start, End, Color, false, 0.0f, DepthPriority, Thickness);
 #else
-		if (ULineBatchComponent* LineBatcher = World->PersistentLineBatcher ? World->PersistentLineBatcher : World->LineBatcher)
+		static TMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
+		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(World);
+		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
+		if (!IsValid(LineBatcher))
+		{
+			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
+			if (LineBatcher)
+			{
+				LineBatcher->RegisterComponentWithWorld(World);
+				CachedBatcher = LineBatcher;
+			}
+		}
+		if (LineBatcher)
 		{
 			LineBatcher->DrawLine(Start, End, FLinearColor(Color), DepthPriority, Thickness, 0.0f);
 		}
@@ -49,7 +61,19 @@ namespace
 #if ENABLE_DRAW_DEBUG
 		DrawDebugPoint(World, Position, PointSize, Color, false, 0.0f, DepthPriority);
 #else
-		if (ULineBatchComponent* LineBatcher = World->PersistentLineBatcher ? World->PersistentLineBatcher : World->LineBatcher)
+		static TMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers2D;
+		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers2D.FindOrAdd(World);
+		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
+		if (!IsValid(LineBatcher))
+		{
+			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
+			if (LineBatcher)
+			{
+				LineBatcher->RegisterComponentWithWorld(World);
+				CachedBatcher = LineBatcher;
+			}
+		}
+		if (LineBatcher)
 		{
 			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, DepthPriority, 0.0f);
 		}
