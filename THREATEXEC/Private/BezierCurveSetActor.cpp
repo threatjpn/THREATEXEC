@@ -702,7 +702,7 @@ TArray<FString> ABezierCurveSetActor::UI_ListCurveSetJsonFiles(bool bSortAscendi
 		return Result;
 	}
 
-	PlatformFile.FindFiles(Result, *Dir, TEXT("json"));
+	IFileManager::Get().FindFiles(Result, *(Dir / TEXT("*.json")), true, false);
 	for (FString& Entry : Result)
 	{
 		Entry = FPaths::GetCleanFilename(Entry);
