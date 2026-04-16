@@ -51,7 +51,11 @@ public:
 
 private:
     static UFadeRefAsyncAction* CreateAction(UFadeRefWidget* FadeWidget, EFadeRefAsyncMode InMode);
+
     void CleanupBindings();
+    void BeginCompletionAfterDelay(float DelaySeconds);
+    void CompleteAction();
+    void FailAction();
 
     UFUNCTION()
     void HandleFadeInFinished();
@@ -59,7 +63,11 @@ private:
     UFUNCTION()
     void HandleFadeOutFinished();
 
+    UFUNCTION()
+    void HandleCompletionDelayElapsed();
+
     TWeakObjectPtr<UFadeRefWidget> TargetFadeWidget;
     EFadeRefAsyncMode Mode = EFadeRefAsyncMode::FadeIn;
     bool bCompleted = false;
+    FTimerHandle CompletionDelayHandle;
 };
