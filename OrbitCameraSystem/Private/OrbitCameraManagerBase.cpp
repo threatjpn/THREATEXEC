@@ -427,9 +427,9 @@ void AOrbitCameraManagerBase::CycleOrbitCamera(int32 Direction)
 	OrbitCameras.Reserve(FoundActors.Num());
 	for (AActor* FoundActor : FoundActors)
 	{
-		if (AOrbitCameraBase* OrbitCamera = Cast<AOrbitCameraBase>(FoundActor))
+		if (AOrbitCameraBase* FoundOrbitCamera = Cast<AOrbitCameraBase>(FoundActor))
 		{
-			OrbitCameras.Add(OrbitCamera);
+			OrbitCameras.Add(FoundOrbitCamera);
 		}
 	}
 
@@ -438,14 +438,9 @@ void AOrbitCameraManagerBase::CycleOrbitCamera(int32 Direction)
 		return;
 	}
 
-	OrbitCameras.Sort([](const AOrbitCameraBase* A, const AOrbitCameraBase* B)
+	OrbitCameras.Sort([](const AOrbitCameraBase& A, const AOrbitCameraBase& B)
 	{
-		if (!A || !B)
-		{
-			return A != nullptr;
-		}
-
-		return A->GetName() < B->GetName();
+		return A.GetName() < B.GetName();
 	});
 
 	const int32 CurrentIndex = OrbitCameras.IndexOfByKey(ActiveOrbitCamera.Get());
