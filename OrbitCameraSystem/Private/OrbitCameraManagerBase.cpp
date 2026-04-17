@@ -423,30 +423,32 @@ void AOrbitCameraManagerBase::CycleOrbitCamera(int32 Direction)
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(this, AOrbitCameraBase::StaticClass(), FoundActors);
 
-	TArray<AOrbitCameraBase*> OrbitCameras;
-	OrbitCameras.Reserve(FoundActors.Num());
+	TArray<AOrbitCameraBase*> FoundOrbitCameras;
+	FoundOrbitCameras.Reserve(FoundActors.Num());
 	for (AActor* FoundActor : FoundActors)
 	{
-		if (AOrbitCameraBase* FoundOrbitCamera = Cast<AOrbitCameraBase>(FoundActor))
+		if (AOrbitCameraBase* FoundOrbitCamera = Cast<AOrbitCameraBase>(FoundActor); IsValid(FoundOrbitCamera))
 		{
-			OrbitCameras.Add(FoundOrbitCamera);
+			FoundOrbitCameras.Add(FoundOrbitCamera);
 		}
 	}
 
-	if (OrbitCameras.Num() < 2)
+	if (FoundOrbitCameras.Num() < 2)
 	{
 		return;
 	}
 
-	OrbitCameras.Sort([](const AOrbitCameraBase& A, const AOrbitCameraBase& B)
+	// NOTE: TArray::Sort dereferences pointer arrays before invoking the predicate,
+	// so comparator arguments must be object references, not pointers.
+	FoundOrbitCameras.Sort([](const AOrbitCameraBase& A, const AOrbitCameraBase& B)
 	{
 		return A.GetName() < B.GetName();
 	});
 
-	const int32 CurrentIndex = OrbitCameras.IndexOfByKey(ActiveOrbitCamera.Get());
+	const int32 CurrentIndex = FoundOrbitCameras.IndexOfByKey(ActiveOrbitCamera.Get());
 	const int32 WrappedCurrentIndex = CurrentIndex >= 0 ? CurrentIndex : 0;
-	const int32 NextIndex = (WrappedCurrentIndex + Direction + OrbitCameras.Num()) % OrbitCameras.Num();
-	AOrbitCameraBase* NextOrbitCamera = OrbitCameras[NextIndex];
+	const int32 NextIndex = (WrappedCurrentIndex + Direction + FoundOrbitCameras.Num()) % FoundOrbitCameras.Num();
+	AOrbitCameraBase* NextOrbitCamera = FoundOrbitCameras[NextIndex];
 
 	if (!NextOrbitCamera || NextOrbitCamera == ActiveOrbitCamera)
 	{
