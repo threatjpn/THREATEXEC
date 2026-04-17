@@ -5,6 +5,7 @@
 #include "CineCameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/InputComponent.h"
+#include "Algo/Sort.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -438,12 +439,10 @@ void AOrbitCameraManagerBase::CycleOrbitCamera(int32 Direction)
 		return;
 	}
 
-	// NOTE: TArray::Sort dereferences pointer arrays before invoking the predicate,
-	// so comparator arguments must be object references, not pointers.
-	FoundOrbitCameras.Sort([](const AOrbitCameraBase& A, const AOrbitCameraBase& B)
+	Algo::SortBy(FoundOrbitCameras, [](const AOrbitCameraBase* OrbitCameraActor)
 	{
-		return A.GetName() < B.GetName();
-	});
+		return OrbitCameraActor ? OrbitCameraActor->GetFName() : NAME_None;
+	}, FNameLexicalLess());
 
 	const int32 CurrentIndex = FoundOrbitCameras.IndexOfByKey(ActiveOrbitCamera.Get());
 	const int32 WrappedCurrentIndex = CurrentIndex >= 0 ? CurrentIndex : 0;
