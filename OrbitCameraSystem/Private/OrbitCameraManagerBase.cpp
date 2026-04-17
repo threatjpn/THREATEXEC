@@ -5,7 +5,6 @@
 #include "CineCameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/InputComponent.h"
-#include "Algo/Sort.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -95,7 +94,6 @@ void AOrbitCameraManagerBase::SetupPlayerInputComponent(UInputComponent* PlayerI
 	PlayerInputComponent->BindKey(OrbitLookHoldKey, IE_Released, this, &AOrbitCameraManagerBase::SetOrbitLookReleased);
 	PlayerInputComponent->BindKey(OrbitPanHoldKey, IE_Pressed, this, &AOrbitCameraManagerBase::SetOrbitPanPressed);
 	PlayerInputComponent->BindKey(OrbitPanHoldKey, IE_Released, this, &AOrbitCameraManagerBase::SetOrbitPanReleased);
-	PlayerInputComponent->BindKey(CycleOrbitCameraKey, IE_Pressed, this, &AOrbitCameraManagerBase::CycleToNextOrbitCamera);
 
 	PlayerInputComponent->BindAxisKey(EKeys::MouseX, this, &AOrbitCameraManagerBase::OnLookYaw);
 	PlayerInputComponent->BindAxisKey(EKeys::MouseY, this, &AOrbitCameraManagerBase::OnLookPitch);
@@ -402,65 +400,6 @@ void AOrbitCameraManagerBase::TransitionToOrbitCamera(AOrbitCameraBase* NewOrbit
 		CaptureOrbitCameraTransform(CurrentCameraDefinition, ActiveOrbitCamera);
 		ApplyDesiredViewTarget();
 	}
-}
-
-void AOrbitCameraManagerBase::CycleToNextOrbitCamera()
-{
-	CycleOrbitCamera(1);
-}
-
-void AOrbitCameraManagerBase::CycleToPreviousOrbitCamera()
-{
-	CycleOrbitCamera(-1);
-}
-
-void AOrbitCameraManagerBase::CycleOrbitCamera(int32 Direction)
-{
-	if (Direction == 0 || !GetWorld())
-	{
-		return;
-	}
-
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(this, AOrbitCameraBase::StaticClass(), FoundActors);
-
-	TArray<AOrbitCameraBase*> FoundOrbitCameras;
-	FoundOrbitCameras.Reserve(FoundActors.Num());
-	for (AActor* FoundActor : FoundActors)
-	{
-		if (AOrbitCameraBase* FoundOrbitCamera = Cast<AOrbitCameraBase>(FoundActor); IsValid(FoundOrbitCamera))
-		{
-			FoundOrbitCameras.Add(FoundOrbitCamera);
-		}
-	}
-
-	if (FoundOrbitCameras.Num() < 2)
-	{
-		return;
-	}
-
-	Algo::SortBy(FoundOrbitCameras, [](const AOrbitCameraBase* OrbitCameraActor)
-	{
-		return OrbitCameraActor ? OrbitCameraActor->GetFName() : NAME_None;
-	}, FNameLexicalLess());
-
-	const int32 CurrentIndex = FoundOrbitCameras.IndexOfByKey(ActiveOrbitCamera.Get());
-	const int32 WrappedCurrentIndex = CurrentIndex >= 0 ? CurrentIndex : 0;
-	const int32 NextIndex = (WrappedCurrentIndex + Direction + FoundOrbitCameras.Num()) % FoundOrbitCameras.Num();
-	AOrbitCameraBase* NextOrbitCamera = FoundOrbitCameras[NextIndex];
-
-	if (!NextOrbitCamera || NextOrbitCamera == ActiveOrbitCamera)
-	{
-		return;
-	}
-
-	if (bUseTransitionWhenCycling)
-	{
-		TransitionToOrbitCamera(NextOrbitCamera, ModeTransitionDuration);
-		return;
-	}
-
-	CutToOrbitCamera(NextOrbitCamera);
 }
 
 void AOrbitCameraManagerBase::UpdateModeTransition(float DeltaTime)

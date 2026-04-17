@@ -224,14 +224,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input|Keybinds")
 	FKey OrbitPanHoldKey = EKeys::MiddleMouseButton;
 
-	// Press to cycle to the next available orbit camera in the level.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input|Keybinds")
-	FKey CycleOrbitCameraKey = EKeys::C;
-
-	// If true, cycling cameras uses TransitionToOrbitCamera; otherwise it hard-cuts.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OrbitCamera|Input|Keybinds")
-	bool bUseTransitionWhenCycling = true;
-
 #pragma endregion
 
 	// Assign active orbit camera and move manager to it.
@@ -241,14 +233,6 @@ public:
 	// Transition manager transform to orbit camera over duration.
 	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
 	void TransitionToOrbitCamera(AOrbitCameraBase* NewOrbitCamera, float Duration = 0.5f);
-
-	// Cycles to the next orbit camera discovered in the level.
-	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
-	void CycleToNextOrbitCamera();
-
-	// Cycles to the previous orbit camera discovered in the level.
-	UFUNCTION(BlueprintCallable, Category = "OrbitCamera|Transition")
-	void CycleToPreviousOrbitCamera();
 
 protected:
 	// Called when the game starts or when spawned
@@ -285,7 +269,6 @@ private:
 
 	void OnLookYaw(float Value);
 	void OnLookPitch(float Value);
-	void CycleOrbitCamera(int32 Direction);
 
 	bool bOrbitLookPressed = false;
 	bool bOrbitPanPressed = false;
