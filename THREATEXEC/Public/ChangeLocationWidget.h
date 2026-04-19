@@ -1,3 +1,9 @@
+/**
+ * File: ChangeLocationWidget.h
+ * Summary: Widget that binds change-location entry widgets and forwards variant selection requests to Blueprint and external listeners.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,6 +16,7 @@ class UChangeLocationEntryWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FChangeLocationRequestedSignature, FName, VariantID);
 
+/** Widget that discovers location-entry children and routes their selection events to listeners. */
 UCLASS()
 class THREATEXEC_API UChangeLocationWidget : public UUserWidget
 {
@@ -20,7 +27,8 @@ public:
     FChangeLocationRequestedSignature OnChangeLocationRequested;
 
     UFUNCTION(BlueprintCallable, Category = "Change Location")
-    void RebindLocationEntries();
+        /** Re-collects child entry widgets and binds their click/selection delegates. */
+void RebindLocationEntries();
 
 protected:
     virtual void NativeOnInitialized() override;

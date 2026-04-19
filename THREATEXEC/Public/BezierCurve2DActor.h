@@ -1,5 +1,13 @@
 #pragma once
 
+/**
+ * @file BezierCurve2DActor.h
+ * @brief Runtime and editor-facing 2D Bézier curve actor.
+ *
+ * This actor owns 2D control-point data, synchronises it with spline/visual
+ * components, supports runtime editing, sampling, JSON import/export, and the
+ * debug/visual overlays used by the toolkit UI.
+ */
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "BezierRuntimeTypes.h"
@@ -11,20 +19,33 @@ class UInstancedStaticMeshComponent;
 class UProceduralMeshComponent;
 class UMaterialInterface;
 
+/**
+ * @brief 2D Bézier actor used for visualisation, interaction, and JSON-based persistence.
+ *
+ * The actor keeps an authoring-friendly 2D control representation while also
+ * exposing the runtime/editor hooks needed to resample, redraw, and edit the
+ * curve through shared UI systems.
+ */
 UCLASS()
 class THREATEXEC_API ABezierCurve2DActor : public AActor, public IBezierEditable
 {
 	GENERATED_BODY()
 
 public:
+	/** Default constructor. */
 	ABezierCurve2DActor();
 
+	/** Per-frame update used for runtime edit visuals and interaction state. */
 	virtual void Tick(float DeltaSeconds) override;
+	/** Rebuilds derived state when the actor is constructed or edited. */
 	virtual void OnConstruction(const FTransform& Transform) override;
+	/** Initialises runtime-only resources and cached state. */
 	virtual void BeginPlay() override;
+	/** Performs cleanup of transient runtime state before the actor is destroyed. */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 #if WITH_EDITOR
+	/** Allows editor viewport ticking so the actor remains responsive outside PIE. */
 	virtual bool ShouldTickIfViewportsOnly() const override;
 #endif
 

@@ -1,5 +1,9 @@
 #pragma once
 
+/**
+ * @file TEPlayerController.h
+ * @brief Player controller helpers for input-mode switching and photo-mode transitions.
+ */
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "TEPlayerController.generated.h"
@@ -8,12 +12,16 @@ class UUserWidget;
 class APawn;
 class AActor;
 
+/**
+ * @brief Utility player controller for switching input modes and managing photo-mode ownership.
+ */
 UCLASS()
 class THREATEXEC_API ATEPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
 public:
+	/** Default constructor. */
 	ATEPlayerController();
 
 	UFUNCTION(BlueprintCallable, Category = "Input")

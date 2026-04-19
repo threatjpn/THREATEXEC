@@ -10,6 +10,7 @@
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 #include "Camera/PlayerCameraManager.h"
+#include "InputCoreTypes.h"
 
 ABezierEditPlayerController::ABezierEditPlayerController()
 {
@@ -55,6 +56,9 @@ void ABezierEditPlayerController::SetupInputComponent()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
 		}
+
+		InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ABezierEditPlayerController::Input_Undo);
+		InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
 	}
 }
 
@@ -335,6 +339,12 @@ void ABezierEditPlayerController::StartDragFromControlPoint(AActor* HitActor, in
 		}
 	}
 
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		DragBeforeSnapshot = Sub->CaptureHistorySnapshot();
+		bHasDragBeforeSnapshot = true;
+	}
+
 	ClearHovered();
 }
 
@@ -468,6 +478,34 @@ void ABezierEditPlayerController::Input_Cancel()
 	}
 }
 
+void ABezierEditPlayerController::Input_Undo()
+{
+	if (!IsInputKeyDown(EKeys::LeftControl) && !IsInputKeyDown(EKeys::RightControl))
+	{
+		return;
+	}
+
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		StopDrag();
+		Sub->History_Undo();
+	}
+}
+
+void ABezierEditPlayerController::Input_Redo()
+{
+	if (!IsInputKeyDown(EKeys::LeftControl) && !IsInputKeyDown(EKeys::RightControl))
+	{
+		return;
+	}
+
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		StopDrag();
+		Sub->History_Redo();
+	}
+}
+
 void ABezierEditPlayerController::ClearSelectedOnActor(AActor* Actor) const
 {
 	if (!Actor) return;
@@ -557,6 +595,12 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 		}
 	}
 
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		DragBeforeSnapshot = Sub->CaptureHistorySnapshot();
+		bHasDragBeforeSnapshot = true;
+	}
+
 	ClearHovered();
 }
 
@@ -611,11 +655,21 @@ void ABezierEditPlayerController::UpdateDrag()
 
 void ABezierEditPlayerController::StopDrag()
 {
+	if (bHasDragBeforeSnapshot)
+	{
+		if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+		{
+			Sub->History_CommitInteractiveChange(DragBeforeSnapshot);
+		}
+	}
+
 	bDragging = false;
 	DraggedActor = nullptr;
 	DraggedIndex = -1;
 	bDragAllControlPoints = false;
 	DragStartWorldPoints.Reset();
+	bHasDragBeforeSnapshot = false;
+	DragBeforeSnapshot = FBezierHistorySnapshot();
 }
 
 bool ABezierEditPlayerController::DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const

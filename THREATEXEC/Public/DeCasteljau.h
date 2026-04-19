@@ -1,5 +1,13 @@
 #pragma once
 
+/**
+ * @file DeCasteljau.h
+ * @brief Header-only Bézier evaluation and sampling helpers.
+ *
+ * The utilities in this file provide deterministic de Casteljau evaluation for
+ * scalar, 2D, and 3D control-point types, along with proof-level generation and
+ * uniform/arc-length style sampling support used by the runtime toolkit.
+ */
 // ============================================================================
 // DeCasteljau.h
 //
@@ -25,6 +33,9 @@
 
 namespace TEBezier
 {
+	/**
+	 * @brief Linearly interpolates between two values of the same supported type.
+	 */
 	// ------------------------------------------------------------------------
 	// Internal utility: component-wise LERP for double / FVector2D / FVector
 	// ------------------------------------------------------------------------
@@ -97,6 +108,12 @@ namespace TEBezier
 	// ------------------------------------------------------------------------
 	// SafeEval(T): handles degenerate cases without crashing.
 	// ------------------------------------------------------------------------
+	/**
+	 * @brief Safely evaluates a Bézier curve at the supplied parameter.
+	 *
+	 * Degenerate cases are handled defensively so callers can evaluate empty or
+	 * single-point inputs without causing invalid memory access.
+	 */
 	template<typename T>
 	FORCEINLINE T SafeEval(const TArray<T>& Control, double TVal)
 	{
@@ -135,6 +152,9 @@ namespace TEBezier
 	// ------------------------------------------------------------------------
 	// DeCasteljauEval: explicit name for clarity.
 	// ------------------------------------------------------------------------
+	/**
+	 * @brief Explicit wrapper around SafeEval for readability at call sites.
+	 */
 	template<typename T>
 	FORCEINLINE T DeCasteljauEval(const TArray<T>& Control, double TVal)
 	{
@@ -149,6 +169,9 @@ namespace TEBezier
 	//   ...
 	//   level N-1 -> 1 item
 	// ------------------------------------------------------------------------
+	/**
+	 * @brief Builds every intermediate de Casteljau level for proof and debug visualisation.
+	 */
 	template<typename T>
 	inline void DeCasteljauLevels(const TArray<T>& Control, double TVal, TArray<TArray<T>>& OutLevels)
 	{
@@ -197,6 +220,9 @@ namespace TEBezier
 	// ------------------------------------------------------------------------
 	// Parameter-uniform sampling (simple sample by t)
 	// ------------------------------------------------------------------------
+	/**
+	 * @brief Generates parameter-uniform samples along the curve domain.
+	 */
 	template<typename T>
 	inline void SampleUniform(const TArray<T>& Control, int32 NumSamples, TArray<T>& Out)
 	{

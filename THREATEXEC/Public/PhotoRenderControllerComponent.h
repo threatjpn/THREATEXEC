@@ -1,3 +1,9 @@
+/**
+ * File: PhotoRenderControllerComponent.h
+ * Summary: Actor component that performs runtime photo capture, optional long-exposure accumulation and PNG export for the project photo workflow.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"

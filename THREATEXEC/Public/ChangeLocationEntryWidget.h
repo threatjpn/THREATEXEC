@@ -1,3 +1,9 @@
+/**
+ * File: ChangeLocationEntryWidget.h
+ * Summary: Entry widget representing a single selectable location variant within the change-location menu.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,6 +16,7 @@ class UTexture2D;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FChangeLocationEntryClickedSignature, FName, VariantID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FChangeLocationEntryHoveredSignature, FName, VariantID);
 
+/** Selectable UI entry representing a single change-location target. */
 UCLASS()
 class THREATEXEC_API UChangeLocationEntryWidget : public UUserWidget
 {

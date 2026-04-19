@@ -1,3 +1,9 @@
+/**
+ * File: PhotoRenderControllerComponent.cpp
+ * Summary: Implementation of runtime photo capture, long-exposure accumulation, texture creation and file export helpers.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "PhotoRenderControllerComponent.h"
 
 #include "Components/SceneCaptureComponent2D.h"
@@ -9,10 +15,14 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
+/** Enables ticking because long-exposure accumulation is time-based. */
+
 UPhotoRenderControllerComponent::UPhotoRenderControllerComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
+
+/** Resets any persisted accumulation state at component startup. */
 
 void UPhotoRenderControllerComponent::BeginPlay()
 {
@@ -51,6 +61,8 @@ void UPhotoRenderControllerComponent::TickComponent(
 	}
 }
 
+/** Verifies that the capture component and render target configuration is valid before capture. */
+
 bool UPhotoRenderControllerComponent::ValidateCaptureSetup() const
 {
 	if (!CaptureComponent)
@@ -73,6 +85,8 @@ bool UPhotoRenderControllerComponent::ValidateCaptureSetup() const
 
 	return true;
 }
+
+/** Clears all long-exposure state so a fresh accumulation can begin safely. */
 
 void UPhotoRenderControllerComponent::ResetAccumulation()
 {
@@ -149,6 +163,8 @@ bool UPhotoRenderControllerComponent::CaptureRenderTargetPixels(
 	return true;
 }
 
+/** Captures the current render target and adds its pixels into the accumulation buffer. */
+
 void UPhotoRenderControllerComponent::AccumulateSample()
 {
 	TArray<FColor> Pixels;
@@ -189,6 +205,8 @@ void UPhotoRenderControllerComponent::AccumulateSample()
 			AccumulatedFrameCount));
 	}
 }
+
+/** Creates a transient texture from raw pixel data for previewing or forwarding to other systems. */
 
 bool UPhotoRenderControllerComponent::BuildTextureFromPixels(
 	const TArray<FColor>& Pixels,

@@ -201,10 +201,14 @@ public:
 	float DebugThicknessScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	bool bForceVisualsOnTop = true;
+	bool bForceVisualsOnTop = false;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	int32 VisualTranslucencySortPriority = 1000;
+
+
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|History", meta=(ClampMin="1", UIMin="1"))
+	int32 UndoMaxSteps = 10;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	bool bOverrideControlPointMaterial = false;

@@ -26,6 +26,11 @@ void ABezierDebugActor::BeginPlay()
 
 void ABezierDebugActor::ApplyDebugSettings()
 {
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		Subsystem->SetMaxUndoSteps(UndoMaxSteps);
+	}
+
 	ApplyControllerDebug();
 	ApplyCurveActorDebug();
 	ApplyCurveSetDebugAll();
@@ -91,6 +96,11 @@ void ABezierDebugActor::SyncFromWorldState()
 		bForcePlanar = A2->bForcePlanar;
 		ForcePlanarAxis = bForcePlanar ? EBezierPlanarAxis::XY : EBezierPlanarAxis::None;
 	}
+
+	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		UndoMaxSteps = Subsystem->GetMaxUndoSteps();
+	}
 }
 
 void ABezierDebugActor::ApplyControllerDebug() const
@@ -138,7 +148,6 @@ void ABezierDebugActor::ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const
 	{
 		CurveSet->UI_SetForcePlanarAxisForAll(EBezierPlanarAxis::None);
 	}
-	CurveSet->UI_SetEditInteractionEnabledForAll(bEnableEditMode, bShowControlPoints, bShowStrip);
 }
 
 void ABezierDebugActor::ApplyCurveSetDebugAll() const

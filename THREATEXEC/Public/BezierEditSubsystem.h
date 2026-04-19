@@ -4,10 +4,60 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "TimerManager.h"
 #include "BezierEditable.h"
+#include "BezierRuntimeTypes.h"
 #include "BezierEditSubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBezierFocusChanged, AActor*, FocusedActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBezierMirrorAxisCycleReset);
+
+
+struct FBezierCurveActorSnapshot
+{
+	TSubclassOf<AActor> ActorClass;
+	TWeakObjectPtr<AActor> Owner;
+	FTransform Transform = FTransform::Identity;
+
+	bool bIs2D = false;
+	bool bIs3D = false;
+	TArray<FVector2D> Control2D;
+	TArray<FVector> Control3D;
+
+	float Scale = 1.0f;
+	float ControlPointVisualScale = 1.0f;
+	bool bClosedLoop = false;
+	bool bEnableRuntimeEditing = true;
+	bool bHideVisualsWhenNotEditing = true;
+	bool bActorVisibleInGame = true;
+	bool bShowControlPoints = true;
+	bool bShowStrip = true;
+	bool bUseCubeStrip = true;
+	bool bSnapToGrid = false;
+	bool bShowGrid = false;
+	float GridSizeCm = 10.0f;
+	float GridExtentCm = 250.0f;
+	FVector GridOriginWorld = FVector::ZeroVector;
+	FLinearColor GridColor = FLinearColor::White;
+	float GridBaseAlpha = 0.15f;
+	bool bShowGridXY = true;
+	bool bShowGridXZ = true;
+	bool bShowGridYZ = true;
+	bool bLockToLocalXY = false;
+	bool bForcePlanar = false;
+	EBezierPlanarAxis ForcePlanarAxis = EBezierPlanarAxis::None;
+	EBezierSamplingMode SamplingMode = EBezierSamplingMode::Parametric;
+	int32 SampleCount = 64;
+	bool bShowSamplePoints = false;
+	bool bShowDeCasteljauLevels = false;
+	double ProofT = 0.5;
+	int32 SelectedControlPointIndex = INDEX_NONE;
+	bool bSelectAllControlPoints = false;
+};
+
+struct FBezierHistorySnapshot
+{
+	TArray<FBezierCurveActorSnapshot> Curves;
+	int32 FocusedIndex = INDEX_NONE;
+};
 
 UCLASS()
 class THREATEXEC_API UBezierEditSubsystem : public UWorldSubsystem
@@ -34,6 +84,18 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Bezier|Edit")
 	FOnBezierFocusChanged OnFocusChanged;
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|History")
+	bool History_Undo();
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|History")
+	bool History_Redo();
+
+	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|History")
+	void History_Clear();
+
+	FBezierHistorySnapshot CaptureHistorySnapshot() const;
+	bool History_CommitInteractiveChange(const FBezierHistorySnapshot& BeforeSnapshot);
 
 	// Focus-only (UMG calls these)
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetEditMode(bool bInEditMode);
@@ -131,6 +193,9 @@ UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowD
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit")
 	bool GetAutoFocusFirstEditable() const;
 
+	void SetMaxUndoSteps(int32 InMaxUndoSteps) { MaxUndoSteps = FMath::Max(1, InMaxUndoSteps); TrimHistoryStacks(); }
+	int32 GetMaxUndoSteps() const { return MaxUndoSteps; }
+
 private:
 	UPROPERTY(Transient) TWeakObjectPtr<AActor> FocusedActor;
 	UPROPERTY(Transient) TArray<TWeakObjectPtr<AActor>> Editables;
@@ -138,6 +203,8 @@ private:
 	bool bApplyAllToFocusedOnly = true;
 	UPROPERTY(EditAnywhere, Category="Bezier|Edit")
 	bool bAutoFocusFirstEditable = true;
+	UPROPERTY(EditAnywhere, Category="Bezier|Edit|History", meta=(ClampMin="1", UIMin="1"))
+	int32 MaxUndoSteps = 10;
 	UPROPERTY(Transient)
 	bool bIsolateFocusedCurve = false;
 	UPROPERTY(Transient)
@@ -154,4 +221,13 @@ private:
 	void ForFocused(TFunctionRef<void(UObject* Obj)> Fn);
 	void ForAll(TFunctionRef<void(UObject* Obj)> Fn);
 	void ApplyIsolateVisibility();
+
+	bool CaptureCurveSnapshot(AActor* Actor, FBezierCurveActorSnapshot& Out) const;
+	bool RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot);
+	bool AreHistorySnapshotsEquivalent(const FBezierHistorySnapshot& A, const FBezierHistorySnapshot& B) const;
+	void PushUndoSnapshotIfDifferent(const FBezierHistorySnapshot& Snapshot);
+	void TrimHistoryStacks();
+
+	TArray<FBezierHistorySnapshot> UndoHistory;
+	TArray<FBezierHistorySnapshot> RedoHistory;
 };

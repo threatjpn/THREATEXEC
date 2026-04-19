@@ -85,6 +85,392 @@ bool DuplicateSelectedControlPointForEditable(UObject* Obj)
 }
 }
 
+
+static bool NearlyEqualTransform(const FTransform& A, const FTransform& B)
+{
+	return A.GetLocation().Equals(B.GetLocation(), KINDA_SMALL_NUMBER)
+		&& A.GetRotation().Equals(B.GetRotation(), KINDA_SMALL_NUMBER)
+		&& A.GetScale3D().Equals(B.GetScale3D(), KINDA_SMALL_NUMBER);
+}
+
+static bool SnapshotArraysEqual(const TArray<FVector>& A, const TArray<FVector>& B)
+{
+	if (A.Num() != B.Num()) return false;
+	for (int32 i = 0; i < A.Num(); ++i)
+	{
+		if (!A[i].Equals(B[i], KINDA_SMALL_NUMBER)) return false;
+	}
+	return true;
+}
+
+static bool SnapshotArraysEqual(const TArray<FVector2D>& A, const TArray<FVector2D>& B)
+{
+	if (A.Num() != B.Num()) return false;
+	for (int32 i = 0; i < A.Num(); ++i)
+	{
+		if (!A[i].Equals(B[i], KINDA_SMALL_NUMBER)) return false;
+	}
+	return true;
+}
+
+
+
+bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActorSnapshot& Out) const
+{
+	if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
+	{
+		Out.ActorClass = A2->GetClass();
+		Out.Owner = A2->GetOwner();
+		Out.Transform = A2->GetActorTransform();
+		Out.bIs2D = true;
+		Out.Control2D = A2->Control;
+		Out.Scale = A2->Scale;
+		Out.ControlPointVisualScale = A2->ControlPointVisualScale;
+		Out.bClosedLoop = A2->UI_IsClosedLoop();
+		Out.bEnableRuntimeEditing = A2->bEnableRuntimeEditing;
+		Out.bHideVisualsWhenNotEditing = A2->bHideVisualsWhenNotEditing;
+		Out.bActorVisibleInGame = A2->bActorVisibleInGame;
+		Out.bShowControlPoints = A2->bShowControlPoints;
+		Out.bShowStrip = A2->bShowStripMesh;
+		Out.bUseCubeStrip = A2->bUseCubeStrip;
+		Out.bSnapToGrid = A2->bSnapToGrid;
+		Out.bShowGrid = A2->bShowGrid;
+		Out.GridSizeCm = A2->GridSizeCm;
+		Out.GridExtentCm = A2->GridExtentCm;
+		Out.GridOriginWorld = A2->GridOriginWorld;
+		Out.GridColor = A2->GridColor;
+		Out.GridBaseAlpha = A2->GridBaseAlpha;
+		Out.bShowGridXY = A2->bShowGridXY;
+		Out.bLockToLocalXY = A2->bLockToLocalXY;
+		Out.bForcePlanar = A2->bForcePlanar;
+		Out.ForcePlanarAxis = A2->bForcePlanar ? EBezierPlanarAxis::XY : EBezierPlanarAxis::None;
+		Out.SamplingMode = A2->UI_GetSamplingMode();
+		Out.SampleCount = A2->UI_GetSampleCount();
+		Out.bShowSamplePoints = A2->UI_GetShowSamplePoints();
+		Out.bShowDeCasteljauLevels = A2->UI_GetShowDeCasteljauLevels();
+		Out.ProofT = A2->UI_GetProofT();
+		Out.SelectedControlPointIndex = A2->UI_GetSelectedControlPointIndex();
+		Out.bSelectAllControlPoints = A2->UI_AreAllControlPointsSelected();
+		return true;
+	}
+
+	if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Actor))
+	{
+		Out.ActorClass = A3->GetClass();
+		Out.Owner = A3->GetOwner();
+		Out.Transform = A3->GetActorTransform();
+		Out.bIs3D = true;
+		Out.Control3D = A3->Control;
+		Out.Scale = A3->Scale;
+		Out.ControlPointVisualScale = A3->ControlPointVisualScale;
+		Out.bClosedLoop = A3->UI_IsClosedLoop();
+		Out.bEnableRuntimeEditing = A3->bEnableRuntimeEditing;
+		Out.bHideVisualsWhenNotEditing = A3->bHideVisualsWhenNotEditing;
+		Out.bActorVisibleInGame = A3->bActorVisibleInGame;
+		Out.bShowControlPoints = A3->bShowControlPoints;
+		Out.bShowStrip = A3->bShowStripMesh;
+		Out.bUseCubeStrip = A3->bUseCubeStrip;
+		Out.bSnapToGrid = A3->bSnapToGrid;
+		Out.bShowGrid = A3->bShowGrid;
+		Out.GridSizeCm = A3->GridSizeCm;
+		Out.GridExtentCm = A3->GridExtentCm;
+		Out.GridOriginWorld = A3->GridOriginWorld;
+		Out.GridColor = A3->GridColor;
+		Out.GridBaseAlpha = A3->GridBaseAlpha;
+		Out.bShowGridXY = A3->bShowGridXY;
+		Out.bShowGridXZ = A3->bShowGridXZ;
+		Out.bShowGridYZ = A3->bShowGridYZ;
+		Out.bLockToLocalXY = A3->bLockToLocalXY;
+		Out.bForcePlanar = A3->bForcePlanar;
+		Out.ForcePlanarAxis = A3->ForcePlanarAxis;
+		Out.SamplingMode = A3->UI_GetSamplingMode();
+		Out.SampleCount = A3->UI_GetSampleCount();
+		Out.bShowSamplePoints = A3->UI_GetShowSamplePoints();
+		Out.bShowDeCasteljauLevels = A3->UI_GetShowDeCasteljauLevels();
+		Out.ProofT = A3->UI_GetProofT();
+		Out.SelectedControlPointIndex = A3->UI_GetSelectedControlPointIndex();
+		Out.bSelectAllControlPoints = A3->UI_AreAllControlPointsSelected();
+		return true;
+	}
+
+	return false;
+}
+
+FBezierHistorySnapshot UBezierEditSubsystem::CaptureHistorySnapshot() const
+{
+	FBezierHistorySnapshot Snapshot;
+	TArray<AActor*> Actors;
+	for (const TWeakObjectPtr<AActor>& P : Editables)
+	{
+		if (AActor* A = P.Get())
+		{
+			Actors.Add(A);
+		}
+	}
+
+	if (Actors.Num() == 0)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It) Actors.Add(*It);
+			for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It) Actors.Add(*It);
+		}
+	}
+
+	Actors.Sort([](const AActor& L, const AActor& R){ return L.GetName() < R.GetName(); });
+
+	for (AActor* Actor : Actors)
+	{
+		FBezierCurveActorSnapshot Curve;
+		if (CaptureCurveSnapshot(Actor, Curve))
+		{
+			if (Actor == FocusedActor.Get())
+			{
+				Snapshot.FocusedIndex = Snapshot.Curves.Num();
+			}
+			Snapshot.Curves.Add(MoveTemp(Curve));
+		}
+	}
+
+	return Snapshot;
+}
+
+bool UBezierEditSubsystem::AreHistorySnapshotsEquivalent(const FBezierHistorySnapshot& A, const FBezierHistorySnapshot& B) const
+{
+	if (A.FocusedIndex != B.FocusedIndex || A.Curves.Num() != B.Curves.Num())
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < A.Curves.Num(); ++i)
+	{
+		const FBezierCurveActorSnapshot& L = A.Curves[i];
+		const FBezierCurveActorSnapshot& R = B.Curves[i];
+		if (L.ActorClass != R.ActorClass || L.Owner != R.Owner || !NearlyEqualTransform(L.Transform, R.Transform)
+			|| L.bIs2D != R.bIs2D || L.bIs3D != R.bIs3D
+			|| !SnapshotArraysEqual(L.Control2D, R.Control2D) || !SnapshotArraysEqual(L.Control3D, R.Control3D)
+			|| !FMath::IsNearlyEqual(L.Scale, R.Scale) || !FMath::IsNearlyEqual(L.ControlPointVisualScale, R.ControlPointVisualScale)
+			|| L.bClosedLoop != R.bClosedLoop || L.bEnableRuntimeEditing != R.bEnableRuntimeEditing
+			|| L.bHideVisualsWhenNotEditing != R.bHideVisualsWhenNotEditing || L.bActorVisibleInGame != R.bActorVisibleInGame
+			|| L.bShowControlPoints != R.bShowControlPoints || L.bShowStrip != R.bShowStrip || L.bUseCubeStrip != R.bUseCubeStrip
+			|| L.bSnapToGrid != R.bSnapToGrid || L.bShowGrid != R.bShowGrid
+			|| !FMath::IsNearlyEqual(L.GridSizeCm, R.GridSizeCm) || !FMath::IsNearlyEqual(L.GridExtentCm, R.GridExtentCm)
+			|| !L.GridOriginWorld.Equals(R.GridOriginWorld, KINDA_SMALL_NUMBER) || !L.GridColor.Equals(R.GridColor)
+			|| !FMath::IsNearlyEqual(L.GridBaseAlpha, R.GridBaseAlpha)
+			|| L.bShowGridXY != R.bShowGridXY || L.bShowGridXZ != R.bShowGridXZ || L.bShowGridYZ != R.bShowGridYZ
+			|| L.bLockToLocalXY != R.bLockToLocalXY || L.bForcePlanar != R.bForcePlanar || L.ForcePlanarAxis != R.ForcePlanarAxis
+			|| L.SamplingMode != R.SamplingMode || L.SampleCount != R.SampleCount
+			|| L.bShowSamplePoints != R.bShowSamplePoints || L.bShowDeCasteljauLevels != R.bShowDeCasteljauLevels
+			|| !FMath::IsNearlyEqual(L.ProofT, R.ProofT)
+			|| L.SelectedControlPointIndex != R.SelectedControlPointIndex || L.bSelectAllControlPoints != R.bSelectAllControlPoints)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void UBezierEditSubsystem::PushUndoSnapshotIfDifferent(const FBezierHistorySnapshot& Snapshot)
+{
+	if (UndoHistory.Num() == 0 || !AreHistorySnapshotsEquivalent(UndoHistory.Last(), Snapshot))
+	{
+		UndoHistory.Add(Snapshot);
+	}
+}
+
+void UBezierEditSubsystem::TrimHistoryStacks()
+{
+	const int32 MaxStepsClamped = FMath::Max(1, MaxUndoSteps) * 2 + 1;
+	if (UndoHistory.Num() > MaxStepsClamped)
+	{
+		UndoHistory.RemoveAt(0, UndoHistory.Num() - MaxStepsClamped, EAllowShrinking::No);
+	}
+	if (RedoHistory.Num() > MaxStepsClamped)
+	{
+		RedoHistory.RemoveAt(0, RedoHistory.Num() - MaxStepsClamped, EAllowShrinking::No);
+	}
+}
+
+bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	CompactRegistry();
+	TArray<AActor*> CurrentActors;
+	for (const TWeakObjectPtr<AActor>& P : Editables)
+	{
+		if (AActor* A = P.Get())
+		{
+			CurrentActors.Add(A);
+		}
+	}
+	for (AActor* A : CurrentActors)
+	{
+		if (IsValid(A))
+		{
+			A->Destroy();
+		}
+	}
+
+	Editables.Reset();
+	FocusedActor = nullptr;
+	TArray<AActor*> Spawned;
+
+	for (const FBezierCurveActorSnapshot& Curve : Snapshot.Curves)
+	{
+		if (!Curve.ActorClass)
+		{
+			continue;
+		}
+
+		FActorSpawnParameters Params;
+		Params.Owner = Curve.Owner.Get();
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		AActor* NewActor = World->SpawnActor<AActor>(Curve.ActorClass, Curve.Transform, Params);
+		if (!NewActor)
+		{
+			continue;
+		}
+
+		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(NewActor))
+		{
+			A2->Scale = Curve.Scale;
+			A2->ControlPointVisualScale = Curve.ControlPointVisualScale;
+			A2->Control = Curve.Control2D;
+			A2->bEnableRuntimeEditing = Curve.bEnableRuntimeEditing;
+			A2->bHideVisualsWhenNotEditing = Curve.bHideVisualsWhenNotEditing;
+			A2->UI_SetActorVisibleInGame(Curve.bActorVisibleInGame);
+			A2->UI_SetShowControlPoints(Curve.bShowControlPoints);
+			A2->UI_SetShowStrip(Curve.bShowStrip);
+			A2->UI_SetShowCubeStrip(Curve.bUseCubeStrip);
+			A2->UI_SetSnapToGrid(Curve.bSnapToGrid);
+			A2->UI_SetShowGrid(Curve.bShowGrid);
+			A2->UI_SetGridSizeCm(Curve.GridSizeCm);
+			A2->UI_SetGridExtentCm(Curve.GridExtentCm);
+			A2->UI_SetGridOriginWorld(Curve.GridOriginWorld);
+			A2->UI_SetGridColor(Curve.GridColor);
+			A2->UI_SetGridBaseAlpha(Curve.GridBaseAlpha);
+			A2->UI_SetShowGridXY(Curve.bShowGridXY);
+			A2->UI_SetLockToLocalXY(Curve.bLockToLocalXY);
+			A2->UI_SetForcePlanar(Curve.bForcePlanar);
+			A2->OverwriteSplineFromControl();
+			A2->UI_SetClosedLoop(Curve.bClosedLoop);
+			A2->UI_SetSamplingMode(Curve.SamplingMode);
+			A2->UI_SetSampleCount(Curve.SampleCount);
+			A2->UI_SetShowSamplePoints(Curve.bShowSamplePoints);
+			A2->UI_SetShowDeCasteljauLevels(Curve.bShowDeCasteljauLevels);
+			A2->UI_SetProofT(Curve.ProofT);
+			if (Curve.bSelectAllControlPoints) A2->UI_SelectAllControlPoints();
+			else if (Curve.SelectedControlPointIndex != INDEX_NONE) A2->UI_SelectControlPoint(Curve.SelectedControlPointIndex);
+		}
+		else if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(NewActor))
+		{
+			A3->Scale = Curve.Scale;
+			A3->ControlPointVisualScale = Curve.ControlPointVisualScale;
+			A3->Control = Curve.Control3D;
+			A3->bEnableRuntimeEditing = Curve.bEnableRuntimeEditing;
+			A3->bHideVisualsWhenNotEditing = Curve.bHideVisualsWhenNotEditing;
+			A3->UI_SetActorVisibleInGame(Curve.bActorVisibleInGame);
+			A3->UI_SetShowControlPoints(Curve.bShowControlPoints);
+			A3->UI_SetShowStrip(Curve.bShowStrip);
+			A3->UI_SetShowCubeStrip(Curve.bUseCubeStrip);
+			A3->UI_SetSnapToGrid(Curve.bSnapToGrid);
+			A3->UI_SetShowGrid(Curve.bShowGrid);
+			A3->UI_SetGridSizeCm(Curve.GridSizeCm);
+			A3->UI_SetGridExtentCm(Curve.GridExtentCm);
+			A3->UI_SetGridOriginWorld(Curve.GridOriginWorld);
+			A3->UI_SetGridColor(Curve.GridColor);
+			A3->UI_SetGridBaseAlpha(Curve.GridBaseAlpha);
+			A3->UI_SetShowGridXY(Curve.bShowGridXY);
+			A3->UI_SetShowGridXZ(Curve.bShowGridXZ);
+			A3->UI_SetShowGridYZ(Curve.bShowGridYZ);
+			A3->UI_SetLockToLocalXY(Curve.bLockToLocalXY);
+			A3->UI_SetForcePlanar(Curve.bForcePlanar);
+			A3->UI_SetForcePlanarAxis(Curve.ForcePlanarAxis);
+			A3->UI_OverwriteSplineFromControl();
+			A3->UI_SetClosedLoop(Curve.bClosedLoop);
+			A3->UI_SetSamplingMode(Curve.SamplingMode);
+			A3->UI_SetSampleCount(Curve.SampleCount);
+			A3->UI_SetShowSamplePoints(Curve.bShowSamplePoints);
+			A3->UI_SetShowDeCasteljauLevels(Curve.bShowDeCasteljauLevels);
+			A3->UI_SetProofT(Curve.ProofT);
+			if (Curve.bSelectAllControlPoints) A3->UI_SelectAllControlPoints();
+			else if (Curve.SelectedControlPointIndex != INDEX_NONE) A3->UI_SelectControlPoint(Curve.SelectedControlPointIndex);
+		}
+
+		RegisterEditable(NewActor);
+		if (ABezierCurveSetActor* CurveSet = Cast<ABezierCurveSetActor>(Curve.Owner.Get()))
+		{
+			CurveSet->UI_RegisterSpawned(NewActor);
+		}
+		Spawned.Add(NewActor);
+	}
+
+	if (Snapshot.FocusedIndex != INDEX_NONE && Spawned.IsValidIndex(Snapshot.FocusedIndex))
+	{
+		SetFocused(Spawned[Snapshot.FocusedIndex]);
+	}
+	else
+	{
+		OnFocusChanged.Broadcast(nullptr);
+	}
+
+	return true;
+}
+
+bool UBezierEditSubsystem::History_CommitInteractiveChange(const FBezierHistorySnapshot& BeforeSnapshot)
+{
+	const FBezierHistorySnapshot AfterSnapshot = CaptureHistorySnapshot();
+	if (AreHistorySnapshotsEquivalent(BeforeSnapshot, AfterSnapshot))
+	{
+		return false;
+	}
+
+	PushUndoSnapshotIfDifferent(BeforeSnapshot);
+	PushUndoSnapshotIfDifferent(AfterSnapshot);
+	RedoHistory.Reset();
+	TrimHistoryStacks();
+	return true;
+}
+
+void UBezierEditSubsystem::History_Clear()
+{
+	UndoHistory.Reset();
+	RedoHistory.Reset();
+}
+
+bool UBezierEditSubsystem::History_Undo()
+{
+	if (UndoHistory.Num() < 2)
+	{
+		return false;
+	}
+
+	RedoHistory.Add(UndoHistory.Last());
+	UndoHistory.RemoveAt(UndoHistory.Num() - 1, 1, EAllowShrinking::No);
+	TrimHistoryStacks();
+	return RestoreHistorySnapshot(UndoHistory.Last());
+}
+
+bool UBezierEditSubsystem::History_Redo()
+{
+	if (RedoHistory.Num() == 0)
+	{
+		return false;
+	}
+
+	const FBezierHistorySnapshot Target = RedoHistory.Last();
+	RedoHistory.RemoveAt(RedoHistory.Num() - 1, 1, EAllowShrinking::No);
+	PushUndoSnapshotIfDifferent(Target);
+	TrimHistoryStacks();
+	return RestoreHistorySnapshot(Target);
+}
+
 bool UBezierEditSubsystem::IsEditable(AActor* Actor) const
 {
 	if (!Actor)
@@ -383,22 +769,38 @@ void UBezierEditSubsystem::Focus_ResetCurveState()
 
 bool UBezierEditSubsystem::Focus_AddControlPointAfterSelected()
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	bool bResult = false;
 	ForFocused([&](UObject* Obj){ bResult = AddControlPointAfterSelectedForEditable(Obj); });
+	if (bResult)
+	{
+		History_CommitInteractiveChange(Before);
+	}
 	return bResult;
 }
 
 bool UBezierEditSubsystem::Focus_DeleteSelectedControlPoint()
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	bool bResult = false;
 	ForFocused([&](UObject* Obj){ bResult = DeleteSelectedControlPointForEditable(Obj); });
+	if (bResult)
+	{
+		CompactRegistry();
+		History_CommitInteractiveChange(Before);
+	}
 	return bResult;
 }
 
 bool UBezierEditSubsystem::Focus_DuplicateSelectedControlPoint()
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	bool bResult = false;
 	ForFocused([&](UObject* Obj){ bResult = DuplicateSelectedControlPointForEditable(Obj); });
+	if (bResult)
+	{
+		History_CommitInteractiveChange(Before);
+	}
 	return bResult;
 }
 
@@ -544,6 +946,9 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 	UWorld* World = GetWorld();
 	if (!World) return;
 
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
+	bool bDuplicated = false;
+
 	ForFocused([&](UObject* Obj)
 	{
 		AActor* Actor = Cast<AActor>(Obj);
@@ -634,8 +1039,14 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 		{
 			RegisterEditable(NewActor);
 			SetFocused(NewActor);
+			bDuplicated = true;
 		}
 	});
+
+	if (bDuplicated)
+	{
+		History_CommitInteractiveChange(Before);
+	}
 }
 
 void UBezierEditSubsystem::Focus_IsolateCurve(bool bInIsolate)

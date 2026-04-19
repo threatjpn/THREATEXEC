@@ -1,5 +1,9 @@
 #pragma once
 
+/**
+ * @file BezierSelectionSubsystem.h
+ * @brief World subsystem that stores the currently focused Bézier actor.
+ */
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "BezierSelectionSubsystem.generated.h"
@@ -7,12 +11,16 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFocusedBezierActorChanged, AActor*, NewFocusedActor);
 
 // Stores currently focused Bezier actor (2D or 3D) for UI and controller.
+/**
+ * @brief Stores and broadcasts the current focused Bézier actor for UI and controller logic.
+ */
 UCLASS()
 class THREATEXEC_API UBezierSelectionSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
 public:
+	/** Default constructor. */
 	UBezierSelectionSubsystem();
 
 	// Set focused actor (pass nullptr to clear).

@@ -1,15 +1,29 @@
 #pragma once
 
+/**
+ * @file BezierEditable.h
+ * @brief Common interface implemented by runtime-editable Bézier actors.
+ *
+ * The interface standardises the operations required by the selection, edit,
+ * and debug systems so that both 2D and 3D curve actors can be driven through
+ * the same higher-level tooling.
+ */
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "BezierEditable.generated.h"
 
+/**
+ * @brief Marker interface type for runtime-editable Bézier actors.
+ */
 UINTERFACE(BlueprintType)
 class THREATEXEC_API UBezierEditable : public UInterface
 {
 	GENERATED_BODY()
 };
 
+/**
+ * @brief Contract implemented by Bézier actors so subsystems can drive them generically.
+ */
 class THREATEXEC_API IBezierEditable
 {
 	GENERATED_BODY()

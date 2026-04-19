@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "BezierEditSubsystem.h"
 #include "BezierEditPlayerController.generated.h"
 
 UCLASS()
@@ -46,6 +47,8 @@ protected:
 	void Input_PrimaryPressed();
 	void Input_PrimaryReleased();
 	void Input_Cancel();
+	void Input_Undo();
+	void Input_Redo();
 
 	// Hover + trace
 	void UpdateHover();
@@ -115,6 +118,12 @@ private:
 
 	UPROPERTY(Transient)
 	int32 LastPrimaryClickIndex = -1;
+
+
+	UPROPERTY(Transient)
+	bool bHasDragBeforeSnapshot = false;
+
+	FBezierHistorySnapshot DragBeforeSnapshot;
 
 	UPROPERTY(Transient)
 	FString DebugLastMessage;

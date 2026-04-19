@@ -1,3 +1,12 @@
+// ============================================================================
+// BezierCurveLibrary.cpp
+// Implements shared Bézier utility functions exposed through the blueprint function library.
+//
+// Notes:
+// - Comments in this file are documentation-only and do not alter behaviour.
+// - Function signatures, ordering, and implementation logic are preserved.
+// ============================================================================
+
 #include "BezierCurveLibrary.h"
 
 void UBezierCurveLibrary::BuildArcLengthLUT(const TArray<FVector>& Pts, TArray<double>& OutCumulative)

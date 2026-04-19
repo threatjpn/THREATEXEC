@@ -1,5 +1,9 @@
 #pragma once
 
+/**
+ * @file THREATEXEC_FileUtils.h
+ * @brief Shared file and path helpers for JSON IO used by the THREATEXEC module.
+ */
 // ============================================================================
 // THREATEXEC_FileUtils.h
 // Centralised helpers for JSON IO, directory creation, and Saved-folder
@@ -14,6 +18,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogTHREATEXEC_IO, Log, All);
 
 namespace TE_PathUtils
 {
+	/** Path-normalisation helpers used to resolve relative Saved-folder destinations. */
 	// Resolve a user path to an absolute directory path under Project/Saved
 	// - If UserPath is empty → Saved/Bezier/
 	// - If relative → Saved/UserPath/
@@ -27,6 +32,7 @@ namespace TE_PathUtils
 
 namespace TE_FileUtils
 {
+	/** JSON and text-file helper functions used by the runtime export/import pipeline. */
 	// Save JSON object to file (condensed writer)
 	bool SaveJson(const FString& AbsPath, const TSharedRef<FJsonObject>& JsonObject);
 

@@ -1,3 +1,9 @@
+/**
+ * File: PhotoLocationWidget.h
+ * Summary: Main widget used for browsing, previewing and selecting photo locations, including associated image and text transitions.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -29,6 +35,7 @@ struct FPhotoPreviewStackItem
     FText Description;
 };
 
+/** Main photo-location selection widget responsible for list management and preview transitions. */
 UCLASS()
 class THREATEXEC_API UPhotoLocationWidget : public UUserWidget
 {

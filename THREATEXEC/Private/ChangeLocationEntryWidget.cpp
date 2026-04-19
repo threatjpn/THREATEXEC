@@ -1,3 +1,9 @@
+/**
+ * File: ChangeLocationEntryWidget.cpp
+ * Summary: Implementation of the individual change-location entry widget behaviour.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "ChangeLocationEntryWidget.h"
 #include "Components/Button.h"
 #include "Engine/Texture2D.h"

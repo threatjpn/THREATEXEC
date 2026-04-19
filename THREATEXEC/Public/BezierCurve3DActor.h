@@ -1,5 +1,13 @@
 #pragma once
 
+/**
+ * @file BezierCurve3DActor.h
+ * @brief Runtime and editor-facing 3D Bézier curve actor.
+ *
+ * This actor is the 3D counterpart to the 2D curve actor and exposes the
+ * editing, sampling, visualisation, and import/export hooks used by the wider
+ * runtime toolkit and editor tooling.
+ */
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "BezierRuntimeTypes.h"
@@ -11,20 +19,32 @@ class UInstancedStaticMeshComponent;
 class UProceduralMeshComponent;
 class UMaterialInterface;
 
+/**
+ * @brief 3D Bézier actor used for runtime editing, sampling, and export workflows.
+ *
+ * This actor stores 3D control-point data and provides the editor/runtime hooks
+ * required to convert user edits into spline updates, proof generation, and IO.
+ */
 UCLASS()
 class THREATEXEC_API ABezierCurve3DActor : public AActor, public IBezierEditable
 {
 	GENERATED_BODY()
 
 public:
+	/** Default constructor. */
 	ABezierCurve3DActor();
 
+	/** Per-frame update used for runtime edit visuals and interaction state. */
 	virtual void Tick(float DeltaSeconds) override;
+	/** Rebuilds derived state when the actor is constructed or edited. */
 	virtual void OnConstruction(const FTransform& Transform) override;
+	/** Initialises runtime-only resources and cached state. */
 	virtual void BeginPlay() override;
+	/** Performs cleanup of transient runtime state before the actor is destroyed. */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 #if WITH_EDITOR
+	/** Allows editor viewport ticking so the actor remains responsive outside PIE. */
 	virtual bool ShouldTickIfViewportsOnly() const override;
 #endif
 

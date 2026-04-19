@@ -1,3 +1,9 @@
+/**
+ * File: FadeRefAsyncAction.cpp
+ * Summary: Async Blueprint action implementation for coordinating fade requests through the shared fade system.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "FadeRefAsyncAction.h"
 
 #include "FadeRefWidget.h"

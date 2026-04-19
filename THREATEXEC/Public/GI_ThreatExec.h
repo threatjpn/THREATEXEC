@@ -1,3 +1,9 @@
+/**
+ * File: GI_ThreatExec.h
+ * Summary: Custom game instance that centralises fade widget access, fade orchestration and related project-wide transition helpers.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -6,6 +12,7 @@
 
 class UFadeRefWidget;
 
+/** Project game instance used as the shared access point for fade widgets and transition flow control. */
 UCLASS()
 class THREATEXEC_API UGI_ThreatExec : public UGameInstance
 {

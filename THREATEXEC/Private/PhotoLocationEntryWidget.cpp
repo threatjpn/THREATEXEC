@@ -1,3 +1,9 @@
+/**
+ * File: PhotoLocationEntryWidget.cpp
+ * Summary: Implementation of photo-location entry widget setup, hover feedback and selection forwarding.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "PhotoLocationEntryWidget.h"
 #include "Components/Button.h"
 #include "Engine/Texture2D.h"

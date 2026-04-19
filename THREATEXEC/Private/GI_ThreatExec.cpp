@@ -1,3 +1,9 @@
+/**
+ * File: GI_ThreatExec.cpp
+ * Summary: Implementation of the custom game instance fade and transition helpers.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "GI_ThreatExec.h"
 #include "FadeRefWidget.h"
 

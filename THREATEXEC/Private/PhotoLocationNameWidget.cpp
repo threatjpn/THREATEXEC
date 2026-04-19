@@ -1,3 +1,9 @@
+/**
+ * File: PhotoLocationNameWidget.cpp
+ * Summary: Implementation of the photo location name display widget.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "PhotoLocationNameWidget.h"
 
 #include "Components/TextBlock.h"

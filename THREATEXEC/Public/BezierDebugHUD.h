@@ -49,6 +49,12 @@ private:
 	void TogglePulseControlPoints();
 	void TogglePulseStrip();
 	void ToggleMouseTraceDebug();
+	void ToggleActorVisible();
+	void ToggleHideWhenNotEditing();
+	void ToggleControlPolygon();
+	void ToggleShowSamplePoints();
+	void ToggleShowDeCasteljauLevels();
+	void ToggleVisualsOnTop();
 
 	void ApplyAndRefresh();
 	ABezierDebugActor* ResolveDebugActor();

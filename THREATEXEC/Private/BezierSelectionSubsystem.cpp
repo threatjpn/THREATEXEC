@@ -1,3 +1,12 @@
+// ============================================================================
+// BezierSelectionSubsystem.cpp
+// Implements shared selection-state management for Bézier actors and their editable control points.
+//
+// Notes:
+// - Comments in this file are documentation-only and do not alter behaviour.
+// - Function signatures, ordering, and implementation logic are preserved.
+// ============================================================================
+
 #include "BezierSelectionSubsystem.h"
 
 #include "GameFramework/Actor.h"

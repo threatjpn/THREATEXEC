@@ -1,3 +1,9 @@
+/**
+ * File: PhotoLocationEntryWidget.h
+ * Summary: Entry widget used by the photo-location browser to represent a single destination or level option.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,6 +16,7 @@ class UTexture2D;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhotoLocationEntryHovered, UTexture2D*, PreviewTexture);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhotoLocationEntryClicked, UTexture2D*, PreviewTexture);
 
+/** Selectable entry widget used by the photo-location browser. */
 UCLASS()
 class THREATEXEC_API UPhotoLocationEntryWidget : public UUserWidget
 {

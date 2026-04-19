@@ -1,3 +1,9 @@
+/**
+ * File: FadeRefWidget.cpp
+ * Summary: Implementation of the shared fade overlay widget used for screen transition effects.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "FadeRefWidget.h"
 
 #include "Components/Widget.h"

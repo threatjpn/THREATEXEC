@@ -1,3 +1,9 @@
+/**
+ * File: ChangeLocationManager.h
+ * Summary: Actor responsible for discovering, caching and switching between tagged location variants in the current level.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,6 +14,7 @@ class AActor;
 class UPrimitiveComponent;
 class ULightComponent;
 
+/** Runtime cache entry describing a single location variant root and all actors attached to it. */
 USTRUCT()
 struct FChangeLocationVariantGroup
 {
@@ -20,6 +27,7 @@ struct FChangeLocationVariantGroup
     TArray<TObjectPtr<AActor>> Actors;
 };
 
+/** Level actor that discovers tagged location variants and toggles entire variant hierarchies on demand. */
 UCLASS()
 class THREATEXEC_API AChangeLocationManager : public AActor
 {
@@ -29,10 +37,12 @@ public:
     AChangeLocationManager();
 
     UFUNCTION(BlueprintCallable, Category = "Change Location")
-    void RefreshVariantCache();
+        /** Rebuilds the internal cache of variant roots and their attached actor hierarchies. */
+void RefreshVariantCache();
 
     UFUNCTION(BlueprintCallable, Category = "Change Location")
-    void SwitchToVariant(FName VariantID);
+        /** Activates the requested variant and deactivates all other cached variants. */
+void SwitchToVariant(FName VariantID);
 
     UFUNCTION(BlueprintCallable, Category = "Change Location")
     FName GetCurrentVariantID() const { return CurrentVariantID; }

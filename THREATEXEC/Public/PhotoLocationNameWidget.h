@@ -1,3 +1,9 @@
+/**
+ * File: PhotoLocationNameWidget.h
+ * Summary: Widget responsible for displaying the resolved photo location name for the active map or selection.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -18,6 +24,7 @@ struct FPhotoLocationDisplayNameOverride
     FText DisplayName;
 };
 
+/** Widget that resolves and displays the current photo location name. */
 UCLASS()
 class THREATEXEC_API UPhotoLocationNameWidget : public UUserWidget
 {

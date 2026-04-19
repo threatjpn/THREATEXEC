@@ -1,3 +1,9 @@
+/**
+ * File: PhotoLocationWidget.cpp
+ * Summary: Implementation of the photo location browser widget, including preview image and text animation support.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "PhotoLocationWidget.h"
 #include "PhotoLocationEntryWidget.h"
 
@@ -208,6 +214,8 @@ void UPhotoLocationWidget::RefreshActiveDescriptionWidget()
     ActiveTextBox->SetVisibility(ESlateVisibility::Visible);
     PreviewTextStackContainer->AddChild(ActiveTextBox);
 }
+
+/** Applies a texture to the supplied image widget while handling null-safety. */
 
 void UPhotoLocationWidget::SetImageTexture(UImage* ImageWidget, UTexture2D* Texture) const
 {

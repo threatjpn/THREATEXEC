@@ -1,3 +1,9 @@
+/**
+ * File: ChangeLocationManager.cpp
+ * Summary: Implementation of the change-location variant manager. Handles variant discovery, activation and runtime visibility/collision state changes.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "ChangeLocationManager.h"
 
 #include "Components/ActorComponent.h"
@@ -7,10 +13,14 @@
 #include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
 
+/** Initialises the manager as a non-ticking actor because updates are event-driven. */
+
 AChangeLocationManager::AChangeLocationManager()
 {
     PrimaryActorTick.bCanEverTick = false;
 }
+
+/** Builds the initial variant cache and optionally applies the configured startup state. */
 
 void AChangeLocationManager::BeginPlay()
 {
@@ -50,6 +60,8 @@ void AChangeLocationManager::BeginPlay()
         }
     }
 }
+
+/** Scans the world for tagged variant roots and records their attached actor hierarchies. */
 
 void AChangeLocationManager::RefreshVariantCache()
 {
@@ -188,6 +200,8 @@ void AChangeLocationManager::SetActorVariantActive(AActor* Actor, bool bActive) 
         }
     }
 }
+
+/** Enables the requested variant hierarchy while disabling all other cached variants. */
 
 void AChangeLocationManager::SwitchToVariant(FName VariantID)
 {

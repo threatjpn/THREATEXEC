@@ -1,3 +1,12 @@
+// ============================================================================
+// TEPlayerController.cpp
+// Implements player-controller helpers for input-mode management, view transitions, and photo-mode flow.
+//
+// Notes:
+// - Comments in this file are documentation-only and do not alter behaviour.
+// - Function signatures, ordering, and implementation logic are preserved.
+// ============================================================================
+
 #include "TEPlayerController.h"
 
 #include "Blueprint/UserWidget.h"

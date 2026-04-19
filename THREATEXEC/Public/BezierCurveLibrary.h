@@ -13,6 +13,9 @@
  * - Uniform-by-length resampling
  * - Simple hashing of control for change detection in-editor
  */
+/**
+ * @brief Static helper library for curve-resampling and control hashing utilities.
+ */
 UCLASS()
 class THREATEXEC_API UBezierCurveLibrary : public UBlueprintFunctionLibrary
 {

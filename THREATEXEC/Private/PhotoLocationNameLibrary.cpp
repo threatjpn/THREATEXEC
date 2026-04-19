@@ -1,3 +1,9 @@
+/**
+ * File: PhotoLocationNameLibrary.cpp
+ * Summary: Implementation of photo location name lookup and formatting helpers.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #include "PhotoLocationNameLibrary.h"
 
 #include "Kismet/GameplayStatics.h"

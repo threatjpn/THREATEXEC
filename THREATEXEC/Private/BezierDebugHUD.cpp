@@ -40,8 +40,13 @@ void ABezierDebugHUD::DrawHUD()
 	float Y = 20.0f;
 	DrawLineText(Y, TEXT("Bezier Debug HUD (F7 to toggle overlay)"));
 	DrawLineText(Y, FString::Printf(TEXT("E: EditMode [%s]"), Debug->bEnableEditMode ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("V: Actor Visible [%s]"), Debug->bActorVisibleInGame ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("B: Hide Visuals When Not Editing [%s]"), Debug->bHideVisualsWhenNotEditing ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("C: Control Points [%s]"), Debug->bShowControlPoints ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("S: Strip [%s]"), Debug->bShowStrip ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("O: Control Polygon / Debug Lines [%s]"), Debug->bShowControlPolygon ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("M: Sample Points [%s]"), Debug->bShowControlPolygon ? TEXT("Driven per-curve") : TEXT("Driven per-curve")));
+	DrawLineText(Y, FString::Printf(TEXT("J: De Casteljau Levels [%s]"), Debug->bShowControlPolygon ? TEXT("Driven per-curve") : TEXT("Driven per-curve")));
 	const bool bGridVisible = Debug->bShowGrid || Debug->bSnapToGrid;
 	DrawLineText(Y, FString::Printf(TEXT("G: Show Grid [%s]"), bGridVisible ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("N: Snap To Grid [%s]"), Debug->bSnapToGrid ? TEXT("ON") : TEXT("OFF")));
@@ -52,6 +57,8 @@ void ABezierDebugHUD::DrawHUD()
 	DrawLineText(Y, FString::Printf(TEXT("U: Pulse Control Points [%s]"), Debug->bPulseControlPoints ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("I: Pulse Strip [%s]"), Debug->bPulseStrip ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("T: Trace Debug [%s]"), Debug->bEnableMouseTraceDebug ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("F10: Force Visuals On Top [%s]"), Debug->bForceVisualsOnTop ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("Undo Steps: %d  | Ctrl+Z / Ctrl+Y"), Debug->UndoMaxSteps));
 	DrawLineText(Y, TEXT("K: Apply Debug Settings"));
 
 	if (Debug->bEnableMouseTraceDebug)
@@ -94,6 +101,12 @@ void ABezierDebugHUD::BindInput()
 	InputComponent->BindKey(EKeys::U, IE_Pressed, this, &ABezierDebugHUD::TogglePulseControlPoints);
 	InputComponent->BindKey(EKeys::I, IE_Pressed, this, &ABezierDebugHUD::TogglePulseStrip);
 	InputComponent->BindKey(EKeys::T, IE_Pressed, this, &ABezierDebugHUD::ToggleMouseTraceDebug);
+	InputComponent->BindKey(EKeys::V, IE_Pressed, this, &ABezierDebugHUD::ToggleActorVisible);
+	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ABezierDebugHUD::ToggleHideWhenNotEditing);
+	InputComponent->BindKey(EKeys::O, IE_Pressed, this, &ABezierDebugHUD::ToggleControlPolygon);
+	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ABezierDebugHUD::ToggleShowSamplePoints);
+	InputComponent->BindKey(EKeys::J, IE_Pressed, this, &ABezierDebugHUD::ToggleShowDeCasteljauLevels);
+	InputComponent->BindKey(EKeys::F10, IE_Pressed, this, &ABezierDebugHUD::ToggleVisualsOnTop);
 	InputComponent->BindKey(EKeys::K, IE_Pressed, this, &ABezierDebugHUD::ApplyAndRefresh);
 }
 
@@ -218,6 +231,81 @@ void ABezierDebugHUD::ToggleMouseTraceDebug()
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
 		Debug->bEnableMouseTraceDebug = !Debug->bEnableMouseTraceDebug;
+		ApplyAndRefresh();
+	}
+}
+
+
+void ABezierDebugHUD::ToggleActorVisible()
+{
+	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	{
+		Debug->bActorVisibleInGame = !Debug->bActorVisibleInGame;
+		ApplyAndRefresh();
+	}
+}
+
+void ABezierDebugHUD::ToggleHideWhenNotEditing()
+{
+	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	{
+		Debug->bHideVisualsWhenNotEditing = !Debug->bHideVisualsWhenNotEditing;
+		ApplyAndRefresh();
+	}
+}
+
+void ABezierDebugHUD::ToggleControlPolygon()
+{
+	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	{
+		Debug->bShowControlPolygon = !Debug->bShowControlPolygon;
+		ApplyAndRefresh();
+	}
+}
+
+void ABezierDebugHUD::ToggleShowSamplePoints()
+{
+	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
+			{
+				It->UI_SetShowSamplePoints(!It->UI_GetShowSamplePoints());
+			}
+			for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
+			{
+				It->UI_SetShowSamplePoints(!It->UI_GetShowSamplePoints());
+			}
+		}
+		ApplyAndRefresh();
+	}
+}
+
+void ABezierDebugHUD::ToggleShowDeCasteljauLevels()
+{
+	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
+			{
+				It->UI_SetShowDeCasteljauLevels(!It->UI_GetShowDeCasteljauLevels());
+			}
+			for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
+			{
+				It->UI_SetShowDeCasteljauLevels(!It->UI_GetShowDeCasteljauLevels());
+			}
+		}
+		ApplyAndRefresh();
+	}
+}
+
+void ABezierDebugHUD::ToggleVisualsOnTop()
+{
+	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	{
+		Debug->bForceVisualsOnTop = !Debug->bForceVisualsOnTop;
 		ApplyAndRefresh();
 	}
 }
