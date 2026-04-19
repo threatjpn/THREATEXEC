@@ -40,21 +40,13 @@ THREATEXEC provides runtime Bezier editing tools for Unreal Engine.
 1. Copy the `THREATEXEC/` folder from this repository into the Unreal project root (next to `.uproject`).
 3. Regenerate project files from the `.uproject` context menu.
 
-### 3) Register modules in the `.uproject`
+### 3) Paste the source files inside the Source folder
 
-Add module entries similar to the following:
+Add .cpp & .h to the following:
 
-```json
-"Modules": [
-  {
-    "Name": "THREATEXEC",
-    "Type": "Runtime",
-    "LoadingPhase": "Default"
-  },
-]
-```
-
-If only THREATEXEC is needed, keep only the THREATEXEC entry.
+1. .cpp files inside a Private folder
+2. .h files inside a Public folder
+3. Test files inside Private/Tests
 
 ### 4) Build and open editor
 
@@ -75,7 +67,7 @@ If only THREATEXEC is needed, keep only the THREATEXEC entry.
 
 ## Test suite guide
 
-THREATEXEC includes Unreal automation specs under `THREATEXEC/Private/Tests/`:
+THREATEXEC includes Unreal automation specs under `YOURPROJECT/Private/Tests/`:
 
 - `BezierSpec.cpp`
 - `BezierIntegrationSpec.cpp`
