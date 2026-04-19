@@ -16,7 +16,6 @@ THREATEXEC provides runtime Bezier editing tools for Unreal Engine.
 - `THREATEXEC/` — Main Unreal module source.
 - `THREATEXEC/Public/` — Public headers for runtime systems.
 - `THREATEXEC/Private/` — Runtime implementation and automation specs.
-- `OrbitCameraSystem/` — Orbit/walk camera module.
 - `Tools/` — Utility scripts (including DCC export helpers).
 
 ## Core runtime classes
@@ -26,7 +25,6 @@ THREATEXEC provides runtime Bezier editing tools for Unreal Engine.
 - `UBezierEditSubsystem` — Focused/all routing for runtime operations.
 - `ABezierCurveSetActor` — Bulk import/export and spawned curve tracking.
 - `ABezierDebugActor` / `ABezierDebugHUD` — Runtime debug controls.
-- `UFadeRefWidget` / `UFadeRefAsyncAction` — Fade and wait-style async flow.
 
 ---
 
@@ -40,7 +38,6 @@ THREATEXEC provides runtime Bezier editing tools for Unreal Engine.
 ### 2) Add THREATEXEC module source
 
 1. Copy the `THREATEXEC/` folder from this repository into the Unreal project root (next to `.uproject`).
-2. If orbit camera support is required, also copy `OrbitCameraSystem/`.
 3. Regenerate project files from the `.uproject` context menu.
 
 ### 3) Register modules in the `.uproject`
@@ -54,11 +51,6 @@ Add module entries similar to the following:
     "Type": "Runtime",
     "LoadingPhase": "Default"
   },
-  {
-    "Name": "OrbitCameraSystem",
-    "Type": "Runtime",
-    "LoadingPhase": "Default"
-  }
 ]
 ```
 
@@ -79,14 +71,6 @@ If only THREATEXEC is needed, keep only the THREATEXEC entry.
 5. Enable runtime editing using either:
    - `UBezierEditSubsystem::All_SetEditInteractionEnabled(true, true, true)`
    - or `ABezierCurveSetActor::UI_SetEditInteractionEnabledForAll(...)`
-
-### 6) Optional fade widget integration
-
-1. Create `WBP_Fade` with parent class `UFadeRefWidget`.
-2. Bind a full-screen black visual to `FadeLayer`.
-3. Bind loading indicator visual to `LoadingIcon`.
-4. Call `FadeIn`, `FadeOut`, `FadeTransition`, or async wait nodes depending on flow requirements.
-
 ---
 
 ## Test suite guide
@@ -145,5 +129,3 @@ Automation output artifacts are commonly written to `Saved/Automation/`.
 ## Additional notes
 
 - Focused-only APIs require an active focused editable actor.
-- `OpenLevel` remains blocking on the game thread; plugin- or streaming-based loading flows are required for fully async travel UX.
-- Orbit camera module usage is documented in `OrbitCameraSystem/README.md`.
