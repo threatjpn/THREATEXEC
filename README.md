@@ -42,13 +42,13 @@ Add .cpp & .h to the following:
 1. .cpp files inside a Private folder
 2. .h files inside a Public folder
 3. Test files inside Private/Tests
-4. Regenerate project files from the `.uproject` context menu.
+4. Regenerate project files from the Visual Studio left context menu (clean & build "YOURGAME").
 
 ### 4) Build and open editor
 
 1. Open the generated solution/workspace.
-2. Build the editor target (for example: `MyGameEditor Development`).
-3. Launch Unreal Editor from the IDE or the `.uproject` file.
+2. Build the editor target (for example: `YOURGAME`).
+3. Launch Unreal Editor from the `.uproject` file.
 
 ### 5) Configure runtime Bezier editing
 
