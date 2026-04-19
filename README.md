@@ -72,7 +72,7 @@ THREATEXEC includes Unreal automation specs under `YOURPROJECT/Private/Tests/`:
 ### Run tests from Unreal Editor
 
 1. Open **Tools > Session Frontend > Automation**.
-2. Filter tests by `ThreatExec`.
+2. Filter tests by `Bezier`.
 3. Run all filtered tests.
 4. Review pass/fail output in the Automation panel.
 
@@ -81,7 +81,7 @@ THREATEXEC includes Unreal automation specs under `YOURPROJECT/Private/Tests/`:
 Example command (Windows path style shown; adapt paths/target names as needed):
 
 ```bash
-UnrealEditor-Cmd.exe <PathToProject>.uproject -unattended -nop4 -nullrhi -ExecCmds="Automation RunTests ThreatExec; Quit"
+UnrealEditor-Cmd.exe <PathToProject>.uproject -unattended -nop4 -nullrhi -ExecCmds="Automation RunTests Bezier; Quit"
 ```
 
 Recommended additions for CI environments:
