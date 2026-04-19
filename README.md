@@ -1,204 +1,130 @@
 # THREATEXEC
 
-Runtime Bezier editing tools for Unreal Engine, including:
-* In-game control point editing (hover/select/drag).
-* Curve-set import/export (single JSON file).
-* Runtime batch controls (show/hide, snapping, sizes, colors).
-* Runtime sampling controls (mode/count) and proof visualization.
-* Debug helpers (trace overlays, toggle settings).
+THREATEXEC provides runtime Bezier editing tools for Unreal Engine.
+
+## Feature overview
+
+- Runtime control-point interaction (hover, select, drag).
+- 2D and 3D curve actor support.
+- Curve-set import/export through a single JSON document.
+- Runtime edit controls for visibility, snapping, and sampling.
+- De Casteljau proof visualization and debug utilities.
+- Fade widget infrastructure for transitions and loading feedback.
+
+## Repository layout
+
+- `THREATEXEC/` — Main Unreal module source.
+- `THREATEXEC/Public/` — Public headers for runtime systems.
+- `THREATEXEC/Private/` — Runtime implementation and automation specs.
+- `OrbitCameraSystem/` — Orbit/walk camera module.
+- `Tools/` — Utility scripts (including DCC export helpers).
+
+## Core runtime classes
+
+- `ABezierCurve2DActor` / `ABezierCurve3DActor` — Editable Bezier actors.
+- `ABezierEditPlayerController` — Input and hit-testing for control points.
+- `UBezierEditSubsystem` — Focused/all routing for runtime operations.
+- `ABezierCurveSetActor` — Bulk import/export and spawned curve tracking.
+- `ABezierDebugActor` / `ABezierDebugHUD` — Runtime debug controls.
+- `UFadeRefWidget` / `UFadeRefAsyncAction` — Fade and wait-style async flow.
 
 ---
 
-## Core runtime actors and subsystems
+## Step-by-step setup in a brand-new Unreal project
 
-### `ABezierCurve3DActor` / `ABezierCurve2DActor`
-* Curve actors with runtime-edit APIs (show/hide control points, strip visuals, snap/grid, etc).
-* Control-point hover/selected colors are driven by **PerInstanceCustomData** (RGB indices 0..2).
-  * Your control-point material must read PerInstanceCustomData to see hover/selected color changes.
+### 1) Create a new Unreal C++ project
 
-### `ABezierEditPlayerController`
-* Handles hover, select, and drag for control points.
-* Uses **Visibility** traces to hit control point instanced meshes.
-* Default input binding uses action name **`Secondary`** (right-click).
-* Debug trace output can be toggled with `bDebugTrace` or `SetDebugTrace(...)`.
+1. Open Unreal Engine and create a new **Games > Blank** C++ project.
+2. Close the editor after the initial project files are generated.
 
-### `UBezierEditSubsystem`
-* Focused vs. all routing for edit actions.
-* Batch runtime edit toggles (`All_*` functions).
-* Curve-set IO helpers (`All_ExportCurveSetJson`, `All_ImportCurveSetJson`).
-* Focused curve tools for mirror/cycle, closed loop, sampling controls, and proof visualization.
-* Auto-focus safety: `SetAutoFocusFirstEditable(true)` and `Focus_EnsureFocused()` to guard focused-only actions.
+### 2) Add THREATEXEC module source
 
-### `ABezierCurveSetActor`
-* Imports/exports a **single JSON** containing all curves.
-* Tracks spawned curve actors and provides batch runtime helpers.
-* Optional autosave support and backup writing on export.
+1. Copy the `THREATEXEC/` folder from this repository into the Unreal project root (next to `.uproject`).
+2. If orbit camera support is required, also copy `OrbitCameraSystem/`.
+3. Regenerate project files from the `.uproject` context menu.
 
-### `ABezierDebugActor`
-* In-world debug toggle actor for controller trace debug, curve visuals, snapping, and IO.
-* Place in your level to quickly verify behavior without editing blueprints.
+### 3) Register modules in the `.uproject`
 
-### `ABezierDebugHUD`
-* Minimal in-game overlay with hotkeys to toggle edit/debug features.
-* Set your GameMode HUD class to `ABezierDebugHUD` and press **F7** to show/hide.
+Add module entries similar to the following:
 
----
-
-## Setup in Unreal Editor (Runtime)
-
-### 1) Set the PlayerController
-Set your GameMode’s PlayerController to `ABezierEditPlayerController` (or a BP child).
-
-### 2) Input mapping (Legacy Input)
-Add an **Action Mapping** named `Secondary` bound to Right Mouse Button.
-* This matches the controller’s default action name for selection.
-
-### 3) Control-point material (required for hover/selected colors)
-Your control-point material must read **PerInstanceCustomData**:
-* Index 0 → R
-* Index 1 → G
-* Index 2 → B
-
-If the material doesn’t read these values, hover/selected colors won’t show even though the data updates.
-
-### 4) Enable runtime editing
-At runtime, enable edit mode and control point visibility:
-* `UBezierEditSubsystem::All_SetEditInteractionEnabled(true, true, true)`
-  * or call the equivalent `ABezierCurveSetActor::UI_SetEditInteractionEnabledForAll(...)`
-
-If you rely on focused-only calls, ensure a focused curve exists (hover/click a control point).
-
----
-
-## Fade overlay widget replacement (`WBP_Fade`)
-
-If you want a reusable in-game fade UI (including map-transition loading spinner), use `UFadeRefWidget` as the C++ base for your replacement `WBP_Fade`.
-
-### Blueprint setup
-1. Create a new Widget Blueprint and set **Parent Class** to `FadeRefWidget`.
-2. Add a full-screen black widget (for example `Border`/`Image`) and bind it to variable name `FadeLayer`.
-3. Add your loading icon widget in the bottom-right and bind it to variable name `LoadingIcon`.
-   * Set anchors/alignment in UMG so it stays bottom-right at runtime.
-
-Both are `BindWidgetOptional`, but binding them is required for visible fade/spinner behavior.
-
-### Exposed calls (BlueprintCallable)
-Use whichever call style fits your graph:
-* `FadeIn()` → fades from transparent to black over **2 seconds** by default.
-* `FadeOut()` → fades from black to transparent over **2 seconds** by default.
-* `FadeTransition()` → runs fade-in then fade-out automatically (single call).
-* `FadeTransitionToLevel(LevelName)` → fades to black, shows spinning loading icon, then opens the target level.
-* `CancelFade()` → immediately clears pending delays/transitions and resets fade back to transparent.
-* `IsFadeBusy()` → returns true while a fade or fade delay is running.
-
-### Async Blueprint nodes (wait-style execution)
-If you want Blueprint execution pins to continue only after fade completion, use:
-* `Fade In And Wait`
-* `Fade Out And Wait`
-* `Fade Transition And Wait`
-
-These are async action nodes and emit a `Completed` output pin when the wait point is reached (`Failed` if target widget is invalid):
-* `Fade In And Wait` / `GI Fade In And Wait` → `Completed` when screen reaches full black.
-* `Fade Out And Wait` / `GI Fade Out And Wait` → `Completed` when screen is fully visible again.
-* `Fade Transition And Wait` / `GI Fade Transition And Wait` → `Completed` when transition reaches full black (before fade-out), so downstream logic can run while still black.
-
-If you want the async node target to be your `GI_ThreatExec` directly (instead of passing a fade widget reference), use:
-* `GI Fade In And Wait`
-* `GI Fade Out And Wait`
-* `GI Fade Transition And Wait`
-
-Typical Blueprint flow:
-1. `Get Game Instance`
-2. `Cast To GI_ThreatExec`
-3. Drag from the casted GI reference and search for one of:
-   * `GI Fade In And Wait`
-   * `GI Fade Out And Wait`
-   * `GI Fade Transition And Wait`
-
-If you want the async node target to be your `GI_ThreatExec` directly (instead of passing a fade widget reference), use:
-* `GI Fade In And Wait`
-* `GI Fade Out And Wait`
-* `GI Fade Transition And Wait`
-
-Typical Blueprint flow:
-1. `Get Game Instance`
-2. `Cast To GI_ThreatExec`
-3. Drag from the casted GI reference and search for one of:
-   * `GI Fade In And Wait`
-   * `GI Fade Out And Wait`
-   * `GI Fade Transition And Wait`
-
-### Tuning + events
-* `FadeDurationSeconds` (default `2.0`) controls both in/out duration.
-* `LoadingSpinDegreesPerSecond` controls icon spin speed.
-* Delay options:
-  * `FadeInDelaySeconds`
-  * `FadeOutDelaySeconds`
-  * `TransitionHoldBlackSeconds`
-  * `LevelLoadDelaySeconds`
-* Bind to:
-  * `OnFadeInFinished`
-  * `OnFadeOutFinished`
-  for custom Blueprint logic around transitions.
-
-> Note: `OpenLevel` is blocking, so the game thread may still pause during map load.  
-> For true async-style loading screens (like Async Loading Screen plugin behavior), use a dedicated loading-screen plugin or a level-streaming based travel flow.
-
----
-
-## Sampling & proof visualization (runtime)
-
-Both 2D and 3D curve actors expose runtime sampling settings:
-* **Sampling mode** (`Parametric` or `Arc Length`)
-* **Sample count** (drives strip sampling and debug points)
-* **Proof T** (0..1) for De Casteljau proof levels
-* **Show sample points** toggle
-* **Show De Casteljau levels** toggle
-
-### Focused curve API (UMG friendly)
-Use these `UBezierEditSubsystem` calls to drive the currently focused curve:
-* `Focus_SetSamplingMode(EBezierSamplingMode Mode)`
-* `Focus_GetSamplingMode()`
-* `Focus_SetSampleCount(int32 Count)`
-* `Focus_GetSampleCount()`
-* `Focus_SetProofT(double T)`
-* `Focus_GetProofT()`
-* `Focus_SetShowSamplePoints(bool bShow)`
-* `Focus_GetShowSamplePoints()`
-* `Focus_SetShowDeCasteljauLevels(bool bShow)`
-* `Focus_GetShowDeCasteljauLevels()`
-
-### Per-actor API (direct)
-On `ABezierCurve2DActor` / `ABezierCurve3DActor`, you can call:
-* `UI_SetSamplingMode(...)`, `UI_GetSamplingMode()`
-* `UI_SetSampleCount(...)`, `UI_GetSampleCount()`
-* `UI_SetProofT(...)`, `UI_GetProofT()`
-* `UI_SetShowSamplePoints(...)`, `UI_GetShowSamplePoints()`
-* `UI_SetShowDeCasteljauLevels(...)`, `UI_GetShowDeCasteljauLevels()`
-
----
-
-## Mirror & closed-loop helpers (focused curves)
-
-Use the focused-only functions from `UBezierEditSubsystem` to drive UI buttons:
-* `Focus_MirrorCurve()` cycles axis per press (X/Y for 2D, X/Y/Z for 3D).
-  * The mirror cycle **resets after 10s** of inactivity.
-  * `OnMirrorAxisCycleReset` can be bound in UMG to show a popup when it resets.
-  * `Focus_GetMirrorAxisCycleSecondsRemaining()` returns time left until reset.
-* `Focus_ToggleClosedLoop()` / `Focus_SetClosedLoop(bool)` / `Focus_IsClosedLoop()`
-* `Focus_ReverseControlOrder()`
-* `Focus_CenterCurve()`
-* `Focus_DuplicateCurve()`
-* `Focus_IsolateCurve(bool)`
-* `Focus_ToggleIsolateCurve()`
-* `Focus_EnsureFocused()` (auto-focuses the first editable if enabled)
-
----
-
-## Curve-set import/export (single JSON)
-
-### JSON format
+```json
+"Modules": [
+  {
+    "Name": "THREATEXEC",
+    "Type": "Runtime",
+    "LoadingPhase": "Default"
+  },
+  {
+    "Name": "OrbitCameraSystem",
+    "Type": "Runtime",
+    "LoadingPhase": "Default"
+  }
+]
 ```
+
+If only THREATEXEC is needed, keep only the THREATEXEC entry.
+
+### 4) Build and open editor
+
+1. Open the generated solution/workspace.
+2. Build the editor target (for example: `MyGameEditor Development`).
+3. Launch Unreal Editor from the IDE or the `.uproject` file.
+
+### 5) Configure runtime Bezier editing
+
+1. Set the active GameMode PlayerController class to `ABezierEditPlayerController` (or a derived Blueprint).
+2. In **Project Settings > Input (Legacy)**, add action mapping `Secondary` bound to Right Mouse Button.
+3. Ensure control-point material reads `PerInstanceCustomData` indices `0..2` for RGB hover/selection states.
+4. Place an `ABezierCurveSetActor` in the level for batch import/export and curve tracking.
+5. Enable runtime editing using either:
+   - `UBezierEditSubsystem::All_SetEditInteractionEnabled(true, true, true)`
+   - or `ABezierCurveSetActor::UI_SetEditInteractionEnabledForAll(...)`
+
+### 6) Optional fade widget integration
+
+1. Create `WBP_Fade` with parent class `UFadeRefWidget`.
+2. Bind a full-screen black visual to `FadeLayer`.
+3. Bind loading indicator visual to `LoadingIcon`.
+4. Call `FadeIn`, `FadeOut`, `FadeTransition`, or async wait nodes depending on flow requirements.
+
+---
+
+## Test suite guide
+
+THREATEXEC includes Unreal automation specs under `THREATEXEC/Private/Tests/`:
+
+- `BezierSpec.cpp`
+- `BezierIntegrationSpec.cpp`
+- `BezierUIAutomationSpec.cpp`
+
+### Run tests from Unreal Editor
+
+1. Open **Tools > Session Frontend > Automation**.
+2. Filter tests by `ThreatExec`.
+3. Run all filtered tests.
+4. Review pass/fail output in the Automation panel.
+
+### Run tests from command line (UnrealEditor-Cmd)
+
+Example command (Windows path style shown; adapt paths/target names as needed):
+
+```bash
+UnrealEditor-Cmd.exe <PathToProject>.uproject -unattended -nop4 -nullrhi -ExecCmds="Automation RunTests ThreatExec; Quit"
+```
+
+Recommended additions for CI environments:
+
+```bash
+-testexit="Automation Test Queue Empty" -log -ReportExportPath="<ReportOutputFolder>"
+```
+
+Automation output artifacts are commonly written to `Saved/Automation/`.
+
+---
+
+## Curve-set JSON schema (summary)
+
+```json
 {
   "version": 2,
   "point_space": "local",
@@ -210,165 +136,14 @@ Use the focused-only functions from `UBezierEditSubsystem` to drive UI buttons:
       "closed": false,
       "sampling_mode": "parametric",
       "sample_count": 64,
-      "control": [[x,y,z], [x,y,z], ...]
+      "control": [[x, y, z], [x, y, z]]
     }
   ]
 }
 ```
 
-### Runtime usage
-Place an `ABezierCurveSetActor` in the level:
-* Set `IOPathAbsolute` and `CurveSetFile`.
-* Set `ImportMode` to control how named curves merge:
-  * `Replace All` (default)
-  * `Replace By Name`
-  * `Skip Existing`
-  * `Append`
-* Call:
-  * `UI_ImportCurveSetJson()` to load and spawn curves.
-  * `UI_ExportCurveSetJson()` to save all curves to one file.
-  * `UI_LoadDemoCurveSetJson()` to load `DemoCurveSetFile`.
-  * `UI_SaveExportedCurveSetSnapshot()` to save numbered snapshots (`exported_curve_set_N.json`).
-  * `UI_ListCurveSetJsonFiles()` to enumerate `.json` files in the Bezier folder for UMG list widgets.
-  * `UI_ImportCurveSetJsonByFileName(FileName)` to import a user-selected filename from that list.
-  * `UI_SaveCurveSetJsonAs(FileName)` to save using a user-provided name in that same folder.
-  * `UI_DeleteCurveSetJsonByFileName(FileName)` to delete a selected curve-set file.
+## Additional notes
 
----
-
-## UMG implementation guide: scrollable load list + save-as textbox
-
-This is the recommended Blueprint graph flow to build the widget you described.
-
-### 1) Widget variables
-Create these variables in your UMG widget (for example `WBP_BezierFileMenu`):
-* `CurveSetActor` (`BezierCurveSetActor` object reference)
-* `FileNames` (`String Array`)
-* `SelectedFileName` (`String`)
-* `ListView_Files` (your `ListView`/`ScrollBox` reference)
-* `EditableText_SaveName` (text entry for save name)
-
-### 2) Resolve `CurveSetActor` at runtime
-In `Event Construct` (or when opening the menu):
-1. `Get All Actors Of Class` (`BezierCurveSetActor`)
-2. `Get` index 0
-3. `Set CurveSetActor`
-4. Call `RefreshFileList` (custom event)
-
-> Tip: if you have multiple set actors, store a specific reference on your HUD/Controller and pass it into the widget instead of `GetAllActorsOfClass`.
-
-### 3) Build `RefreshFileList` custom event
-`RefreshFileList` graph:
-1. Branch: `IsValid(CurveSetActor)`
-2. `CurveSetActor -> UI_ListCurveSetJsonFiles(true)`
-3. Set `FileNames`
-4. Clear your list widget (`Clear List Items` on `ListView` or clear children if using `ScrollBox`)
-5. Loop through `FileNames` and add one row/button per filename
-
-For each row/button, bind:
-* label text = filename
-* `OnClicked` => set `SelectedFileName` and optionally highlight selected row
-
-### 4) Load button graph
-`OnClicked(LoadButton)`:
-1. Branch: `IsValid(CurveSetActor)`
-2. Branch: `SelectedFileName` is not empty
-3. `CurveSetActor -> UI_ImportCurveSetJsonByFileName(SelectedFileName)` (returns bool)
-4. If `true`: optionally close menu / show success text
-5. If `false`: show error text (“Couldn’t import file”)
-
-### 5) Save button graph
-`OnClicked(SaveButton)`:
-1. Read text from `EditableText_SaveName`
-2. Convert to string
-3. Branch: `IsValid(CurveSetActor)`
-4. `CurveSetActor -> UI_SaveCurveSetJsonAs(SaveNameString, false)` (returns bool)
-5. If `true`: call `RefreshFileList` so new file appears in the scroll list
-6. If `false`: show error text (“Invalid save name” or “Save failed”)
-
-### 6) Optional quality-of-life graph hooks
-* `OnTextCommitted` for save name field:
-  * if commit method is Enter, trigger save.
-* Default save name:
-  * on open, prefill text box with `curve_set` or timestamp-based string.
-* Sort toggle:
-  * pass `false` to `UI_ListCurveSetJsonFiles(false)` for reverse order (newest by naming convention first if your names encode timestamps/indexes).
-
-### 6b) Delete button + confirmation context box (bin icon flow)
-For each file row (`WB_FileRow`), wire the bin icon button:
-1. `OnClicked(DeleteButton)` in row widget
-2. Dispatch an event to parent menu with the row filename (e.g., `OnRequestDelete(FileName)`)
-3. Parent menu opens a modal confirmation widget (`WBP_DeleteConfirm`) and sets `PendingDeleteFileName`
-4. Confirmation text uses `PendingDeleteFileName` (“ARE YOU SURE YOU WANT TO DELETE ...”)
-5. `Yes` button:
-   * `CurveSetActor -> UI_DeleteCurveSetJsonByFileName(PendingDeleteFileName)` (returns bool)
-   * if `true`: close modal, clear pending name, call `RefreshFileList`
-   * if `false`: keep modal or show toast/error text
-6. `No, GO BACK` button:
-   * close modal only, no file operation
-
-Recommended UMG setup for modal behavior:
-* put confirm widget inside an overlay panel at higher Z-order
-* set visibility to `Collapsed` by default
-* when opened: set to `Visible` and optionally disable clicks to the underlying list
-* keyboard/gamepad: map `Escape/B` to the same action as “No, GO BACK”
-
-### 7) Path behavior (important)
-The file APIs resolve relative paths under `Project/Saved/<IOPathAbsolute>`, with `Bezier` as default if empty.
-So by default, your widget is browsing and writing in:
-* `Project/Saved/Bezier`
-
-### 8) Filename behavior (important)
-`UI_SaveCurveSetJsonAs` / `UI_ImportCurveSetJsonByFileName` / `UI_DeleteCurveSetJsonByFileName` sanitize input:
-* trims whitespace
-* strips directory parts
-* forces `.json` extension if missing
-* removes invalid filename characters
-
-So a user can type `MyTrack01` and it saves as `MyTrack01.json` in the Bezier folder.
-
-### Backup behavior
-* Set `bWriteBackupOnExport = true`.
-* `BackupCurveSetFile` defines the backup filename.
-* On each export, the previous file is copied to the backup before saving.
-
-### Autosave
-* Enable `bEnableAutoSave`.
-* Set `AutoSaveIntervalSeconds`.
-* Optionally require edit mode (`bAutoSaveOnlyWhenEditing`).
-
----
-
-## Debugging tools
-
-### `ABezierDebugActor`
-Drop a `BezierDebugActor` in the level and toggle settings in Details:
-* `bEnableMouseTraceDebug` → on-screen hover/trace output.
-* Visual toggles for control points/strip, sizing, colors, snapping.
-* `bShowPivotAxes` → render pivot axes for selected control points (V in debug HUD).
-* `ApplyDebugSettings()` to push settings.
-
-### `ABezierDebugHUD` (overlay)
-Set your GameMode’s **HUD Class** to `ABezierDebugHUD` and press **F7** in-game to toggle.
-Hotkeys (press **K** to apply after changes):
-* **E**: Edit mode
-* **C**: Control points
-* **S**: Strip
-* **G**: Show grid
-* **N**: Snap to grid
-* **H**: Cycle grid size
-* **L**: Lock to XY
-* **P**: Force planar
-* **V**: Pivot axes
-* **D**: Pulse debug lines
-* **U**: Pulse control points
-* **I**: Pulse strip
-* **T**: Trace debug
-* **K**: Apply debug settings
-
----
-
-## Common pitfalls
-* **Hover/selected colors not changing:** ensure the control-point material reads PerInstanceCustomData (RGB 0..2).
-* **No hover/selection:** make sure control points block **Visibility**, and `Secondary` action exists.
-* **UI-only input:** use Game+UI input mode to keep controller trace updates.
+- Focused-only APIs require an active focused editable actor.
+- `OpenLevel` remains blocking on the game thread; plugin- or streaming-based loading flows are required for fully async travel UX.
+- Orbit camera module usage is documented in `OrbitCameraSystem/README.md`.
