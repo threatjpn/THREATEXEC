@@ -2,8 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "BezierEditSubsystem.h"
 #include "BezierEditPlayerController.generated.h"
+
+struct FBezierHistorySnapshot;
 
 UCLASS()
 class THREATEXEC_API ABezierEditPlayerController : public APlayerController
@@ -12,6 +13,7 @@ class THREATEXEC_API ABezierEditPlayerController : public APlayerController
 
 public:
 	ABezierEditPlayerController();
+	virtual ~ABezierEditPlayerController() override;
 
 	virtual void PlayerTick(float DeltaSeconds) override;
 	virtual void SetupInputComponent() override;
@@ -98,6 +100,6 @@ private:
 	TWeakObjectPtr<AActor> LastPrimaryClickActor;
 	int32 LastPrimaryClickIndex = -1;
 	bool bHasDragBeforeSnapshot = false;
-	FBezierHistorySnapshot DragBeforeSnapshot;
+	TUniquePtr<FBezierHistorySnapshot> DragBeforeSnapshot;
 	FString DebugLastMessage;
 };
