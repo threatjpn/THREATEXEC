@@ -2,8 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "BezierEditSubsystem.h"
 #include "BezierEditPlayerController.generated.h"
+
+struct FBezierHistorySnapshot;
 
 UCLASS()
 class THREATEXEC_API ABezierEditPlayerController : public APlayerController
@@ -12,6 +13,7 @@ class THREATEXEC_API ABezierEditPlayerController : public APlayerController
 
 public:
 	ABezierEditPlayerController();
+	virtual ~ABezierEditPlayerController() override;
 
 	virtual void PlayerTick(float DeltaSeconds) override;
 	virtual void SetupInputComponent() override;
@@ -83,48 +85,21 @@ protected:
 	}
 
 private:
-	UPROPERTY(Transient)
+	// Runtime-only state. Keep these non-UPROPERTY so Blueprint serialization
+	// does not depend on transient editor/runtime interaction internals.
 	TWeakObjectPtr<AActor> HoveredActor;
-
-	UPROPERTY(Transient)
 	int32 HoveredIndex = -1;
-
-	UPROPERTY(Transient)
 	TWeakObjectPtr<AActor> DraggedActor;
-
-	UPROPERTY(Transient)
 	int32 DraggedIndex = -1;
-
-	UPROPERTY(Transient)
 	bool bDragging = false;
-
-	UPROPERTY(Transient)
 	FVector DragPlanePoint = FVector::ZeroVector;
-
-	UPROPERTY(Transient)
 	FVector DragPlaneNormal = FVector::UpVector;
-
-	UPROPERTY(Transient)
 	bool bDragAllControlPoints = false;
-
-	UPROPERTY(Transient)
 	TArray<FVector> DragStartWorldPoints;
-
-	UPROPERTY(Transient)
 	float LastPrimaryClickTimeSeconds = -1.0f;
-
-	UPROPERTY(Transient)
 	TWeakObjectPtr<AActor> LastPrimaryClickActor;
-
-	UPROPERTY(Transient)
 	int32 LastPrimaryClickIndex = -1;
-
-
-	UPROPERTY(Transient)
 	bool bHasDragBeforeSnapshot = false;
-
-	FBezierHistorySnapshot DragBeforeSnapshot;
-
-	UPROPERTY(Transient)
+	TUniquePtr<FBezierHistorySnapshot> DragBeforeSnapshot;
 	FString DebugLastMessage;
 };

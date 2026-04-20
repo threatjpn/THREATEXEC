@@ -23,6 +23,8 @@ ABezierEditPlayerController::ABezierEditPlayerController()
 	PrimaryActionNames = { "Secondary" };
 }
 
+ABezierEditPlayerController::~ABezierEditPlayerController() = default;
+
 void ABezierEditPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -341,7 +343,7 @@ void ABezierEditPlayerController::StartDragFromControlPoint(AActor* HitActor, in
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		DragBeforeSnapshot = Sub->CaptureHistorySnapshot();
+		DragBeforeSnapshot = MakeUnique<FBezierHistorySnapshot>(Sub->CaptureHistorySnapshot());
 		bHasDragBeforeSnapshot = true;
 	}
 
@@ -597,7 +599,7 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		DragBeforeSnapshot = Sub->CaptureHistorySnapshot();
+		DragBeforeSnapshot = MakeUnique<FBezierHistorySnapshot>(Sub->CaptureHistorySnapshot());
 		bHasDragBeforeSnapshot = true;
 	}
 
@@ -655,11 +657,11 @@ void ABezierEditPlayerController::UpdateDrag()
 
 void ABezierEditPlayerController::StopDrag()
 {
-	if (bHasDragBeforeSnapshot)
+	if (bHasDragBeforeSnapshot && DragBeforeSnapshot.IsValid())
 	{
 		if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 		{
-			Sub->History_CommitInteractiveChange(DragBeforeSnapshot);
+			Sub->History_CommitInteractiveChange(*DragBeforeSnapshot);
 		}
 	}
 
@@ -669,7 +671,7 @@ void ABezierEditPlayerController::StopDrag()
 	bDragAllControlPoints = false;
 	DragStartWorldPoints.Reset();
 	bHasDragBeforeSnapshot = false;
-	DragBeforeSnapshot = FBezierHistorySnapshot();
+	DragBeforeSnapshot.Reset();
 }
 
 bool ABezierEditPlayerController::DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const
