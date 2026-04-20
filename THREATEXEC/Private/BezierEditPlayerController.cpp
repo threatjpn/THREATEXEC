@@ -25,6 +25,29 @@ ABezierEditPlayerController::ABezierEditPlayerController()
 
 ABezierEditPlayerController::~ABezierEditPlayerController() = default;
 
+void ABezierEditPlayerController::CaptureDragBeforeSnapshot(UBezierEditSubsystem* Sub)
+{
+	if (!Sub)
+	{
+		bHasDragBeforeSnapshot = false;
+		DragBeforeSnapshot.Reset();
+		return;
+	}
+
+	DragBeforeSnapshot = MakeUnique<FBezierHistorySnapshot>(Sub->CaptureHistorySnapshot());
+	bHasDragBeforeSnapshot = true;
+}
+
+void ABezierEditPlayerController::CommitDragSnapshotIfNeeded(UBezierEditSubsystem* Sub)
+{
+	if (!Sub || !bHasDragBeforeSnapshot || !DragBeforeSnapshot.IsValid())
+	{
+		return;
+	}
+
+	Sub->History_CommitInteractiveChange(*DragBeforeSnapshot);
+}
+
 void ABezierEditPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -343,8 +366,7 @@ void ABezierEditPlayerController::StartDragFromControlPoint(AActor* HitActor, in
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		DragBeforeSnapshot = MakeUnique<FBezierHistorySnapshot>(Sub->CaptureHistorySnapshot());
-		bHasDragBeforeSnapshot = true;
+		CaptureDragBeforeSnapshot(Sub);
 	}
 
 	ClearHovered();
@@ -599,8 +621,7 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		DragBeforeSnapshot = MakeUnique<FBezierHistorySnapshot>(Sub->CaptureHistorySnapshot());
-		bHasDragBeforeSnapshot = true;
+		CaptureDragBeforeSnapshot(Sub);
 	}
 
 	ClearHovered();
@@ -657,13 +678,7 @@ void ABezierEditPlayerController::UpdateDrag()
 
 void ABezierEditPlayerController::StopDrag()
 {
-	if (bHasDragBeforeSnapshot && DragBeforeSnapshot.IsValid())
-	{
-		if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
-		{
-			Sub->History_CommitInteractiveChange(*DragBeforeSnapshot);
-		}
-	}
+	CommitDragSnapshotIfNeeded(GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr);
 
 	bDragging = false;
 	DraggedActor = nullptr;

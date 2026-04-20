@@ -5,6 +5,7 @@
 #include "BezierEditPlayerController.generated.h"
 
 struct FBezierHistorySnapshot;
+class UBezierEditSubsystem;
 
 UCLASS()
 class THREATEXEC_API ABezierEditPlayerController : public APlayerController
@@ -63,6 +64,8 @@ protected:
 	void UpdateDrag();
 	void StopDrag();
 	void StartDragFromControlPoint(AActor* HitActor, int32 ControlPointIndex, const FVector& ImpactPoint);
+	void CaptureDragBeforeSnapshot(UBezierEditSubsystem* Sub);
+	void CommitDragSnapshotIfNeeded(UBezierEditSubsystem* Sub);
 
 	bool DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const;
 
