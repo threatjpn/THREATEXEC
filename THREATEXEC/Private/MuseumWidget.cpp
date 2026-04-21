@@ -2,6 +2,7 @@
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Components/Widget.h"
 #include "Engine/Texture2D.h"
 
 void UMuseumWidget::NativeConstruct()
@@ -11,6 +12,7 @@ void UMuseumWidget::NativeConstruct()
     ActiveSlideIndex = 0;
     PendingSlideIndex = INDEX_NONE;
     bTransitioning = false;
+    StabilizedBodyWrapWidth = 0.0f;
     TimeUntilNextSlide = FMath::Max(0.1f, SlideIntervalSeconds);
 
     InitializeVisibleSlide();
@@ -69,7 +71,40 @@ void UMuseumWidget::AddMuseumText(const FText& MuseumTxt)
 void UMuseumWidget::AddMuseumSlide(UTexture2D* MuseumImage, const FText& MuseumTxt)
 {
     MuseumImages.Add(MuseumImage);
+    MuseumTitles.Add(FText::GetEmpty());
     MuseumTexts.Add(MuseumTxt);
+    MuseumPhotoCredits.Add(FText::GetEmpty());
+
+    if (GetSlideCount() == 1)
+    {
+        InitializeVisibleSlide();
+    }
+}
+
+void UMuseumWidget::AddMuseumTitle(const FText& MuseumTitle)
+{
+    MuseumTitles.Add(MuseumTitle);
+    if (GetSlideCount() == 1)
+    {
+        InitializeVisibleSlide();
+    }
+}
+
+void UMuseumWidget::AddMuseumPhotoCredit(const FText& MuseumPhotoCredit)
+{
+    MuseumPhotoCredits.Add(MuseumPhotoCredit);
+    if (GetSlideCount() == 1)
+    {
+        InitializeVisibleSlide();
+    }
+}
+
+void UMuseumWidget::AddMuseumSlideExtended(UTexture2D* MuseumImage, const FText& MuseumTitle, const FText& MuseumTxt, const FText& MuseumPhotoCredit)
+{
+    MuseumImages.Add(MuseumImage);
+    MuseumTitles.Add(MuseumTitle);
+    MuseumTexts.Add(MuseumTxt);
+    MuseumPhotoCredits.Add(MuseumPhotoCredit);
 
     if (GetSlideCount() == 1)
     {
@@ -80,7 +115,9 @@ void UMuseumWidget::AddMuseumSlide(UTexture2D* MuseumImage, const FText& MuseumT
 void UMuseumWidget::ClearMuseumSlides()
 {
     MuseumImages.Empty();
+    MuseumTitles.Empty();
     MuseumTexts.Empty();
+    MuseumPhotoCredits.Empty();
 
     ActiveSlideIndex = 0;
     PendingSlideIndex = INDEX_NONE;
@@ -109,6 +146,30 @@ void UMuseumWidget::ClearMuseumSlides()
         MuseumTxt_Next->SetText(FText::GetEmpty());
         MuseumTxt_Next->SetRenderOpacity(0.0f);
     }
+
+    if (MuseumTitle_Current)
+    {
+        MuseumTitle_Current->SetText(FText::GetEmpty());
+        MuseumTitle_Current->SetRenderOpacity(1.0f);
+    }
+
+    if (MuseumTitle_Next)
+    {
+        MuseumTitle_Next->SetText(FText::GetEmpty());
+        MuseumTitle_Next->SetRenderOpacity(0.0f);
+    }
+
+    if (MuseumPhotoCredit_Current)
+    {
+        MuseumPhotoCredit_Current->SetText(FText::GetEmpty());
+        MuseumPhotoCredit_Current->SetRenderOpacity(1.0f);
+    }
+
+    if (MuseumPhotoCredit_Next)
+    {
+        MuseumPhotoCredit_Next->SetText(FText::GetEmpty());
+        MuseumPhotoCredit_Next->SetRenderOpacity(0.0f);
+    }
 }
 
 void UMuseumWidget::StartCycling()
@@ -124,7 +185,11 @@ void UMuseumWidget::StopCycling()
 
 int32 UMuseumWidget::GetSlideCount() const
 {
-    return FMath::Max(MuseumImages.Num(), MuseumTexts.Num());
+    int32 SlideCount = MuseumImages.Num();
+    SlideCount = FMath::Max(SlideCount, MuseumTitles.Num());
+    SlideCount = FMath::Max(SlideCount, MuseumTexts.Num());
+    SlideCount = FMath::Max(SlideCount, MuseumPhotoCredits.Num());
+    return SlideCount;
 }
 
 void UMuseumWidget::InitializeVisibleSlide()
@@ -135,7 +200,7 @@ void UMuseumWidget::InitializeVisibleSlide()
     }
 
     ActiveSlideIndex = FMath::Clamp(ActiveSlideIndex, 0, GetSlideCount() - 1);
-    ApplySlideToWidgets(ActiveSlideIndex, MuseumImage_Current, MuseumTxt_Current);
+    ApplySlideToWidgets(ActiveSlideIndex, MuseumImage_Current, MuseumTxt_Current, MuseumTitle_Current, MuseumPhotoCredit_Current);
 
     if (MuseumImage_Next)
     {
@@ -145,6 +210,16 @@ void UMuseumWidget::InitializeVisibleSlide()
     if (MuseumTxt_Next)
     {
         MuseumTxt_Next->SetRenderOpacity(0.0f);
+    }
+
+    if (MuseumTitle_Next)
+    {
+        MuseumTitle_Next->SetRenderOpacity(0.0f);
+    }
+
+    if (MuseumPhotoCredit_Next)
+    {
+        MuseumPhotoCredit_Next->SetRenderOpacity(0.0f);
     }
 }
 
@@ -158,8 +233,10 @@ void UMuseumWidget::BeginTransitionTo(int32 NewSlideIndex)
     PendingSlideIndex = FMath::Clamp(NewSlideIndex, 0, GetSlideCount() - 1);
     FadeProgressSeconds = 0.0f;
     bTransitioning = true;
+    StabilizedBodyWrapWidth = ResolveStabilizedWrapWidth();
 
-    ApplySlideToWidgets(PendingSlideIndex, MuseumImage_Next, MuseumTxt_Next);
+    ApplyTextStyle(MuseumTxt_Current, StabilizedBodyWrapWidth);
+    ApplySlideToWidgets(PendingSlideIndex, MuseumImage_Next, MuseumTxt_Next, MuseumTitle_Next, MuseumPhotoCredit_Next);
 
     if (MuseumImage_Next)
     {
@@ -169,43 +246,53 @@ void UMuseumWidget::BeginTransitionTo(int32 NewSlideIndex)
     if (MuseumTxt_Next)
     {
         MuseumTxt_Next->SetRenderOpacity(0.0f);
+        MuseumTxt_Next->ForceLayoutPrepass();
+    }
+
+    if (MuseumTitle_Next)
+    {
+        MuseumTitle_Next->SetRenderOpacity(0.0f);
+        MuseumTitle_Next->ForceLayoutPrepass();
+    }
+
+    if (MuseumPhotoCredit_Next)
+    {
+        MuseumPhotoCredit_Next->SetRenderOpacity(0.0f);
+        MuseumPhotoCredit_Next->ForceLayoutPrepass();
     }
 }
 
-void UMuseumWidget::ApplySlideToWidgets(int32 SlideIndex, UImage* ImageWidget, UTextBlock* TextWidget) const
+void UMuseumWidget::ApplySlideToWidgets(int32 SlideIndex, UImage* ImageWidget, UTextBlock* BodyTextWidget, UTextBlock* TitleTextWidget, UTextBlock* PhotoCreditTextWidget) const
 {
     SetImageFromSlide(ImageWidget, SlideIndex);
+    SetOptionalText(TitleTextWidget, MuseumTitles, SlideIndex);
+    SetOptionalText(BodyTextWidget, MuseumTexts, SlideIndex);
+    SetOptionalText(PhotoCreditTextWidget, MuseumPhotoCredits, SlideIndex);
 
-    if (TextWidget)
-    {
-        if (MuseumTexts.IsValidIndex(SlideIndex))
-        {
-            TextWidget->SetText(MuseumTexts[SlideIndex]);
-        }
-        else
-        {
-            TextWidget->SetText(FText::GetEmpty());
-        }
-
-        ApplyTextStyle(TextWidget);
-    }
+    ApplyTextStyle(TitleTextWidget);
+    ApplyTextStyle(BodyTextWidget, StabilizedBodyWrapWidth);
+    ApplyTextStyle(PhotoCreditTextWidget);
 }
 
-void UMuseumWidget::ApplyTextStyle(UTextBlock* TextWidget) const
+void UMuseumWidget::ApplyTextStyle(UTextBlock* TextWidget, float OverrideWrapAt) const
 {
-    if (!TextWidget || !bOverrideMuseumTextStyle)
+    if (!TextWidget)
     {
         return;
     }
 
-    TextWidget->SetFont(MuseumTextFont);
-    TextWidget->SetColorAndOpacity(FSlateColor(MuseumTextColor));
-    TextWidget->SetJustification(MuseumTextJustification);
+    if (bOverrideMuseumTextStyle)
+    {
+        TextWidget->SetFont(MuseumTextFont);
+        TextWidget->SetColorAndOpacity(FSlateColor(MuseumTextColor));
+        TextWidget->SetJustification(MuseumTextJustification);
+    }
 
-    if (MuseumTextWrapAt > 0.0f)
+    const float EffectiveWrapAt = OverrideWrapAt > 0.0f ? OverrideWrapAt : MuseumTextWrapAt;
+    if (EffectiveWrapAt > 0.0f)
     {
         TextWidget->SetAutoWrapText(false);
-        TextWidget->SetWrapTextAt(MuseumTextWrapAt);
+        TextWidget->SetWrapTextAt(EffectiveWrapAt);
     }
     else
     {
@@ -259,13 +346,34 @@ void UMuseumWidget::UpdateTransition(float InDeltaTime)
         MuseumTxt_Next->SetRenderOpacity(Alpha);
     }
 
+    if (MuseumTitle_Current)
+    {
+        MuseumTitle_Current->SetRenderOpacity(1.0f - Alpha);
+    }
+
+    if (MuseumTitle_Next)
+    {
+        MuseumTitle_Next->SetRenderOpacity(Alpha);
+    }
+
+    if (MuseumPhotoCredit_Current)
+    {
+        MuseumPhotoCredit_Current->SetRenderOpacity(1.0f - Alpha);
+    }
+
+    if (MuseumPhotoCredit_Next)
+    {
+        MuseumPhotoCredit_Next->SetRenderOpacity(Alpha);
+    }
+
     if (Alpha >= 1.0f)
     {
         ActiveSlideIndex = PendingSlideIndex;
         PendingSlideIndex = INDEX_NONE;
         bTransitioning = false;
+        StabilizedBodyWrapWidth = 0.0f;
 
-        ApplySlideToWidgets(ActiveSlideIndex, MuseumImage_Current, MuseumTxt_Current);
+        ApplySlideToWidgets(ActiveSlideIndex, MuseumImage_Current, MuseumTxt_Current, MuseumTitle_Current, MuseumPhotoCredit_Current);
 
         if (MuseumImage_Current)
         {
@@ -287,6 +395,59 @@ void UMuseumWidget::UpdateTransition(float InDeltaTime)
             MuseumTxt_Next->SetRenderOpacity(0.0f);
         }
 
+        if (MuseumTitle_Current)
+        {
+            MuseumTitle_Current->SetRenderOpacity(1.0f);
+        }
+
+        if (MuseumTitle_Next)
+        {
+            MuseumTitle_Next->SetRenderOpacity(0.0f);
+        }
+
+        if (MuseumPhotoCredit_Current)
+        {
+            MuseumPhotoCredit_Current->SetRenderOpacity(1.0f);
+        }
+
+        if (MuseumPhotoCredit_Next)
+        {
+            MuseumPhotoCredit_Next->SetRenderOpacity(0.0f);
+        }
+
         TimeUntilNextSlide = FMath::Max(0.1f, SlideIntervalSeconds);
+    }
+}
+
+float UMuseumWidget::ResolveStabilizedWrapWidth() const
+{
+    if (!bStabilizeAutoWrapDuringFade || MuseumTextWrapAt > 0.0f || !MuseumTxt_Current)
+    {
+        return 0.0f;
+    }
+
+    const float CurrentWidth = MuseumTxt_Current->GetCachedGeometry().GetLocalSize().X;
+    if (CurrentWidth >= MinimumStabilizedWrapWidth)
+    {
+        return CurrentWidth;
+    }
+
+    return 0.0f;
+}
+
+void UMuseumWidget::SetOptionalText(UTextBlock* TextWidget, const TArray<FText>& TextArray, int32 SlideIndex)
+{
+    if (!TextWidget)
+    {
+        return;
+    }
+
+    if (TextArray.IsValidIndex(SlideIndex))
+    {
+        TextWidget->SetText(TextArray[SlideIndex]);
+    }
+    else
+    {
+        TextWidget->SetText(FText::GetEmpty());
     }
 }

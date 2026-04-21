@@ -28,6 +28,15 @@ public:
     void AddMuseumSlide(UTexture2D* MuseumImage, const FText& MuseumTxt);
 
     UFUNCTION(BlueprintCallable, Category = "Museum")
+    void AddMuseumTitle(const FText& MuseumTitle);
+
+    UFUNCTION(BlueprintCallable, Category = "Museum")
+    void AddMuseumPhotoCredit(const FText& MuseumPhotoCredit);
+
+    UFUNCTION(BlueprintCallable, Category = "Museum")
+    void AddMuseumSlideExtended(UTexture2D* MuseumImage, const FText& MuseumTitle, const FText& MuseumTxt, const FText& MuseumPhotoCredit);
+
+    UFUNCTION(BlueprintCallable, Category = "Museum")
     void ClearMuseumSlides();
 
     UFUNCTION(BlueprintCallable, Category = "Museum")
@@ -52,11 +61,29 @@ protected:
     UPROPERTY(meta = (BindWidgetOptional))
     TObjectPtr<UTextBlock> MuseumTxt_Next;
 
+    UPROPERTY(meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> MuseumTitle_Current;
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> MuseumTitle_Next;
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> MuseumPhotoCredit_Current;
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> MuseumPhotoCredit_Next;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Museum|Data")
     TArray<TObjectPtr<UTexture2D>> MuseumImages;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Museum|Data")
     TArray<FText> MuseumTexts;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Museum|Data")
+    TArray<FText> MuseumTitles;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Museum|Data")
+    TArray<FText> MuseumPhotoCredits;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Museum|Cycle", meta = (ClampMin = "0.1"))
     float SlideIntervalSeconds = 10.0f;
@@ -85,6 +112,12 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Museum|Text", meta = (ClampMin = "0.0", EditCondition = "bOverrideMuseumTextStyle"))
     float MuseumTextWrapAt = 0.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Museum|Text")
+    bool bStabilizeAutoWrapDuringFade = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Museum|Text", meta = (ClampMin = "10.0", EditCondition = "bStabilizeAutoWrapDuringFade"))
+    float MinimumStabilizedWrapWidth = 200.0f;
+
 private:
     int32 ActiveSlideIndex = 0;
     int32 PendingSlideIndex = INDEX_NONE;
@@ -92,12 +125,15 @@ private:
     float FadeProgressSeconds = 0.0f;
     bool bCycling = false;
     bool bTransitioning = false;
+    float StabilizedBodyWrapWidth = 0.0f;
 
     int32 GetSlideCount() const;
     void InitializeVisibleSlide();
     void BeginTransitionTo(int32 NewSlideIndex);
-    void ApplySlideToWidgets(int32 SlideIndex, UImage* ImageWidget, UTextBlock* TextWidget) const;
-    void ApplyTextStyle(UTextBlock* TextWidget) const;
+    void ApplySlideToWidgets(int32 SlideIndex, UImage* ImageWidget, UTextBlock* BodyTextWidget, UTextBlock* TitleTextWidget, UTextBlock* PhotoCreditTextWidget) const;
+    void ApplyTextStyle(UTextBlock* TextWidget, float OverrideWrapAt = -1.0f) const;
     void SetImageFromSlide(UImage* ImageWidget, int32 SlideIndex) const;
+    float ResolveStabilizedWrapWidth() const;
+    static void SetOptionalText(UTextBlock* TextWidget, const TArray<FText>& TextArray, int32 SlideIndex);
     void UpdateTransition(float InDeltaTime);
 };
