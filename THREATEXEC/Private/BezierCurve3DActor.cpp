@@ -463,7 +463,15 @@ void ABezierCurve3DActor::UpdateControlPointInstanceScale(float InScale)
 float ABezierCurve3DActor::GetControlPointPulseScale() const
 {
 	const float FadeAlpha = bEnableVisualFade ? ControlPointFadeAlpha : 1.0f;
-	return ControlPointVisualScale * FadeAlpha;
+	const float BaseScale = ControlPointVisualScale * FadeAlpha;
+	if (!bPulseControlPoints || !GetWorld())
+	{
+		return BaseScale;
+	}
+
+	const float PulseAlpha = (FMath::Sin(GetWorld()->GetTimeSeconds() * ControlPointPulseSpeed) + 1.0f) * 0.5f;
+	const float PulseScale = FMath::Lerp(ControlPointPulseMinScale, ControlPointPulseMaxScale, PulseAlpha);
+	return BaseScale * PulseScale;
 }
 
 void ABezierCurve3DActor::UpdateControlPointPulse()
@@ -517,13 +525,19 @@ float ABezierCurve3DActor::GetControlPointPulseOpacity() const
 float ABezierCurve3DActor::GetStripWidthForRender() const
 {
 	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
-	return StripWidth * FadeAlpha;
+	const float PulseScale = bPulseStrip && GetWorld()
+		? FMath::Lerp(StripPulseMinWidth, StripPulseMaxWidth, GetStripPulseAlpha())
+		: 1.0f;
+	return StripWidth * FadeAlpha * PulseScale;
 }
 
 float ABezierCurve3DActor::GetStripThicknessForRender() const
 {
 	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
-	return StripThickness * FadeAlpha;
+	const float PulseScale = bPulseStrip && GetWorld()
+		? FMath::Lerp(StripPulseMinThickness, StripPulseMaxThickness, GetStripPulseAlpha())
+		: 1.0f;
+	return StripThickness * FadeAlpha * PulseScale;
 }
 
 float ABezierCurve3DActor::GetStripPulseOpacity() const
