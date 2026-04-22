@@ -276,7 +276,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (bShowSamplePoints && Control.Num() >= 2)
+	if (bEditMode && bShowSamplePoints && Control.Num() >= 2)
 	{
 		TArray<FVector> Samples;
 		const int32 SampleCount = FMath::Clamp(StripSegments, 2, 512);
