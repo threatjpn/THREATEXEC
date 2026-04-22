@@ -225,7 +225,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	const float FinalGridThickness = FMath::Max(0.01f, GridThickness * GridThicknessScale);
 	const uint8 DebugDepthPriority = bForceVisualsOnTop ? SDPG_Foreground : SDPG_World;
 
-	if (bShowControlPolygon && Control.Num() >= 2)
+	if (bEditMode && bShowControlPolygon && Control.Num() >= 2)
 	{
 		for (int32 i = 0; i + 1 < Control.Num(); ++i)
 		{
@@ -240,7 +240,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (bShowLevelsAtT && Control.Num() >= 2)
+	if (bEditMode && bShowLevelsAtT && Control.Num() >= 2)
 	{
 		TArray<TArray<FVector2D>> Levels;
 		TEBezier::DeCasteljauLevels<FVector2D>(Control, FMath::Clamp(ProofT, 0.0, 1.0), Levels);
@@ -314,10 +314,11 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 	SetActorHiddenInGame(!bActorVisibleInGame);
 
 	const bool bAllowFade = bEnableVisualFade && (ControlPointFadeAlpha > KINDA_SMALL_NUMBER || StripFadeAlpha > KINDA_SMALL_NUMBER);
-	const bool bCanShowVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing || bAllowFade);
+	const bool bCanShowControlPointVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing || bAllowFade);
+	const bool bCanShowStripVisuals = bActorVisibleInGame;
 
-	const bool bShowCP = bCanShowVisuals && bShowControlPoints;
-	const bool bShowStrip = bCanShowVisuals && bShowStripMesh;
+	const bool bShowCP = bCanShowControlPointVisuals && bShowControlPoints;
+	const bool bShowStrip = bCanShowStripVisuals && bShowStripMesh;
 	const bool bShowCPVisual = ControlPointFadeAlpha > KINDA_SMALL_NUMBER;
 	const bool bShowStripVisual = StripFadeAlpha > KINDA_SMALL_NUMBER;
 
@@ -352,9 +353,10 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 
 void ABezierCurve2DActor::UpdateVisualFadeTargets()
 {
-	const bool bCanShowVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing);
-	TargetControlPointFade = (bCanShowVisuals && bShowControlPoints) ? 1.0f : 0.0f;
-	TargetStripFade = (bCanShowVisuals && bShowStripMesh) ? 1.0f : 0.0f;
+	const bool bCanShowControlPointVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing);
+	const bool bCanShowStripVisuals = bActorVisibleInGame;
+	TargetControlPointFade = (bCanShowControlPointVisuals && bShowControlPoints) ? 1.0f : 0.0f;
+	TargetStripFade = (bCanShowStripVisuals && bShowStripMesh) ? 1.0f : 0.0f;
 
 	if (!bEnableVisualFade)
 	{
