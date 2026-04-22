@@ -13,6 +13,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBezierMirrorAxisCycleReset);
 
 struct FBezierCurveActorSnapshot
 {
+	TWeakObjectPtr<AActor> Actor;
 	TSubclassOf<AActor> ActorClass;
 	TWeakObjectPtr<AActor> Owner;
 	FTransform Transform = FTransform::Identity;
@@ -24,6 +25,7 @@ struct FBezierCurveActorSnapshot
 
 	float Scale = 1.0f;
 	float ControlPointVisualScale = 1.0f;
+	bool bEditMode = true;
 	bool bClosedLoop = false;
 	bool bEnableRuntimeEditing = true;
 	bool bHideVisualsWhenNotEditing = true;
