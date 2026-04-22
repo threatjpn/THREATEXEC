@@ -13,6 +13,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBezierMirrorAxisCycleReset);
 
 struct FBezierCurveActorSnapshot
 {
+	TWeakObjectPtr<AActor> Actor;
 	TSubclassOf<AActor> ActorClass;
 	TWeakObjectPtr<AActor> Owner;
 	FTransform Transform = FTransform::Identity;
