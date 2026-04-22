@@ -144,9 +144,9 @@ UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") int32 Focus_GetSamp
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetProofT(double InT);
 UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") double Focus_GetProofT();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetShowSamplePoints(bool bInShow);
-UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowSamplePoints();
+	UFUNCTION(BlueprintPure, Category="Bezier|Edit|Focused") bool Focus_GetShowSamplePoints();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") void Focus_SetShowDeCasteljauLevels(bool bInShow);
-UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_GetShowDeCasteljauLevels();
+	UFUNCTION(BlueprintPure, Category="Bezier|Edit|Focused") bool Focus_GetShowDeCasteljauLevels();
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|Focused") bool Focus_EnsureFocused();
 
 	// Mirror cycle helpers

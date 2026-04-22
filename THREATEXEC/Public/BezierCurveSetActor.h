@@ -265,10 +265,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") double UI_FocusGetProofT();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetShowSamplePoints(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusToggleShowSamplePoints();
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowSamplePoints();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowSamplePoints();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetShowDeCasteljauLevels(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusToggleShowDeCasteljauLevels();
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowDeCasteljauLevels();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowDeCasteljauLevels();
 
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit") bool UI_FocusAddControlPointAfterSelected();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit") bool UI_FocusDeleteSelectedControlPoint();
