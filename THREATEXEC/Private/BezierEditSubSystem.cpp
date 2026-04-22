@@ -10,6 +10,21 @@
 
 namespace
 {
+void ApplyDebugSettingsToCurve(UWorld* World, AActor* CurveActor)
+{
+	if (!World || !IsValid(CurveActor))
+	{
+		return;
+	}
+
+	for (TActorIterator<ABezierDebugActor> DebugIt(World); DebugIt; ++DebugIt)
+	{
+		DebugIt->SyncFromWorldState();
+		DebugIt->ApplyDebugToCurve(CurveActor);
+		break;
+	}
+}
+
 bool ToggleSnapForEditable(UObject* Obj, bool& bOutNewSnapState)
 {
 	if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
@@ -119,6 +134,7 @@ bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActor
 {
 	if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
 	{
+		Out.Actor = A2;
 		Out.ActorClass = A2->GetClass();
 		Out.Owner = A2->GetOwner();
 		Out.Transform = A2->GetActorTransform();
@@ -126,6 +142,7 @@ bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActor
 		Out.Control2D = A2->Control;
 		Out.Scale = A2->Scale;
 		Out.ControlPointVisualScale = A2->ControlPointVisualScale;
+		Out.bEditMode = A2->UI_GetEditMode();
 		Out.bClosedLoop = A2->UI_IsClosedLoop();
 		Out.bEnableRuntimeEditing = A2->bEnableRuntimeEditing;
 		Out.bHideVisualsWhenNotEditing = A2->bHideVisualsWhenNotEditing;
@@ -156,6 +173,7 @@ bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActor
 
 	if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Actor))
 	{
+		Out.Actor = A3;
 		Out.ActorClass = A3->GetClass();
 		Out.Owner = A3->GetOwner();
 		Out.Transform = A3->GetActorTransform();
@@ -163,6 +181,7 @@ bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActor
 		Out.Control3D = A3->Control;
 		Out.Scale = A3->Scale;
 		Out.ControlPointVisualScale = A3->ControlPointVisualScale;
+		Out.bEditMode = A3->UI_GetEditMode();
 		Out.bClosedLoop = A3->UI_IsClosedLoop();
 		Out.bEnableRuntimeEditing = A3->bEnableRuntimeEditing;
 		Out.bHideVisualsWhenNotEditing = A3->bHideVisualsWhenNotEditing;
@@ -246,10 +265,11 @@ bool UBezierEditSubsystem::AreHistorySnapshotsEquivalent(const FBezierHistorySna
 	{
 		const FBezierCurveActorSnapshot& L = A.Curves[i];
 		const FBezierCurveActorSnapshot& R = B.Curves[i];
-		if (L.ActorClass != R.ActorClass || L.Owner != R.Owner || !NearlyEqualTransform(L.Transform, R.Transform)
+		if (L.Actor != R.Actor || L.ActorClass != R.ActorClass || L.Owner != R.Owner || !NearlyEqualTransform(L.Transform, R.Transform)
 			|| L.bIs2D != R.bIs2D || L.bIs3D != R.bIs3D
 			|| !SnapshotArraysEqual(L.Control2D, R.Control2D) || !SnapshotArraysEqual(L.Control3D, R.Control3D)
 			|| !FMath::IsNearlyEqual(L.Scale, R.Scale) || !FMath::IsNearlyEqual(L.ControlPointVisualScale, R.ControlPointVisualScale)
+			|| L.bEditMode != R.bEditMode
 			|| L.bClosedLoop != R.bClosedLoop || L.bEnableRuntimeEditing != R.bEnableRuntimeEditing
 			|| L.bHideVisualsWhenNotEditing != R.bHideVisualsWhenNotEditing || L.bActorVisibleInGame != R.bActorVisibleInGame
 			|| L.bShowControlPoints != R.bShowControlPoints || L.bShowStrip != R.bShowStrip || L.bUseCubeStrip != R.bUseCubeStrip
@@ -294,56 +314,60 @@ void UBezierEditSubsystem::TrimHistoryStacks()
 
 bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot)
 {
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return false;
-	}
-
 	CompactRegistry();
 	TArray<AActor*> CurrentActors;
 	for (const TWeakObjectPtr<AActor>& P : Editables)
 	{
 		if (AActor* A = P.Get())
 		{
-			CurrentActors.Add(A);
+			CurrentActors.AddUnique(A);
 		}
 	}
-	for (AActor* A : CurrentActors)
+	if (CurrentActors.Num() == 0)
 	{
-		if (IsValid(A))
+		if (UWorld* World = GetWorld())
 		{
-			A->Destroy();
+			for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It) CurrentActors.AddUnique(*It);
+			for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It) CurrentActors.AddUnique(*It);
 		}
 	}
 
-	Editables.Reset();
-	FocusedActor = nullptr;
-	TArray<AActor*> Spawned;
-
+	TArray<AActor*> RestoredActors;
 	for (const FBezierCurveActorSnapshot& Curve : Snapshot.Curves)
 	{
-		if (!Curve.ActorClass)
+		AActor* TargetActor = Curve.Actor.Get();
+		bool bSpawnedFromSnapshot = false;
+		if (!IsValid(TargetActor))
 		{
-			continue;
+			UWorld* World = GetWorld();
+			if (!World || !Curve.ActorClass)
+			{
+				continue;
+			}
+
+			FActorSpawnParameters Params;
+			Params.Owner = Curve.Owner.Get();
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			TargetActor = World->SpawnActor<AActor>(Curve.ActorClass, Curve.Transform, Params);
+			if (!TargetActor)
+			{
+				continue;
+			}
+
+			bSpawnedFromSnapshot = true;
+			ApplyDebugSettingsToCurve(World, TargetActor);
 		}
 
-		FActorSpawnParameters Params;
-		Params.Owner = Curve.Owner.Get();
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		AActor* NewActor = World->SpawnActor<AActor>(Curve.ActorClass, Curve.Transform, Params);
-		if (!NewActor)
-		{
-			continue;
-		}
+		TargetActor->SetActorTransform(Curve.Transform, false, nullptr, ETeleportType::TeleportPhysics);
 
-		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(NewActor))
+		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(TargetActor))
 		{
 			A2->Scale = Curve.Scale;
 			A2->ControlPointVisualScale = Curve.ControlPointVisualScale;
 			A2->Control = Curve.Control2D;
 			A2->bEnableRuntimeEditing = Curve.bEnableRuntimeEditing;
 			A2->bHideVisualsWhenNotEditing = Curve.bHideVisualsWhenNotEditing;
+			A2->UI_SetEditMode(Curve.bEditMode);
 			A2->UI_SetActorVisibleInGame(Curve.bActorVisibleInGame);
 			A2->UI_SetShowControlPoints(Curve.bShowControlPoints);
 			A2->UI_SetShowStrip(Curve.bShowStrip);
@@ -368,13 +392,14 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 			if (Curve.bSelectAllControlPoints) A2->UI_SelectAllControlPoints();
 			else if (Curve.SelectedControlPointIndex != INDEX_NONE) A2->UI_SelectControlPoint(Curve.SelectedControlPointIndex);
 		}
-		else if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(NewActor))
+		else if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(TargetActor))
 		{
 			A3->Scale = Curve.Scale;
 			A3->ControlPointVisualScale = Curve.ControlPointVisualScale;
 			A3->Control = Curve.Control3D;
 			A3->bEnableRuntimeEditing = Curve.bEnableRuntimeEditing;
 			A3->bHideVisualsWhenNotEditing = Curve.bHideVisualsWhenNotEditing;
+			A3->UI_SetEditMode(Curve.bEditMode);
 			A3->UI_SetActorVisibleInGame(Curve.bActorVisibleInGame);
 			A3->UI_SetShowControlPoints(Curve.bShowControlPoints);
 			A3->UI_SetShowStrip(Curve.bShowStrip);
@@ -403,20 +428,38 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 			else if (Curve.SelectedControlPointIndex != INDEX_NONE) A3->UI_SelectControlPoint(Curve.SelectedControlPointIndex);
 		}
 
-		RegisterEditable(NewActor);
-		if (ABezierCurveSetActor* CurveSet = Cast<ABezierCurveSetActor>(Curve.Owner.Get()))
+		RegisterEditable(TargetActor);
+		if (bSpawnedFromSnapshot)
 		{
-			CurveSet->UI_RegisterSpawned(NewActor);
+			if (ABezierCurveSetActor* CurveSet = Cast<ABezierCurveSetActor>(Curve.Owner.Get()))
+			{
+				CurveSet->UI_RegisterSpawned(TargetActor);
+			}
 		}
-		Spawned.Add(NewActor);
+		RestoredActors.Add(TargetActor);
 	}
 
-	if (Snapshot.FocusedIndex != INDEX_NONE && Spawned.IsValidIndex(Snapshot.FocusedIndex))
+	for (AActor* Actor : CurrentActors)
 	{
-		SetFocused(Spawned[Snapshot.FocusedIndex]);
+		if (IsValid(Actor) && !RestoredActors.Contains(Actor) && IsEditable(Actor))
+		{
+			Actor->Destroy();
+		}
+	}
+
+	Editables.RemoveAll([&RestoredActors](const TWeakObjectPtr<AActor>& P)
+	{
+		const AActor* Actor = P.Get();
+		return !IsValid(Actor) || !RestoredActors.Contains(Actor);
+	});
+
+	if (Snapshot.FocusedIndex != INDEX_NONE && RestoredActors.IsValidIndex(Snapshot.FocusedIndex))
+	{
+		SetFocused(RestoredActors[Snapshot.FocusedIndex]);
 	}
 	else
 	{
+		FocusedActor = nullptr;
 		OnFocusChanged.Broadcast(nullptr);
 	}
 
