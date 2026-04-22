@@ -355,7 +355,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 	// Visuals only show if enabled, and either in edit mode or not hiding when not editing
 	const bool bAllowFade = bEnableVisualFade && (ControlPointFadeAlpha > KINDA_SMALL_NUMBER || StripFadeAlpha > KINDA_SMALL_NUMBER);
 	const bool bCanShowControlPointVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing || bAllowFade);
-	const bool bCanShowStripVisuals = bActorVisibleInGame && bEnableRuntimeEditing;
+	const bool bCanShowStripVisuals = bActorVisibleInGame;
 
 	const bool bShowCP = bCanShowControlPointVisuals && bShowControlPoints;
 	const bool bShowStrip = bCanShowStripVisuals && bShowStripMesh;
@@ -396,7 +396,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 void ABezierCurve3DActor::UpdateVisualFadeTargets()
 {
 	const bool bCanShowControlPointVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing);
-	const bool bCanShowStripVisuals = bActorVisibleInGame && bEnableRuntimeEditing;
+	const bool bCanShowStripVisuals = bActorVisibleInGame;
 	TargetControlPointFade = (bCanShowControlPointVisuals && bShowControlPoints) ? 1.0f : 0.0f;
 	TargetStripFade = (bCanShowStripVisuals && bShowStripMesh) ? 1.0f : 0.0f;
 

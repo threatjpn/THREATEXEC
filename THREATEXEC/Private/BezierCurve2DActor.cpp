@@ -315,7 +315,7 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 
 	const bool bAllowFade = bEnableVisualFade && (ControlPointFadeAlpha > KINDA_SMALL_NUMBER || StripFadeAlpha > KINDA_SMALL_NUMBER);
 	const bool bCanShowControlPointVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing || bAllowFade);
-	const bool bCanShowStripVisuals = bActorVisibleInGame && bEnableRuntimeEditing;
+	const bool bCanShowStripVisuals = bActorVisibleInGame;
 
 	const bool bShowCP = bCanShowControlPointVisuals && bShowControlPoints;
 	const bool bShowStrip = bCanShowStripVisuals && bShowStripMesh;
@@ -354,7 +354,7 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 void ABezierCurve2DActor::UpdateVisualFadeTargets()
 {
 	const bool bCanShowControlPointVisuals = bActorVisibleInGame && bEnableRuntimeEditing && (bEditMode || !bHideVisualsWhenNotEditing);
-	const bool bCanShowStripVisuals = bActorVisibleInGame && bEnableRuntimeEditing;
+	const bool bCanShowStripVisuals = bActorVisibleInGame;
 	TargetControlPointFade = (bCanShowControlPointVisuals && bShowControlPoints) ? 1.0f : 0.0f;
 	TargetStripFade = (bCanShowStripVisuals && bShowStripMesh) ? 1.0f : 0.0f;
 
