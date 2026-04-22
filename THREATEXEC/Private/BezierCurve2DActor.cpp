@@ -240,7 +240,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (bShowLevelsAtT && Control.Num() >= 2)
+	if (bEditMode && bShowLevelsAtT && Control.Num() >= 2)
 	{
 		TArray<TArray<FVector2D>> Levels;
 		TEBezier::DeCasteljauLevels<FVector2D>(Control, FMath::Clamp(ProofT, 0.0, 1.0), Levels);
@@ -261,7 +261,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (bShowSamplePoints && Control.Num() >= 2)
+	if (bEditMode && bShowSamplePoints && Control.Num() >= 2)
 	{
 		TArray<FVector2D> Samples;
 		const int32 SampleCount = FMath::Clamp(StripSegments, 2, 512);
