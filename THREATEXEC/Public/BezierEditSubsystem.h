@@ -25,6 +25,7 @@ struct FBezierCurveActorSnapshot
 
 	float Scale = 1.0f;
 	float ControlPointVisualScale = 1.0f;
+	bool bEditMode = true;
 	bool bClosedLoop = false;
 	bool bEnableRuntimeEditing = true;
 	bool bHideVisualsWhenNotEditing = true;

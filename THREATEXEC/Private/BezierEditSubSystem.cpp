@@ -142,6 +142,7 @@ bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActor
 		Out.Control2D = A2->Control;
 		Out.Scale = A2->Scale;
 		Out.ControlPointVisualScale = A2->ControlPointVisualScale;
+		Out.bEditMode = A2->UI_GetEditMode();
 		Out.bClosedLoop = A2->UI_IsClosedLoop();
 		Out.bEnableRuntimeEditing = A2->bEnableRuntimeEditing;
 		Out.bHideVisualsWhenNotEditing = A2->bHideVisualsWhenNotEditing;
@@ -180,6 +181,7 @@ bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActor
 		Out.Control3D = A3->Control;
 		Out.Scale = A3->Scale;
 		Out.ControlPointVisualScale = A3->ControlPointVisualScale;
+		Out.bEditMode = A3->UI_GetEditMode();
 		Out.bClosedLoop = A3->UI_IsClosedLoop();
 		Out.bEnableRuntimeEditing = A3->bEnableRuntimeEditing;
 		Out.bHideVisualsWhenNotEditing = A3->bHideVisualsWhenNotEditing;
@@ -267,6 +269,7 @@ bool UBezierEditSubsystem::AreHistorySnapshotsEquivalent(const FBezierHistorySna
 			|| L.bIs2D != R.bIs2D || L.bIs3D != R.bIs3D
 			|| !SnapshotArraysEqual(L.Control2D, R.Control2D) || !SnapshotArraysEqual(L.Control3D, R.Control3D)
 			|| !FMath::IsNearlyEqual(L.Scale, R.Scale) || !FMath::IsNearlyEqual(L.ControlPointVisualScale, R.ControlPointVisualScale)
+			|| L.bEditMode != R.bEditMode
 			|| L.bClosedLoop != R.bClosedLoop || L.bEnableRuntimeEditing != R.bEnableRuntimeEditing
 			|| L.bHideVisualsWhenNotEditing != R.bHideVisualsWhenNotEditing || L.bActorVisibleInGame != R.bActorVisibleInGame
 			|| L.bShowControlPoints != R.bShowControlPoints || L.bShowStrip != R.bShowStrip || L.bUseCubeStrip != R.bUseCubeStrip
@@ -333,6 +336,7 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 	for (const FBezierCurveActorSnapshot& Curve : Snapshot.Curves)
 	{
 		AActor* TargetActor = Curve.Actor.Get();
+		bool bSpawnedFromSnapshot = false;
 		if (!IsValid(TargetActor))
 		{
 			UWorld* World = GetWorld();
@@ -350,6 +354,7 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 				continue;
 			}
 
+			bSpawnedFromSnapshot = true;
 			ApplyDebugSettingsToCurve(World, TargetActor);
 		}
 
@@ -362,6 +367,7 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 			A2->Control = Curve.Control2D;
 			A2->bEnableRuntimeEditing = Curve.bEnableRuntimeEditing;
 			A2->bHideVisualsWhenNotEditing = Curve.bHideVisualsWhenNotEditing;
+			A2->UI_SetEditMode(Curve.bEditMode);
 			A2->UI_SetActorVisibleInGame(Curve.bActorVisibleInGame);
 			A2->UI_SetShowControlPoints(Curve.bShowControlPoints);
 			A2->UI_SetShowStrip(Curve.bShowStrip);
@@ -393,6 +399,7 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 			A3->Control = Curve.Control3D;
 			A3->bEnableRuntimeEditing = Curve.bEnableRuntimeEditing;
 			A3->bHideVisualsWhenNotEditing = Curve.bHideVisualsWhenNotEditing;
+			A3->UI_SetEditMode(Curve.bEditMode);
 			A3->UI_SetActorVisibleInGame(Curve.bActorVisibleInGame);
 			A3->UI_SetShowControlPoints(Curve.bShowControlPoints);
 			A3->UI_SetShowStrip(Curve.bShowStrip);
@@ -422,9 +429,12 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 		}
 
 		RegisterEditable(TargetActor);
-		if (ABezierCurveSetActor* CurveSet = Cast<ABezierCurveSetActor>(Curve.Owner.Get()))
+		if (bSpawnedFromSnapshot)
 		{
-			CurveSet->UI_RegisterSpawned(TargetActor);
+			if (ABezierCurveSetActor* CurveSet = Cast<ABezierCurveSetActor>(Curve.Owner.Get()))
+			{
+				CurveSet->UI_RegisterSpawned(TargetActor);
+			}
 		}
 		RestoredActors.Add(TargetActor);
 	}
