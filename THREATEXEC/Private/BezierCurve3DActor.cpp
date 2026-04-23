@@ -55,7 +55,7 @@ namespace
 		return LineBatcher;
 	}
 
-	static void TE_DrawRuntimeLine3D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
+	static void TE_DrawRuntimeLine3D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!World)
 		{
@@ -63,17 +63,17 @@ namespace
 		}
 
 #if ENABLE_DRAW_DEBUG
-		DrawDebugLine(World, Start, End, Color, false, 0.0f, DepthPriority, Thickness);
+		DrawDebugLine(World, Start, End, Color.ToFColor(true), false, 0.0f, DepthPriority, Thickness);
 #else
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
 		if (LineBatcher)
 		{
-			LineBatcher->DrawLine(Start, End, FLinearColor(Color), SDPG_Foreground, Thickness, 0.0f);
+			LineBatcher->DrawLine(Start, End, Color, SDPG_Foreground, Thickness, 0.0f);
 		}
 #endif
 	}
 
-	static void TE_DrawRuntimePoint3D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
+	static void TE_DrawRuntimePoint3D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FLinearColor& Color, uint8 DepthPriority)
 	{
 		if (!World)
 		{
@@ -81,12 +81,12 @@ namespace
 		}
 
 #if ENABLE_DRAW_DEBUG
-		DrawDebugPoint(World, Position, PointSize, Color, false, 0.0f, DepthPriority);
+		DrawDebugPoint(World, Position, PointSize, Color.ToFColor(true), false, 0.0f, DepthPriority);
 #else
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
 		if (LineBatcher)
 		{
-			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, SDPG_Foreground, 0.0f);
+			LineBatcher->DrawPoint(Position, Color, PointSize, SDPG_Foreground, 0.0f);
 		}
 #endif
 	}
@@ -225,14 +225,13 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 	const float PulseAlpha = bPulseDebugLines
 		? FMath::Lerp(DebugPulseMinAlpha, DebugPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
 		: DebugPulseMaxAlpha;
-	const uint8 DebugAlpha = static_cast<uint8>(FMath::Clamp(PulseAlpha, 0.0f, 1.0f) * 255.0f);
+	const float FinalDebugAlpha = FMath::Clamp(PulseAlpha, 0.0f, 1.0f);
 	const float DebugThickness = bPulseDebugLines
 		? FMath::Lerp(DebugPulseMinThickness, DebugPulseMaxThickness, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
 		: DebugPulseMaxThickness;
 	const float GridPulseAlpha = bPulseGrid
 		? FMath::Lerp(GridPulseMinAlpha, GridPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f)
 		: GridPulseMaxAlpha;
-	const uint8 GridAlpha = static_cast<uint8>(FMath::Clamp(GridPulseAlpha, 0.0f, 1.0f) * 255.0f);
 	const float GridThickness = bPulseGrid
 		? FMath::Lerp(GridPulseMinThickness, GridPulseMaxThickness, (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f)
 		: GridPulseMaxThickness;
@@ -249,7 +248,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(Control[i] * Scale),
 				Xf.TransformPosition(Control[i + 1] * Scale),
-				FColor(255, 255, 255, DebugAlpha),
+				FLinearColor(1.0f, 1.0f, 1.0f, FinalDebugAlpha),
 				DebugDepthPriority,
 				FinalDebugThickness);
 		}
@@ -269,7 +268,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 					GetWorld(),
 					Xf.TransformPosition(Levels[L][i] * Scale),
 					Xf.TransformPosition(Levels[L][i + 1] * Scale),
-					FColor(C.R, C.G, C.B, DebugAlpha),
+					FLinearColor::FromSRGBColor(C).CopyWithNewOpacity(FinalDebugAlpha),
 					DebugDepthPriority,
 					FinalDebugThickness);
 			}
@@ -288,7 +287,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(Sample * Scale),
 				6.0f,
-				FColor(64, 220, 255, DebugAlpha),
+				FLinearColor(64.0f / 255.0f, 220.0f / 255.0f, 1.0f, FinalDebugAlpha),
 				DebugDepthPriority);
 		}
 	}
@@ -299,12 +298,11 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 		const int32 HalfCells = FMath::Max(1, FMath::RoundToInt(GridExtentCm / G));
 		const float Extent = G * HalfCells;
 		const float FinalAlpha = FMath::Clamp(GridColor.A * GridBaseAlpha * GridPulseAlpha, 0.0f, 1.0f);
-		const uint8 GridColorAlpha = static_cast<uint8>(FinalAlpha * 255.0f);
-		const FColor GridLineColor(
-			static_cast<uint8>(FMath::Clamp(GridColor.R, 0.0f, 1.0f) * 255.0f),
-			static_cast<uint8>(FMath::Clamp(GridColor.G, 0.0f, 1.0f) * 255.0f),
-			static_cast<uint8>(FMath::Clamp(GridColor.B, 0.0f, 1.0f) * 255.0f),
-			GridColorAlpha
+		const FLinearColor GridLineColor(
+			FMath::Clamp(GridColor.R, 0.0f, 1.0f),
+			FMath::Clamp(GridColor.G, 0.0f, 1.0f),
+			FMath::Clamp(GridColor.B, 0.0f, 1.0f),
+			FinalAlpha
 		);
 		const FVector Origin = GridOriginWorld;
 		for (int32 i = -HalfCells; i <= HalfCells; ++i)
