@@ -82,8 +82,13 @@ void ABezierEditPlayerController::SetupInputComponent()
 			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
 		}
 
-		InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ABezierEditPlayerController::Input_Undo);
-		InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
+		FInputKeyBinding UndoBinding(FInputChord(EKeys::Z, true, false, false, false), IE_Pressed);
+		UndoBinding.KeyDelegate.BindDelegate(this, &ABezierEditPlayerController::Input_Undo);
+		InputComponent->KeyBindings.Add(MoveTemp(UndoBinding));
+
+		FInputKeyBinding RedoBinding(FInputChord(EKeys::Y, true, false, false, false), IE_Pressed);
+		RedoBinding.KeyDelegate.BindDelegate(this, &ABezierEditPlayerController::Input_Redo);
+		InputComponent->KeyBindings.Add(MoveTemp(RedoBinding));
 	}
 }
 
