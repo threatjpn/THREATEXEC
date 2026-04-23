@@ -287,7 +287,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		}
 	}
 
-	if (bShowGrid || bSnapToGrid)
+	if (bEditMode && (bShowGrid || bSnapToGrid))
 	{
 		const float G = FMath::Max(0.01f, GridSizeCm);
 		const int32 HalfCells = FMath::Max(1, FMath::RoundToInt(GridExtentCm / G));
