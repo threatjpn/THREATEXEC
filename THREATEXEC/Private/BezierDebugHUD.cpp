@@ -195,6 +195,10 @@ void ABezierDebugHUD::ToggleForcePlanar()
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
 		Debug->bForcePlanar = !Debug->bForcePlanar;
+		if (Debug->bForcePlanar && Debug->ForcePlanarAxis == EBezierPlanarAxis::None)
+		{
+			Debug->ForcePlanarAxis = EBezierPlanarAxis::XY;
+		}
 		ApplyAndRefresh();
 	}
 }

@@ -81,6 +81,10 @@ void ABezierDebugActor::SyncFromWorldState()
 		bForcePlanar = A3->bForcePlanar;
 		ForcePlanarAxis = A3->ForcePlanarAxis;
 		bShowControlPolygon = A3->bShowControlPolygon;
+		DebugLineColor = A3->DebugLineColor;
+		DebugLevelColor = A3->DebugLevelColor;
+		DebugResultColor = A3->DebugResultColor;
+		DebugSamplePointColor = A3->DebugSamplePointColor;
 		bPulseDebugLines = A3->bPulseDebugLines;
 		DebugPulseMinAlpha = A3->DebugPulseMinAlpha;
 		DebugPulseMaxAlpha = A3->DebugPulseMaxAlpha;
@@ -129,6 +133,10 @@ void ABezierDebugActor::SyncFromWorldState()
 		bForcePlanar = A2->bForcePlanar;
 		ForcePlanarAxis = bForcePlanar ? EBezierPlanarAxis::XY : EBezierPlanarAxis::None;
 		bShowControlPolygon = A2->bShowControlPolygon;
+		DebugLineColor = A2->DebugLineColor;
+		DebugLevelColor = A2->DebugLevelColor;
+		DebugResultColor = A2->DebugResultColor;
+		DebugSamplePointColor = A2->DebugSamplePointColor;
 		bPulseDebugLines = A2->bPulseDebugLines;
 		DebugPulseMinAlpha = A2->DebugPulseMinAlpha;
 		DebugPulseMaxAlpha = A2->DebugPulseMaxAlpha;
@@ -208,7 +216,8 @@ void ABezierDebugActor::ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const
 	CurveSet->UI_SetLockToLocalXYForAll(bLockToLocalXY);
 	if (bForcePlanar)
 	{
-		CurveSet->UI_SetForcePlanarAxisForAll(ForcePlanarAxis);
+		const EBezierPlanarAxis AxisToApply = (ForcePlanarAxis == EBezierPlanarAxis::None) ? EBezierPlanarAxis::XY : ForcePlanarAxis;
+		CurveSet->UI_SetForcePlanarAxisForAll(AxisToApply);
 	}
 	else
 	{
@@ -282,41 +291,49 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 		Curve3D->UI_SetLockToLocalXY(bLockToLocalXY);
 		if (bForcePlanar)
 		{
-			Curve3D->UI_SetForcePlanarAxis(ForcePlanarAxis);
+			const EBezierPlanarAxis AxisToApply = (ForcePlanarAxis == EBezierPlanarAxis::None) ? EBezierPlanarAxis::XY : ForcePlanarAxis;
+			Curve3D->UI_SetForcePlanarAxis(AxisToApply);
 		}
 		else
 		{
 			Curve3D->UI_SetForcePlanarAxis(EBezierPlanarAxis::None);
 		}
 		Curve3D->bShowControlPolygon = bShowControlPolygon;
-		Curve3D->bPulseDebugLines = bPulseDebugLines;
-		Curve3D->DebugPulseMinAlpha = DebugPulseMinAlpha;
-		Curve3D->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
-		Curve3D->DebugPulseMinThickness = DebugPulseMinThickness;
-		Curve3D->DebugPulseMaxThickness = DebugPulseMaxThickness;
-		Curve3D->DebugPulseSpeed = DebugPulseSpeed;
-		Curve3D->bPulseControlPoints = bPulseControlPoints;
-		Curve3D->ControlPointPulseMinScale = ControlPointPulseMinScale;
-		Curve3D->ControlPointPulseMaxScale = ControlPointPulseMaxScale;
-		Curve3D->ControlPointPulseMinAlpha = ControlPointPulseMinAlpha;
-		Curve3D->ControlPointPulseMaxAlpha = ControlPointPulseMaxAlpha;
-		Curve3D->ControlPointPulseSpeed = ControlPointPulseSpeed;
-		Curve3D->bPulseStrip = bPulseStrip;
-		Curve3D->StripPulseMinWidth = StripPulseMinWidth;
-		Curve3D->StripPulseMaxWidth = StripPulseMaxWidth;
-		Curve3D->StripPulseMinThickness = StripPulseMinThickness;
-		Curve3D->StripPulseMaxThickness = StripPulseMaxThickness;
-		Curve3D->StripPulseMinAlpha = StripPulseMinAlpha;
-		Curve3D->StripPulseMaxAlpha = StripPulseMaxAlpha;
-		Curve3D->StripPulseSpeed = StripPulseSpeed;
-		Curve3D->bPulseGrid = bPulseGrid;
-		Curve3D->GridPulseMinAlpha = GridPulseMinAlpha;
-		Curve3D->GridPulseMaxAlpha = GridPulseMaxAlpha;
-		Curve3D->GridPulseSpeed = GridPulseSpeed;
-		Curve3D->GridPulseMinThickness = GridPulseMinThickness;
-		Curve3D->GridPulseMaxThickness = GridPulseMaxThickness;
-		Curve3D->GridThicknessScale = GridThicknessScale;
-		Curve3D->DebugThicknessScale = DebugThicknessScale;
+		Curve3D->DebugLineColor = DebugLineColor;
+		Curve3D->DebugLevelColor = DebugLevelColor;
+		Curve3D->DebugResultColor = DebugResultColor;
+		Curve3D->DebugSamplePointColor = DebugSamplePointColor;
+		if (bOverridePulseSettings)
+		{
+			Curve3D->bPulseDebugLines = bPulseDebugLines;
+			Curve3D->DebugPulseMinAlpha = DebugPulseMinAlpha;
+			Curve3D->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
+			Curve3D->DebugPulseMinThickness = DebugPulseMinThickness;
+			Curve3D->DebugPulseMaxThickness = DebugPulseMaxThickness;
+			Curve3D->DebugPulseSpeed = DebugPulseSpeed;
+			Curve3D->bPulseControlPoints = bPulseControlPoints;
+			Curve3D->ControlPointPulseMinScale = ControlPointPulseMinScale;
+			Curve3D->ControlPointPulseMaxScale = ControlPointPulseMaxScale;
+			Curve3D->ControlPointPulseMinAlpha = ControlPointPulseMinAlpha;
+			Curve3D->ControlPointPulseMaxAlpha = ControlPointPulseMaxAlpha;
+			Curve3D->ControlPointPulseSpeed = ControlPointPulseSpeed;
+			Curve3D->bPulseStrip = bPulseStrip;
+			Curve3D->StripPulseMinWidth = StripPulseMinWidth;
+			Curve3D->StripPulseMaxWidth = StripPulseMaxWidth;
+			Curve3D->StripPulseMinThickness = StripPulseMinThickness;
+			Curve3D->StripPulseMaxThickness = StripPulseMaxThickness;
+			Curve3D->StripPulseMinAlpha = StripPulseMinAlpha;
+			Curve3D->StripPulseMaxAlpha = StripPulseMaxAlpha;
+			Curve3D->StripPulseSpeed = StripPulseSpeed;
+			Curve3D->bPulseGrid = bPulseGrid;
+			Curve3D->GridPulseMinAlpha = GridPulseMinAlpha;
+			Curve3D->GridPulseMaxAlpha = GridPulseMaxAlpha;
+			Curve3D->GridPulseSpeed = GridPulseSpeed;
+			Curve3D->GridPulseMinThickness = GridPulseMinThickness;
+			Curve3D->GridPulseMaxThickness = GridPulseMaxThickness;
+			Curve3D->GridThicknessScale = GridThicknessScale;
+			Curve3D->DebugThicknessScale = DebugThicknessScale;
+		}
 		Curve3D->bForceVisualsOnTop = bForceVisualsOnTop;
 		Curve3D->VisualTranslucencySortPriority = VisualTranslucencySortPriority;
 		Curve3D->bEnableVisualFade = bEnableVisualFade;
@@ -362,34 +379,41 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 		Curve2D->UI_SetLockToLocalXY(bLockToLocalXY);
 		Curve2D->UI_SetForcePlanar(bForcePlanar);
 		Curve2D->bShowControlPolygon = bShowControlPolygon;
-		Curve2D->bPulseDebugLines = bPulseDebugLines;
-		Curve2D->DebugPulseMinAlpha = DebugPulseMinAlpha;
-		Curve2D->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
-		Curve2D->DebugPulseMinThickness = DebugPulseMinThickness;
-		Curve2D->DebugPulseMaxThickness = DebugPulseMaxThickness;
-		Curve2D->DebugPulseSpeed = DebugPulseSpeed;
-		Curve2D->bPulseControlPoints = bPulseControlPoints;
-		Curve2D->ControlPointPulseMinScale = ControlPointPulseMinScale;
-		Curve2D->ControlPointPulseMaxScale = ControlPointPulseMaxScale;
-		Curve2D->ControlPointPulseMinAlpha = ControlPointPulseMinAlpha;
-		Curve2D->ControlPointPulseMaxAlpha = ControlPointPulseMaxAlpha;
-		Curve2D->ControlPointPulseSpeed = ControlPointPulseSpeed;
-		Curve2D->bPulseStrip = bPulseStrip;
-		Curve2D->StripPulseMinWidth = StripPulseMinWidth;
-		Curve2D->StripPulseMaxWidth = StripPulseMaxWidth;
-		Curve2D->StripPulseMinThickness = StripPulseMinThickness;
-		Curve2D->StripPulseMaxThickness = StripPulseMaxThickness;
-		Curve2D->StripPulseMinAlpha = StripPulseMinAlpha;
-		Curve2D->StripPulseMaxAlpha = StripPulseMaxAlpha;
-		Curve2D->StripPulseSpeed = StripPulseSpeed;
-		Curve2D->bPulseGrid = bPulseGrid;
-		Curve2D->GridPulseMinAlpha = GridPulseMinAlpha;
-		Curve2D->GridPulseMaxAlpha = GridPulseMaxAlpha;
-		Curve2D->GridPulseSpeed = GridPulseSpeed;
-		Curve2D->GridPulseMinThickness = GridPulseMinThickness;
-		Curve2D->GridPulseMaxThickness = GridPulseMaxThickness;
-		Curve2D->GridThicknessScale = GridThicknessScale;
-		Curve2D->DebugThicknessScale = DebugThicknessScale;
+		Curve2D->DebugLineColor = DebugLineColor;
+		Curve2D->DebugLevelColor = DebugLevelColor;
+		Curve2D->DebugResultColor = DebugResultColor;
+		Curve2D->DebugSamplePointColor = DebugSamplePointColor;
+		if (bOverridePulseSettings)
+		{
+			Curve2D->bPulseDebugLines = bPulseDebugLines;
+			Curve2D->DebugPulseMinAlpha = DebugPulseMinAlpha;
+			Curve2D->DebugPulseMaxAlpha = DebugPulseMaxAlpha;
+			Curve2D->DebugPulseMinThickness = DebugPulseMinThickness;
+			Curve2D->DebugPulseMaxThickness = DebugPulseMaxThickness;
+			Curve2D->DebugPulseSpeed = DebugPulseSpeed;
+			Curve2D->bPulseControlPoints = bPulseControlPoints;
+			Curve2D->ControlPointPulseMinScale = ControlPointPulseMinScale;
+			Curve2D->ControlPointPulseMaxScale = ControlPointPulseMaxScale;
+			Curve2D->ControlPointPulseMinAlpha = ControlPointPulseMinAlpha;
+			Curve2D->ControlPointPulseMaxAlpha = ControlPointPulseMaxAlpha;
+			Curve2D->ControlPointPulseSpeed = ControlPointPulseSpeed;
+			Curve2D->bPulseStrip = bPulseStrip;
+			Curve2D->StripPulseMinWidth = StripPulseMinWidth;
+			Curve2D->StripPulseMaxWidth = StripPulseMaxWidth;
+			Curve2D->StripPulseMinThickness = StripPulseMinThickness;
+			Curve2D->StripPulseMaxThickness = StripPulseMaxThickness;
+			Curve2D->StripPulseMinAlpha = StripPulseMinAlpha;
+			Curve2D->StripPulseMaxAlpha = StripPulseMaxAlpha;
+			Curve2D->StripPulseSpeed = StripPulseSpeed;
+			Curve2D->bPulseGrid = bPulseGrid;
+			Curve2D->GridPulseMinAlpha = GridPulseMinAlpha;
+			Curve2D->GridPulseMaxAlpha = GridPulseMaxAlpha;
+			Curve2D->GridPulseSpeed = GridPulseSpeed;
+			Curve2D->GridPulseMinThickness = GridPulseMinThickness;
+			Curve2D->GridPulseMaxThickness = GridPulseMaxThickness;
+			Curve2D->GridThicknessScale = GridThicknessScale;
+			Curve2D->DebugThicknessScale = DebugThicknessScale;
+		}
 		Curve2D->bForceVisualsOnTop = bForceVisualsOnTop;
 		Curve2D->VisualTranslucencySortPriority = VisualTranslucencySortPriority;
 		Curve2D->bEnableVisualFade = bEnableVisualFade;

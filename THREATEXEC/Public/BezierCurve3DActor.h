@@ -485,6 +485,18 @@ public:
 	bool bShowControlPolygon = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	FLinearColor DebugLineColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	FLinearColor DebugLevelColor = FLinearColor(128.0f / 255.0f, 200.0f / 255.0f, 1.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	FLinearColor DebugResultColor = FLinearColor::Red;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
+	FLinearColor DebugSamplePointColor = FLinearColor(64.0f / 255.0f, 220.0f / 255.0f, 1.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug")
 	bool bPulseDebugLines = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Debug", meta = (ClampMin = "0.0", ClampMax = "1.0"))
