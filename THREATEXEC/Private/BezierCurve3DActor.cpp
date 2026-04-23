@@ -69,11 +69,9 @@ namespace
 		if (LineBatcher)
 		{
 			FLinearColor RuntimeColor = Color;
-			RuntimeColor.R *= RuntimeColor.A;
-			RuntimeColor.G *= RuntimeColor.A;
-			RuntimeColor.B *= RuntimeColor.A;
-			RuntimeColor.A = 1.0f;
-			LineBatcher->DrawLine(Start, End, RuntimeColor, SDPG_Foreground, Thickness, 0.0f);
+			const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
+			RuntimeColor.A = RuntimeAlpha;
+			LineBatcher->DrawLine(Start, End, RuntimeColor, SDPG_Foreground, Thickness * RuntimeAlpha, 0.0f);
 		}
 #endif
 	}
@@ -92,11 +90,9 @@ namespace
 		if (LineBatcher)
 		{
 			FLinearColor RuntimeColor = Color;
-			RuntimeColor.R *= RuntimeColor.A;
-			RuntimeColor.G *= RuntimeColor.A;
-			RuntimeColor.B *= RuntimeColor.A;
-			RuntimeColor.A = 1.0f;
-			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize, SDPG_Foreground, 0.0f);
+			const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
+			RuntimeColor.A = RuntimeAlpha;
+			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, SDPG_Foreground, 0.0f);
 		}
 #endif
 	}

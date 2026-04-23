@@ -48,6 +48,7 @@ private:
 	void TogglePulseDebug();
 	void TogglePulseControlPoints();
 	void TogglePulseStrip();
+	void ToggleOverridePulseSettings();
 	void ToggleMouseTraceDebug();
 	void ToggleActorVisible();
 	void ToggleHideWhenNotEditing();

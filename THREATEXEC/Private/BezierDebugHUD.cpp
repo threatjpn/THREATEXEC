@@ -56,6 +56,7 @@ void ABezierDebugHUD::DrawHUD()
 	DrawLineText(Y, FString::Printf(TEXT("D: Pulse Debug Lines [%s]"), Debug->bPulseDebugLines ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("U: Pulse Control Points [%s]"), Debug->bPulseControlPoints ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("I: Pulse Strip [%s]"), Debug->bPulseStrip ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("Y: Override Pulse Settings [%s]"), Debug->bOverridePulseSettings ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("T: Trace Debug [%s]"), Debug->bEnableMouseTraceDebug ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("F10: Force Visuals On Top [%s]"), Debug->bForceVisualsOnTop ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("Undo Steps: %d  | Ctrl+Z / Ctrl+Y"), Debug->UndoMaxSteps));
@@ -100,6 +101,7 @@ void ABezierDebugHUD::BindInput()
 	InputComponent->BindKey(EKeys::D, IE_Pressed, this, &ABezierDebugHUD::TogglePulseDebug);
 	InputComponent->BindKey(EKeys::U, IE_Pressed, this, &ABezierDebugHUD::TogglePulseControlPoints);
 	InputComponent->BindKey(EKeys::I, IE_Pressed, this, &ABezierDebugHUD::TogglePulseStrip);
+	InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierDebugHUD::ToggleOverridePulseSettings);
 	InputComponent->BindKey(EKeys::T, IE_Pressed, this, &ABezierDebugHUD::ToggleMouseTraceDebug);
 	InputComponent->BindKey(EKeys::V, IE_Pressed, this, &ABezierDebugHUD::ToggleActorVisible);
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ABezierDebugHUD::ToggleHideWhenNotEditing);
@@ -207,6 +209,7 @@ void ABezierDebugHUD::TogglePulseDebug()
 {
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
+		Debug->bOverridePulseSettings = true;
 		Debug->bPulseDebugLines = !Debug->bPulseDebugLines;
 		ApplyAndRefresh();
 	}
@@ -216,6 +219,7 @@ void ABezierDebugHUD::TogglePulseControlPoints()
 {
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
+		Debug->bOverridePulseSettings = true;
 		Debug->bPulseControlPoints = !Debug->bPulseControlPoints;
 		ApplyAndRefresh();
 	}
@@ -225,7 +229,17 @@ void ABezierDebugHUD::TogglePulseStrip()
 {
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
+		Debug->bOverridePulseSettings = true;
 		Debug->bPulseStrip = !Debug->bPulseStrip;
+		ApplyAndRefresh();
+	}
+}
+
+void ABezierDebugHUD::ToggleOverridePulseSettings()
+{
+	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	{
+		Debug->bOverridePulseSettings = !Debug->bOverridePulseSettings;
 		ApplyAndRefresh();
 	}
 }

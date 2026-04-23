@@ -108,7 +108,7 @@ public:
 	bool bShowControlPolygon = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier|Debug|Visuals")
-	bool bOverridePulseSettings = false;
+	bool bOverridePulseSettings = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier|Debug|Visuals")
 	FLinearColor DebugLineColor = FLinearColor::White;
