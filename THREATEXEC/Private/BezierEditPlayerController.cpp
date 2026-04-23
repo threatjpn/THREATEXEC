@@ -509,6 +509,13 @@ void ABezierEditPlayerController::Input_Cancel()
 
 void ABezierEditPlayerController::Input_Undo()
 {
+	const bool bCtrlDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftControl) || PlayerInput->IsPressed(EKeys::RightControl));
+	const bool bShiftDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftShift) || PlayerInput->IsPressed(EKeys::RightShift));
+	if (!bCtrlDown || bShiftDown)
+	{
+		return;
+	}
+
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
 		StopDrag(false);
@@ -518,6 +525,12 @@ void ABezierEditPlayerController::Input_Undo()
 
 void ABezierEditPlayerController::Input_Redo()
 {
+	const bool bCtrlDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftControl) || PlayerInput->IsPressed(EKeys::RightControl));
+	if (!bCtrlDown)
+	{
+		return;
+	}
+
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
 		StopDrag(false);
