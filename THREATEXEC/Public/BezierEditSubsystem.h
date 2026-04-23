@@ -225,7 +225,7 @@ private:
 	void ApplyIsolateVisibility();
 
 	bool CaptureCurveSnapshot(AActor* Actor, FBezierCurveActorSnapshot& Out) const;
-	bool RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot);
+	bool RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot, bool bPreserveCurrentEditMode = false);
 	bool AreHistorySnapshotsEquivalent(const FBezierHistorySnapshot& A, const FBezierHistorySnapshot& B) const;
 	void PushUndoSnapshotIfDifferent(const FBezierHistorySnapshot& Snapshot);
 	void TrimHistoryStacks();

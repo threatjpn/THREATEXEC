@@ -312,7 +312,7 @@ void UBezierEditSubsystem::TrimHistoryStacks()
 	}
 }
 
-bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot)
+bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot, bool bPreserveCurrentEditMode)
 {
 	CompactRegistry();
 	TArray<AActor*> CurrentActors;
@@ -329,6 +329,22 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 		{
 			for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It) CurrentActors.AddUnique(*It);
 			for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It) CurrentActors.AddUnique(*It);
+		}
+	}
+
+	TMap<TWeakObjectPtr<AActor>, bool> ExistingEditModeStates;
+	if (bPreserveCurrentEditMode)
+	{
+		for (AActor* Actor : CurrentActors)
+		{
+			if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
+			{
+				ExistingEditModeStates.Add(Actor, A2->UI_GetEditMode());
+			}
+			else if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(Actor))
+			{
+				ExistingEditModeStates.Add(Actor, A3->UI_GetEditMode());
+			}
 		}
 	}
 
@@ -359,6 +375,8 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 		}
 
 		TargetActor->SetActorTransform(Curve.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+		const bool* ExistingEditModePtr = bPreserveCurrentEditMode ? ExistingEditModeStates.Find(TargetActor) : nullptr;
+		const bool bResolvedEditMode = ExistingEditModePtr ? *ExistingEditModePtr : Curve.bEditMode;
 
 		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(TargetActor))
 		{
@@ -367,7 +385,7 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 			A2->Control = Curve.Control2D;
 			A2->bEnableRuntimeEditing = Curve.bEnableRuntimeEditing;
 			A2->bHideVisualsWhenNotEditing = Curve.bHideVisualsWhenNotEditing;
-			A2->UI_SetEditMode(Curve.bEditMode);
+			A2->UI_SetEditMode(bResolvedEditMode);
 			A2->UI_SetActorVisibleInGame(Curve.bActorVisibleInGame);
 			A2->UI_SetShowControlPoints(Curve.bShowControlPoints);
 			A2->UI_SetShowStrip(Curve.bShowStrip);
@@ -399,7 +417,7 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 			A3->Control = Curve.Control3D;
 			A3->bEnableRuntimeEditing = Curve.bEnableRuntimeEditing;
 			A3->bHideVisualsWhenNotEditing = Curve.bHideVisualsWhenNotEditing;
-			A3->UI_SetEditMode(Curve.bEditMode);
+			A3->UI_SetEditMode(bResolvedEditMode);
 			A3->UI_SetActorVisibleInGame(Curve.bActorVisibleInGame);
 			A3->UI_SetShowControlPoints(Curve.bShowControlPoints);
 			A3->UI_SetShowStrip(Curve.bShowStrip);
@@ -497,7 +515,7 @@ bool UBezierEditSubsystem::History_Undo()
 	RedoHistory.Add(UndoHistory.Last());
 	UndoHistory.RemoveAt(UndoHistory.Num() - 1, 1, EAllowShrinking::No);
 	TrimHistoryStacks();
-	return RestoreHistorySnapshot(UndoHistory.Last());
+	return RestoreHistorySnapshot(UndoHistory.Last(), true);
 }
 
 bool UBezierEditSubsystem::History_Redo()
@@ -511,7 +529,7 @@ bool UBezierEditSubsystem::History_Redo()
 	RedoHistory.RemoveAt(RedoHistory.Num() - 1, 1, EAllowShrinking::No);
 	PushUndoSnapshotIfDifferent(Target);
 	TrimHistoryStacks();
-	return RestoreHistorySnapshot(Target);
+	return RestoreHistorySnapshot(Target, true);
 }
 
 bool UBezierEditSubsystem::IsEditable(AActor* Actor) const

@@ -511,7 +511,7 @@ void ABezierEditPlayerController::Input_Undo()
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		StopDrag();
+		StopDrag(false);
 		Sub->History_Undo();
 	}
 }
@@ -525,7 +525,7 @@ void ABezierEditPlayerController::Input_Redo()
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		StopDrag();
+		StopDrag(false);
 		Sub->History_Redo();
 	}
 }
@@ -676,9 +676,12 @@ void ABezierEditPlayerController::UpdateDrag()
 	}
 }
 
-void ABezierEditPlayerController::StopDrag()
+void ABezierEditPlayerController::StopDrag(bool bCommitHistory)
 {
-	CommitDragSnapshotIfNeeded(GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr);
+	if (bCommitHistory)
+	{
+		CommitDragSnapshotIfNeeded(GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr);
+	}
 
 	bDragging = false;
 	DraggedActor = nullptr;
