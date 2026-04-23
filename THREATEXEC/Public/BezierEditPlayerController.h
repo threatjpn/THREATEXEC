@@ -62,7 +62,7 @@ protected:
 	// Drag
 	void StartDrag(const FHitResult& Hit);
 	void UpdateDrag();
-	void StopDrag();
+	void StopDrag(bool bCommitHistory = true);
 	void StartDragFromControlPoint(AActor* HitActor, int32 ControlPointIndex, const FVector& ImpactPoint);
 	void CaptureDragBeforeSnapshot(UBezierEditSubsystem* Sub);
 	void CommitDragSnapshotIfNeeded(UBezierEditSubsystem* Sub);

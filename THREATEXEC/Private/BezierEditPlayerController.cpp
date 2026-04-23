@@ -504,28 +504,31 @@ void ABezierEditPlayerController::Input_Cancel()
 
 void ABezierEditPlayerController::Input_Undo()
 {
-	if (!IsInputKeyDown(EKeys::LeftControl) && !IsInputKeyDown(EKeys::RightControl))
+	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
+	const bool bShiftDown = IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift);
+	if (!bCtrlDown || bShiftDown)
 	{
 		return;
 	}
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		StopDrag();
+		StopDrag(false);
 		Sub->History_Undo();
 	}
 }
 
 void ABezierEditPlayerController::Input_Redo()
 {
-	if (!IsInputKeyDown(EKeys::LeftControl) && !IsInputKeyDown(EKeys::RightControl))
+	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
+	if (!bCtrlDown)
 	{
 		return;
 	}
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		StopDrag();
+		StopDrag(false);
 		Sub->History_Redo();
 	}
 }
@@ -676,9 +679,12 @@ void ABezierEditPlayerController::UpdateDrag()
 	}
 }
 
-void ABezierEditPlayerController::StopDrag()
+void ABezierEditPlayerController::StopDrag(bool bCommitHistory)
 {
-	CommitDragSnapshotIfNeeded(GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr);
+	if (bCommitHistory)
+	{
+		CommitDragSnapshotIfNeeded(GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr);
+	}
 
 	bDragging = false;
 	DraggedActor = nullptr;
