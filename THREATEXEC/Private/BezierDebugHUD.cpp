@@ -237,6 +237,12 @@ void ABezierDebugHUD::TogglePulseStrip()
 
 void ABezierDebugHUD::ToggleOverridePulseSettings()
 {
+	if (PlayerOwner && (PlayerOwner->IsInputKeyDown(EKeys::LeftControl) || PlayerOwner->IsInputKeyDown(EKeys::RightControl)))
+	{
+		// Avoid conflicting with Ctrl+Y redo input.
+		return;
+	}
+
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
 		Debug->bOverridePulseSettings = !Debug->bOverridePulseSettings;

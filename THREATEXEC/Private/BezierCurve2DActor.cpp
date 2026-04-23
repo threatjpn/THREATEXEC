@@ -47,6 +47,9 @@ namespace
 			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
 			if (LineBatcher)
 			{
+				LineBatcher->bNeverDistanceCull = true;
+				LineBatcher->LDMaxDrawDistance = 0.0f;
+				LineBatcher->DetailMode = DM_Low;
 				LineBatcher->RegisterComponentWithWorld(World);
 				CachedBatcher = LineBatcher;
 			}
@@ -121,6 +124,10 @@ ABezierCurve2DActor::ABezierCurve2DActor()
 	ControlPointISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("ControlPoints"));
 	ControlPointISM->SetupAttachment(Root);
 	ControlPointISM->NumCustomDataFloats = 3;
+	ControlPointISM->SetCullDistances(0, 0);
+	ControlPointISM->bNeverDistanceCull = true;
+	ControlPointISM->LDMaxDrawDistance = 0.0f;
+	ControlPointISM->DetailMode = DM_Low;
 	ControlPointISM->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ControlPointISM->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	ControlPointISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -130,10 +137,17 @@ ABezierCurve2DActor::ABezierCurve2DActor()
 
 	StripMeshComponent = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("StripMesh"));
 	StripMeshComponent->SetupAttachment(Root);
+	StripMeshComponent->bNeverDistanceCull = true;
+	StripMeshComponent->LDMaxDrawDistance = 0.0f;
+	StripMeshComponent->DetailMode = DM_Low;
 	StripMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	CubeStripISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("CubeStrip"));
 	CubeStripISM->SetupAttachment(Root);
+	CubeStripISM->SetCullDistances(0, 0);
+	CubeStripISM->bNeverDistanceCull = true;
+	CubeStripISM->LDMaxDrawDistance = 0.0f;
+	CubeStripISM->DetailMode = DM_Low;
 	CubeStripISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (CubeMesh.Succeeded()) { CubeStripISM->SetStaticMesh(CubeMesh.Object); }
 

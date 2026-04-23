@@ -11,6 +11,7 @@
 #include "EngineUtils.h"
 #include "Camera/PlayerCameraManager.h"
 #include "InputCoreTypes.h"
+#include "GameFramework/InputSettings.h"
 
 ABezierEditPlayerController::ABezierEditPlayerController()
 {
@@ -82,8 +83,61 @@ void ABezierEditPlayerController::SetupInputComponent()
 			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
 		}
 
-		InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ABezierEditPlayerController::Input_Undo);
-		InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
+		auto HasActionMapping = [](const FName ActionName) -> bool
+		{
+			if (ActionName.IsNone())
+			{
+				return false;
+			}
+
+			const UInputSettings* InputSettings = GetDefault<UInputSettings>();
+			if (!InputSettings)
+			{
+				return false;
+			}
+
+			const TArray<FInputActionKeyMapping>& ActionMappings = InputSettings->GetActionMappings();
+			for (const FInputActionKeyMapping& Mapping : ActionMappings)
+			{
+				if (Mapping.ActionName == ActionName)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		const bool bUndoHasActionMapping = HasActionMapping(UndoActionName);
+		const bool bRedoHasActionMapping = HasActionMapping(RedoActionName);
+
+		if (bUndoHasActionMapping)
+		{
+			InputComponent->BindAction(UndoActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_UndoAction);
+		}
+		else if (!UndoActionName.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: Undo action '%s' not mapped; using Ctrl+Z fallback."), *UndoActionName.ToString());
+		}
+
+		if (bRedoHasActionMapping)
+		{
+			InputComponent->BindAction(RedoActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_RedoAction);
+		}
+		else if (!RedoActionName.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: Redo action '%s' not mapped; using Ctrl+Y fallback."), *RedoActionName.ToString());
+		}
+
+		// Fallback path when action mappings are not configured in project settings.
+		if (!bUndoHasActionMapping)
+		{
+			InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ABezierEditPlayerController::Input_Undo);
+		}
+		if (!bRedoHasActionMapping)
+		{
+			InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
+		}
 	}
 }
 
@@ -504,28 +558,49 @@ void ABezierEditPlayerController::Input_Cancel()
 
 void ABezierEditPlayerController::Input_Undo()
 {
-	if (!IsInputKeyDown(EKeys::LeftControl) && !IsInputKeyDown(EKeys::RightControl))
+	const bool bCtrlDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftControl) || PlayerInput->IsPressed(EKeys::RightControl));
+	const bool bShiftDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftShift) || PlayerInput->IsPressed(EKeys::RightShift));
+	if (!bCtrlDown || bShiftDown)
 	{
 		return;
 	}
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		StopDrag();
+		StopDrag(true);
 		Sub->History_Undo();
 	}
 }
 
 void ABezierEditPlayerController::Input_Redo()
 {
-	if (!IsInputKeyDown(EKeys::LeftControl) && !IsInputKeyDown(EKeys::RightControl))
+	const bool bCtrlDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftControl) || PlayerInput->IsPressed(EKeys::RightControl));
+	if (!bCtrlDown)
 	{
 		return;
 	}
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		StopDrag();
+		StopDrag(true);
+		Sub->History_Redo();
+	}
+}
+
+void ABezierEditPlayerController::Input_UndoAction()
+{
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		StopDrag(true);
+		Sub->History_Undo();
+	}
+}
+
+void ABezierEditPlayerController::Input_RedoAction()
+{
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		StopDrag(true);
 		Sub->History_Redo();
 	}
 }
@@ -676,9 +751,12 @@ void ABezierEditPlayerController::UpdateDrag()
 	}
 }
 
-void ABezierEditPlayerController::StopDrag()
+void ABezierEditPlayerController::StopDrag(bool bCommitHistory)
 {
-	CommitDragSnapshotIfNeeded(GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr);
+	if (bCommitHistory)
+	{
+		CommitDragSnapshotIfNeeded(GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr);
+	}
 
 	bDragging = false;
 	DraggedActor = nullptr;
