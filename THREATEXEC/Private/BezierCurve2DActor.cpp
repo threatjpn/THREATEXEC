@@ -67,7 +67,12 @@ namespace
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher2D(Owner, World);
 		if (LineBatcher)
 		{
-			LineBatcher->DrawLine(Start, End, Color, SDPG_Foreground, Thickness, 0.0f);
+			FLinearColor RuntimeColor = Color;
+			RuntimeColor.R *= RuntimeColor.A;
+			RuntimeColor.G *= RuntimeColor.A;
+			RuntimeColor.B *= RuntimeColor.A;
+			RuntimeColor.A = 1.0f;
+			LineBatcher->DrawLine(Start, End, RuntimeColor, SDPG_Foreground, Thickness, 0.0f);
 		}
 #endif
 	}
@@ -85,7 +90,12 @@ namespace
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher2D(Owner, World);
 		if (LineBatcher)
 		{
-			LineBatcher->DrawPoint(Position, Color, PointSize, SDPG_Foreground, 0.0f);
+			FLinearColor RuntimeColor = Color;
+			RuntimeColor.R *= RuntimeColor.A;
+			RuntimeColor.G *= RuntimeColor.A;
+			RuntimeColor.B *= RuntimeColor.A;
+			RuntimeColor.A = 1.0f;
+			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize, SDPG_Foreground, 0.0f);
 		}
 #endif
 	}
