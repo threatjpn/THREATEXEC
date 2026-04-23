@@ -11,6 +11,7 @@
 #include "EngineUtils.h"
 #include "Camera/PlayerCameraManager.h"
 #include "InputCoreTypes.h"
+#include "GameFramework/InputSettings.h"
 
 ABezierEditPlayerController::ABezierEditPlayerController()
 {
@@ -82,13 +83,61 @@ void ABezierEditPlayerController::SetupInputComponent()
 			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
 		}
 
-		FInputKeyBinding UndoBinding(FInputChord(EKeys::Z, true, false, false, false), IE_Pressed);
-		UndoBinding.KeyDelegate.BindDelegate(this, &ABezierEditPlayerController::Input_Undo);
-		InputComponent->KeyBindings.Add(MoveTemp(UndoBinding));
+		auto HasActionMapping = [](const FName ActionName) -> bool
+		{
+			if (ActionName.IsNone())
+			{
+				return false;
+			}
 
-		FInputKeyBinding RedoBinding(FInputChord(EKeys::Y, true, false, false, false), IE_Pressed);
-		RedoBinding.KeyDelegate.BindDelegate(this, &ABezierEditPlayerController::Input_Redo);
-		InputComponent->KeyBindings.Add(MoveTemp(RedoBinding));
+			const UInputSettings* InputSettings = GetDefault<UInputSettings>();
+			if (!InputSettings)
+			{
+				return false;
+			}
+
+			const TArray<FInputActionKeyMapping>& ActionMappings = InputSettings->GetActionMappings();
+			for (const FInputActionKeyMapping& Mapping : ActionMappings)
+			{
+				if (Mapping.ActionName == ActionName)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		const bool bUndoHasActionMapping = HasActionMapping(UndoActionName);
+		const bool bRedoHasActionMapping = HasActionMapping(RedoActionName);
+
+		if (bUndoHasActionMapping)
+		{
+			InputComponent->BindAction(UndoActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_UndoAction);
+		}
+		else if (!UndoActionName.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: Undo action '%s' not mapped; using Ctrl+Z fallback."), *UndoActionName.ToString());
+		}
+
+		if (bRedoHasActionMapping)
+		{
+			InputComponent->BindAction(RedoActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_RedoAction);
+		}
+		else if (!RedoActionName.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: Redo action '%s' not mapped; using Ctrl+Y fallback."), *RedoActionName.ToString());
+		}
+
+		// Fallback path when action mappings are not configured in project settings.
+		if (!bUndoHasActionMapping)
+		{
+			InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ABezierEditPlayerController::Input_Undo);
+		}
+		if (!bRedoHasActionMapping)
+		{
+			InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
+		}
 	}
 }
 
@@ -518,7 +567,7 @@ void ABezierEditPlayerController::Input_Undo()
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		StopDrag(false);
+		StopDrag(true);
 		Sub->History_Undo();
 	}
 }
@@ -533,7 +582,25 @@ void ABezierEditPlayerController::Input_Redo()
 
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
-		StopDrag(false);
+		StopDrag(true);
+		Sub->History_Redo();
+	}
+}
+
+void ABezierEditPlayerController::Input_UndoAction()
+{
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		StopDrag(true);
+		Sub->History_Undo();
+	}
+}
+
+void ABezierEditPlayerController::Input_RedoAction()
+{
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		StopDrag(true);
 		Sub->History_Redo();
 	}
 }
