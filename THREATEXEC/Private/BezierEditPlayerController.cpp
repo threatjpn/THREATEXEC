@@ -82,8 +82,13 @@ void ABezierEditPlayerController::SetupInputComponent()
 			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
 		}
 
-		InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ABezierEditPlayerController::Input_Undo);
-		InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
+		FInputKeyBinding UndoBinding(FInputChord(EKeys::Z, true, false, false, false), IE_Pressed);
+		UndoBinding.KeyDelegate.BindDelegate(this, &ABezierEditPlayerController::Input_Undo);
+		InputComponent->KeyBindings.Add(MoveTemp(UndoBinding));
+
+		FInputKeyBinding RedoBinding(FInputChord(EKeys::Y, true, false, false, false), IE_Pressed);
+		RedoBinding.KeyDelegate.BindDelegate(this, &ABezierEditPlayerController::Input_Redo);
+		InputComponent->KeyBindings.Add(MoveTemp(RedoBinding));
 	}
 }
 
@@ -504,13 +509,6 @@ void ABezierEditPlayerController::Input_Cancel()
 
 void ABezierEditPlayerController::Input_Undo()
 {
-	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
-	const bool bShiftDown = IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift);
-	if (!bCtrlDown || bShiftDown)
-	{
-		return;
-	}
-
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
 		StopDrag(false);
@@ -520,12 +518,6 @@ void ABezierEditPlayerController::Input_Undo()
 
 void ABezierEditPlayerController::Input_Redo()
 {
-	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
-	if (!bCtrlDown)
-	{
-		return;
-	}
-
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
 		StopDrag(false);

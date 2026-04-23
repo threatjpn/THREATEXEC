@@ -227,9 +227,10 @@ private:
 	bool CaptureCurveSnapshot(AActor* Actor, FBezierCurveActorSnapshot& Out) const;
 	bool RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot, bool bPreserveCurrentEditMode = false);
 	bool AreHistorySnapshotsEquivalent(const FBezierHistorySnapshot& A, const FBezierHistorySnapshot& B) const;
-	void PushUndoSnapshotIfDifferent(const FBezierHistorySnapshot& Snapshot);
+	void AppendHistorySnapshotIfDifferent(const FBezierHistorySnapshot& Snapshot);
+	void TruncateHistoryFuture();
 	void TrimHistoryStacks();
 
 	TArray<FBezierHistorySnapshot> UndoHistory;
-	TArray<FBezierHistorySnapshot> RedoHistory;
+	int32 HistoryCursor = INDEX_NONE;
 };
