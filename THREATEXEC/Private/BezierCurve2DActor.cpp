@@ -54,7 +54,7 @@ namespace
 		return LineBatcher;
 	}
 
-	static void TE_DrawRuntimeLine2D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FColor& Color, uint8 DepthPriority, float Thickness)
+	static void TE_DrawRuntimeLine2D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!World)
 		{
@@ -62,17 +62,22 @@ namespace
 		}
 
 #if ENABLE_DRAW_DEBUG
-		DrawDebugLine(World, Start, End, Color, false, 0.0f, DepthPriority, Thickness);
+		DrawDebugLine(World, Start, End, Color.ToFColor(true), false, 0.0f, DepthPriority, Thickness);
 #else
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher2D(Owner, World);
 		if (LineBatcher)
 		{
-			LineBatcher->DrawLine(Start, End, FLinearColor(Color), SDPG_Foreground, Thickness, 0.0f);
+			FLinearColor RuntimeColor = Color;
+			RuntimeColor.R *= RuntimeColor.A;
+			RuntimeColor.G *= RuntimeColor.A;
+			RuntimeColor.B *= RuntimeColor.A;
+			RuntimeColor.A = 1.0f;
+			LineBatcher->DrawLine(Start, End, RuntimeColor, SDPG_Foreground, Thickness, 0.0f);
 		}
 #endif
 	}
 
-	static void TE_DrawRuntimePoint2D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FColor& Color, uint8 DepthPriority)
+	static void TE_DrawRuntimePoint2D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FLinearColor& Color, uint8 DepthPriority)
 	{
 		if (!World)
 		{
@@ -80,12 +85,17 @@ namespace
 		}
 
 #if ENABLE_DRAW_DEBUG
-		DrawDebugPoint(World, Position, PointSize, Color, false, 0.0f, DepthPriority);
+		DrawDebugPoint(World, Position, PointSize, Color.ToFColor(true), false, 0.0f, DepthPriority);
 #else
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher2D(Owner, World);
 		if (LineBatcher)
 		{
-			LineBatcher->DrawPoint(Position, FLinearColor(Color), PointSize, SDPG_Foreground, 0.0f);
+			FLinearColor RuntimeColor = Color;
+			RuntimeColor.R *= RuntimeColor.A;
+			RuntimeColor.G *= RuntimeColor.A;
+			RuntimeColor.B *= RuntimeColor.A;
+			RuntimeColor.A = 1.0f;
+			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize, SDPG_Foreground, 0.0f);
 		}
 #endif
 	}
@@ -207,19 +217,28 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	}
 #endif
 	const FTransform Xf = GetActorTransform();
+	const float DebugPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f;
+	const float GridPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f;
+	const float DebugAlphaMin = FMath::Min(DebugPulseMinAlpha, DebugPulseMaxAlpha);
+	const float DebugAlphaMax = FMath::Max(DebugPulseMinAlpha, DebugPulseMaxAlpha);
 	const float PulseAlpha = bPulseDebugLines
-		? FMath::Lerp(DebugPulseMinAlpha, DebugPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
-		: DebugPulseMaxAlpha;
-	const uint8 DebugAlpha = static_cast<uint8>(FMath::Clamp(PulseAlpha, 0.0f, 1.0f) * 255.0f);
+		? FMath::Lerp(DebugAlphaMin, DebugAlphaMax, DebugPulseT)
+		: 1.0f;
+	const float FinalDebugAlpha = FMath::Clamp(PulseAlpha, 0.0f, 1.0f);
+	const float DebugThicknessMin = FMath::Min(DebugPulseMinThickness, DebugPulseMaxThickness);
+	const float DebugThicknessMax = FMath::Max(DebugPulseMinThickness, DebugPulseMaxThickness);
 	const float DebugThickness = bPulseDebugLines
-		? FMath::Lerp(DebugPulseMinThickness, DebugPulseMaxThickness, (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f)
+		? FMath::Lerp(DebugThicknessMin, DebugThicknessMax, DebugPulseT)
 		: DebugPulseMaxThickness;
+	const float GridAlphaMin = FMath::Min(GridPulseMinAlpha, GridPulseMaxAlpha);
+	const float GridAlphaMax = FMath::Max(GridPulseMinAlpha, GridPulseMaxAlpha);
 	const float GridPulseAlpha = bPulseGrid
-		? FMath::Lerp(GridPulseMinAlpha, GridPulseMaxAlpha, (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f)
-		: GridPulseMaxAlpha;
-	const uint8 GridAlpha = static_cast<uint8>(FMath::Clamp(GridPulseAlpha, 0.0f, 1.0f) * 255.0f);
+		? FMath::Lerp(GridAlphaMin, GridAlphaMax, GridPulseT)
+		: 1.0f;
+	const float GridThicknessMin = FMath::Min(GridPulseMinThickness, GridPulseMaxThickness);
+	const float GridThicknessMax = FMath::Max(GridPulseMinThickness, GridPulseMaxThickness);
 	const float GridThickness = bPulseGrid
-		? FMath::Lerp(GridPulseMinThickness, GridPulseMaxThickness, (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f)
+		? FMath::Lerp(GridThicknessMin, GridThicknessMax, GridPulseT)
 		: GridPulseMaxThickness;
 	const float FinalDebugThickness = FMath::Max(0.01f, DebugThickness * DebugThicknessScale);
 	const float FinalGridThickness = FMath::Max(0.01f, GridThickness * GridThicknessScale);
@@ -234,7 +253,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
 				Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
-				FColor(255, 255, 255, DebugAlpha),
+					DebugLineColor.CopyWithNewOpacity(FinalDebugAlpha),
 				DebugDepthPriority,
 				FinalDebugThickness);
 		}
@@ -246,7 +265,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		TEBezier::DeCasteljauLevels<FVector2D>(Control, FMath::Clamp(ProofT, 0.0, 1.0), Levels);
 		for (int32 L = 0; L < Levels.Num(); ++L)
 		{
-			FColor C = (L == Levels.Num() - 1) ? FColor::Red : FColor(128, 200, 255, 255);
+			const FLinearColor LevelColor = (L == Levels.Num() - 1) ? DebugResultColor : DebugLevelColor;
 			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
 			{
 				TE_DrawRuntimeLine2D(
@@ -254,7 +273,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 					GetWorld(),
 					Xf.TransformPosition(FVector(Levels[L][i].X * Scale, Levels[L][i].Y * Scale, 0.0f)),
 					Xf.TransformPosition(FVector(Levels[L][i + 1].X * Scale, Levels[L][i + 1].Y * Scale, 0.0f)),
-					FColor(C.R, C.G, C.B, DebugAlpha),
+						LevelColor.CopyWithNewOpacity(FinalDebugAlpha),
 					DebugDepthPriority,
 					FinalDebugThickness);
 			}
@@ -273,23 +292,22 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(FVector(Sample.X * Scale, Sample.Y * Scale, 0.0f)),
 				6.0f,
-				FColor(64, 220, 255, DebugAlpha),
+					DebugSamplePointColor.CopyWithNewOpacity(FinalDebugAlpha),
 				DebugDepthPriority);
 		}
 	}
 
-	if (bShowGrid || bSnapToGrid)
+	if (bEditMode && (bShowGrid || bSnapToGrid))
 	{
 		const float G = FMath::Max(0.01f, GridSizeCm);
 		const int32 HalfCells = FMath::Max(1, FMath::RoundToInt(GridExtentCm / G));
 		const float Extent = G * HalfCells;
 		const float FinalAlpha = FMath::Clamp(GridColor.A * GridBaseAlpha * GridPulseAlpha, 0.0f, 1.0f);
-		const uint8 GridColorAlpha = static_cast<uint8>(FinalAlpha * 255.0f);
-		const FColor GridLineColor(
-			static_cast<uint8>(FMath::Clamp(GridColor.R, 0.0f, 1.0f) * 255.0f),
-			static_cast<uint8>(FMath::Clamp(GridColor.G, 0.0f, 1.0f) * 255.0f),
-			static_cast<uint8>(FMath::Clamp(GridColor.B, 0.0f, 1.0f) * 255.0f),
-			GridColorAlpha
+		const FLinearColor GridLineColor(
+			FMath::Clamp(GridColor.R, 0.0f, 1.0f),
+			FMath::Clamp(GridColor.G, 0.0f, 1.0f),
+			FMath::Clamp(GridColor.B, 0.0f, 1.0f),
+			FinalAlpha
 		);
 		const FVector Origin(GridOriginWorld.X, GridOriginWorld.Y, GridOriginWorld.Z);
 		if (bShowGridXY)
@@ -420,8 +438,7 @@ void ABezierCurve2DActor::UpdateControlPointInstanceScale(float InScale)
 
 float ABezierCurve2DActor::GetControlPointPulseScale() const
 {
-	const float FadeAlpha = bEnableVisualFade ? ControlPointFadeAlpha : 1.0f;
-	const float BaseScale = ControlPointVisualScale * FadeAlpha;
+	const float BaseScale = ControlPointVisualScale;
 	if (!bPulseControlPoints || !GetWorld())
 	{
 		return BaseScale;
@@ -473,29 +490,31 @@ float ABezierCurve2DActor::GetControlPointPulseOpacity() const
 	const float FadeAlpha = bEnableVisualFade ? ControlPointFadeAlpha : 1.0f;
 	if (!bPulseControlPoints || !GetWorld())
 	{
-		return FadeAlpha;
+		return FMath::Clamp(FadeAlpha, 0.0f, 1.0f);
 	}
 
 	const float Alpha = (FMath::Sin(GetWorld()->GetTimeSeconds() * ControlPointPulseSpeed) + 1.0f) * 0.5f;
-	return FadeAlpha * FMath::Lerp(ControlPointPulseMinAlpha, ControlPointPulseMaxAlpha, Alpha);
+	const float PulseAlpha = FMath::Lerp(
+		FMath::Min(ControlPointPulseMinAlpha, ControlPointPulseMaxAlpha),
+		FMath::Max(ControlPointPulseMinAlpha, ControlPointPulseMaxAlpha),
+		Alpha);
+	return FMath::Clamp(FadeAlpha * PulseAlpha, 0.0f, 1.0f);
 }
 
 float ABezierCurve2DActor::GetStripWidthForRender() const
 {
-	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
 	const float PulseScale = bPulseStrip && GetWorld()
 		? FMath::Lerp(StripPulseMinWidth, StripPulseMaxWidth, GetStripPulseAlpha())
 		: 1.0f;
-	return StripWidth * FadeAlpha * PulseScale;
+	return StripWidth * PulseScale;
 }
 
 float ABezierCurve2DActor::GetStripThicknessForRender() const
 {
-	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
 	const float PulseScale = bPulseStrip && GetWorld()
 		? FMath::Lerp(StripPulseMinThickness, StripPulseMaxThickness, GetStripPulseAlpha())
 		: 1.0f;
-	return StripThickness * FadeAlpha * PulseScale;
+	return StripThickness * PulseScale;
 }
 
 float ABezierCurve2DActor::GetStripPulseOpacity() const
@@ -503,10 +522,14 @@ float ABezierCurve2DActor::GetStripPulseOpacity() const
 	const float FadeAlpha = bEnableVisualFade ? StripFadeAlpha : 1.0f;
 	if (!bPulseStrip || !GetWorld())
 	{
-		return FadeAlpha;
+		return FMath::Clamp(FadeAlpha, 0.0f, 1.0f);
 	}
 
-	return FadeAlpha * FMath::Lerp(StripPulseMinAlpha, StripPulseMaxAlpha, GetStripPulseAlpha());
+	const float PulseAlpha = FMath::Lerp(
+		FMath::Min(StripPulseMinAlpha, StripPulseMaxAlpha),
+		FMath::Max(StripPulseMinAlpha, StripPulseMaxAlpha),
+		GetStripPulseAlpha());
+	return FMath::Clamp(FadeAlpha * PulseAlpha, 0.0f, 1.0f);
 }
 
 void ABezierCurve2DActor::UpdateStripPulseOpacity()
