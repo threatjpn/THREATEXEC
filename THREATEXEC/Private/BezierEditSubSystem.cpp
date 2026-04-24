@@ -849,7 +849,9 @@ EBezierPlanarAxis UBezierEditSubsystem::Focus_CycleForcePlanarAxis()
 
 void UBezierEditSubsystem::Focus_ResetCurveState()
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_ResetCurveState(Obj); });
+	History_CommitInteractiveChange(Before);
 }
 
 bool UBezierEditSubsystem::Focus_AddControlPointAfterSelected()
@@ -891,6 +893,7 @@ bool UBezierEditSubsystem::Focus_DuplicateSelectedControlPoint()
 
 void UBezierEditSubsystem::Focus_CenterCurve()
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	ForFocused([&](UObject* Obj)
 	{
 		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
@@ -902,10 +905,12 @@ void UBezierEditSubsystem::Focus_CenterCurve()
 			A3->UI_CenterCurve();
 		}
 	});
+	History_CommitInteractiveChange(Before);
 }
 
 void UBezierEditSubsystem::Focus_MirrorCurve()
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	UWorld* World = GetWorld();
 	const float NowSeconds = World ? World->GetTimeSeconds() : 0.0f;
 	if (LastMirrorAxisCycleTimeSeconds >= 0.0f && World)
@@ -957,10 +962,13 @@ void UBezierEditSubsystem::Focus_MirrorCurve()
 		World->GetTimerManager().ClearTimer(MirrorAxisCycleResetHandle);
 		World->GetTimerManager().SetTimer(MirrorAxisCycleResetHandle, this, &UBezierEditSubsystem::Focus_ResetMirrorAxisCycle, MirrorAxisCycleResetDelaySeconds, false);
 	}
+
+	History_CommitInteractiveChange(Before);
 }
 
 void UBezierEditSubsystem::Focus_ReverseControlOrder()
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	ForFocused([&](UObject* Obj)
 	{
 		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
@@ -972,10 +980,12 @@ void UBezierEditSubsystem::Focus_ReverseControlOrder()
 			A3->UI_ReverseControlOrder();
 		}
 	});
+	History_CommitInteractiveChange(Before);
 }
 
 void UBezierEditSubsystem::Focus_ToggleClosedLoop()
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	ForFocused([&](UObject* Obj)
 	{
 		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
@@ -987,10 +997,12 @@ void UBezierEditSubsystem::Focus_ToggleClosedLoop()
 			A3->UI_ToggleClosedLoop();
 		}
 	});
+	History_CommitInteractiveChange(Before);
 }
 
 void UBezierEditSubsystem::Focus_SetClosedLoop(bool bInClosed)
 {
+	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
 	ForFocused([&](UObject* Obj)
 	{
 		if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Obj))
@@ -1002,6 +1014,7 @@ void UBezierEditSubsystem::Focus_SetClosedLoop(bool bInClosed)
 			A3->UI_SetClosedLoop(bInClosed);
 		}
 	});
+	History_CommitInteractiveChange(Before);
 }
 
 bool UBezierEditSubsystem::Focus_IsClosedLoop()
