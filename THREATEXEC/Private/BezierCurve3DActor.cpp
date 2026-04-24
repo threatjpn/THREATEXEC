@@ -65,18 +65,14 @@ namespace
 			return;
 		}
 
-#if ENABLE_DRAW_DEBUG
-		DrawDebugLine(World, Start, End, Color.ToFColor(true), false, 0.0f, DepthPriority, Thickness);
-#else
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
 		if (LineBatcher)
 		{
 			FLinearColor RuntimeColor = Color;
 			const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 			RuntimeColor.A = RuntimeAlpha;
-			LineBatcher->DrawLine(Start, End, RuntimeColor, SDPG_Foreground, Thickness * RuntimeAlpha, 0.0f);
+			LineBatcher->DrawLine(Start, End, RuntimeColor, DepthPriority, Thickness * RuntimeAlpha, 0.0f);
 		}
-#endif
 	}
 
 	static void TE_DrawRuntimePoint3D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FLinearColor& Color, uint8 DepthPriority)
@@ -86,18 +82,14 @@ namespace
 			return;
 		}
 
-#if ENABLE_DRAW_DEBUG
-		DrawDebugPoint(World, Position, PointSize, Color.ToFColor(true), false, 0.0f, DepthPriority);
-#else
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
 		if (LineBatcher)
 		{
 			FLinearColor RuntimeColor = Color;
 			const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 			RuntimeColor.A = RuntimeAlpha;
-			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, SDPG_Foreground, 0.0f);
+			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, DepthPriority, 0.0f);
 		}
-#endif
 	}
 }
 
@@ -398,8 +390,8 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 
 		// Important: do NOT block mouse traces unless editing and CP are visible
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-		ControlPointISM->SetDepthPriorityGroup(SDPG_Foreground);
-		ControlPointISM->TranslucencySortPriority = FMath::Max(VisualTranslucencySortPriority, 10000);
+		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
+		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? FMath::Max(VisualTranslucencySortPriority, 10000) : 0;
 	}
 
 	if (StripMeshComponent)
@@ -408,7 +400,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		StripMeshComponent->SetHiddenInGame(!bShowProc);
 		StripMeshComponent->SetVisibility(bShowProc, true);
 		StripMeshComponent->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		StripMeshComponent->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		StripMeshComponent->TranslucencySortPriority = bForceVisualsOnTop ? FMath::Max(VisualTranslucencySortPriority, 10000) : 0;
 	}
 
 	if (CubeStripISM)
@@ -417,7 +409,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		CubeStripISM->SetHiddenInGame(!bShowCube);
 		CubeStripISM->SetVisibility(bShowCube, true);
 		CubeStripISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		CubeStripISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		CubeStripISM->TranslucencySortPriority = bForceVisualsOnTop ? FMath::Max(VisualTranslucencySortPriority, 10000) : 0;
 	}
 }
 
