@@ -65,9 +65,6 @@ namespace
 			return;
 		}
 
-#if ENABLE_DRAW_DEBUG
-		DrawDebugLine(World, Start, End, Color.ToFColor(true), false, 0.0f, DepthPriority, Thickness);
-#else
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
 		if (LineBatcher)
 		{
@@ -76,7 +73,6 @@ namespace
 			RuntimeColor.A = RuntimeAlpha;
 			LineBatcher->DrawLine(Start, End, RuntimeColor, DepthPriority, Thickness * RuntimeAlpha, 0.0f);
 		}
-#endif
 	}
 
 	static void TE_DrawRuntimePoint3D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FLinearColor& Color, uint8 DepthPriority)
@@ -86,9 +82,6 @@ namespace
 			return;
 		}
 
-#if ENABLE_DRAW_DEBUG
-		DrawDebugPoint(World, Position, PointSize, Color.ToFColor(true), false, 0.0f, DepthPriority);
-#else
 		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
 		if (LineBatcher)
 		{
@@ -97,7 +90,6 @@ namespace
 			RuntimeColor.A = RuntimeAlpha;
 			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, DepthPriority, 0.0f);
 		}
-#endif
 	}
 }
 
