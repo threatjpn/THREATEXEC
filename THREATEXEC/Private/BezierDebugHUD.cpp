@@ -101,7 +101,11 @@ void ABezierDebugHUD::BindInput()
 	InputComponent->BindKey(EKeys::D, IE_Pressed, this, &ABezierDebugHUD::TogglePulseDebug);
 	InputComponent->BindKey(EKeys::U, IE_Pressed, this, &ABezierDebugHUD::TogglePulseControlPoints);
 	InputComponent->BindKey(EKeys::I, IE_Pressed, this, &ABezierDebugHUD::TogglePulseStrip);
-	InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierDebugHUD::ToggleOverridePulseSettings);
+	// Bind plain Y debug toggle, but never consume the key so Ctrl+Y can still reach redo handlers.
+	FInputKeyBinding OverridePulseChord(FInputChord(EKeys::Y, false, false, false, false), IE_Pressed);
+	OverridePulseChord.KeyDelegate.BindDelegate(this, &ABezierDebugHUD::ToggleOverridePulseSettings);
+	OverridePulseChord.bConsumeInput = false;
+	InputComponent->KeyBindings.Add(MoveTemp(OverridePulseChord));
 	InputComponent->BindKey(EKeys::T, IE_Pressed, this, &ABezierDebugHUD::ToggleMouseTraceDebug);
 	InputComponent->BindKey(EKeys::V, IE_Pressed, this, &ABezierDebugHUD::ToggleActorVisible);
 	InputComponent->BindKey(EKeys::B, IE_Pressed, this, &ABezierDebugHUD::ToggleHideWhenNotEditing);
