@@ -74,7 +74,7 @@ namespace
 			FLinearColor RuntimeColor = Color;
 			const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 			RuntimeColor.A = RuntimeAlpha;
-			LineBatcher->DrawLine(Start, End, RuntimeColor, SDPG_Foreground, Thickness * RuntimeAlpha, 0.0f);
+			LineBatcher->DrawLine(Start, End, RuntimeColor, DepthPriority, Thickness * RuntimeAlpha, 0.0f);
 		}
 #endif
 	}
@@ -95,7 +95,7 @@ namespace
 			FLinearColor RuntimeColor = Color;
 			const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 			RuntimeColor.A = RuntimeAlpha;
-			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, SDPG_Foreground, 0.0f);
+			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, DepthPriority, 0.0f);
 		}
 #endif
 	}
@@ -398,8 +398,8 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 
 		// Important: do NOT block mouse traces unless editing and CP are visible
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-		ControlPointISM->SetDepthPriorityGroup(SDPG_Foreground);
-		ControlPointISM->TranslucencySortPriority = FMath::Max(VisualTranslucencySortPriority, 10000);
+		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
+		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? FMath::Max(VisualTranslucencySortPriority, 10000) : 0;
 	}
 
 	if (StripMeshComponent)
