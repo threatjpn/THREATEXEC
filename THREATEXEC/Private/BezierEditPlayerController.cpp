@@ -11,7 +11,6 @@
 #include "EngineUtils.h"
 #include "Camera/PlayerCameraManager.h"
 #include "InputCoreTypes.h"
-#include "GameFramework/InputSettings.h"
 
 ABezierEditPlayerController::ABezierEditPlayerController()
 {
@@ -53,92 +52,50 @@ void ABezierEditPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	// These action names must exist in Project Settings -> Input
-	if (InputComponent)
+	if (!InputComponent)
 	{
-		if (PrimaryActionNames.IsEmpty())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: no PrimaryActionNames configured."));
-		}
+		return;
+	}
 
-		for (const FName& ActionName : PrimaryActionNames)
-		{
-			if (!ActionName.IsNone())
-			{
-				InputComponent->BindAction(ActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_PrimaryPressed);
-				InputComponent->BindAction(ActionName, IE_Released, this, &ABezierEditPlayerController::Input_PrimaryReleased);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: PrimaryActionNames contains None."));
-			}
-		}
+	if (PrimaryActionNames.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: no PrimaryActionNames configured."));
+	}
 
-		if (!CancelActionName.IsNone())
+	for (const FName& ActionName : PrimaryActionNames)
+	{
+		if (!ActionName.IsNone())
 		{
-			InputComponent->BindAction(CancelActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_Cancel);
+			InputComponent->BindAction(ActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_PrimaryPressed);
+			InputComponent->BindAction(ActionName, IE_Released, this, &ABezierEditPlayerController::Input_PrimaryReleased);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
-		}
-
-		auto HasActionMapping = [](const FName ActionName) -> bool
-		{
-			if (ActionName.IsNone())
-			{
-				return false;
-			}
-
-			const UInputSettings* InputSettings = GetDefault<UInputSettings>();
-			if (!InputSettings)
-			{
-				return false;
-			}
-
-			const TArray<FInputActionKeyMapping>& ActionMappings = InputSettings->GetActionMappings();
-			for (const FInputActionKeyMapping& Mapping : ActionMappings)
-			{
-				if (Mapping.ActionName == ActionName)
-				{
-					return true;
-				}
-			}
-
-			return false;
-		};
-
-		const bool bUndoHasActionMapping = HasActionMapping(UndoActionName);
-		const bool bRedoHasActionMapping = HasActionMapping(RedoActionName);
-
-		if (bUndoHasActionMapping)
-		{
-			InputComponent->BindAction(UndoActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_UndoAction);
-		}
-		else if (!UndoActionName.IsNone())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: Undo action '%s' not mapped; using Ctrl+Z fallback."), *UndoActionName.ToString());
-		}
-
-		if (bRedoHasActionMapping)
-		{
-			InputComponent->BindAction(RedoActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_RedoAction);
-		}
-		else if (!RedoActionName.IsNone())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: Redo action '%s' not mapped; using Ctrl+Y fallback."), *RedoActionName.ToString());
-		}
-
-		// Fallback path when action mappings are not configured in project settings.
-		if (!bUndoHasActionMapping)
-		{
-			InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ABezierEditPlayerController::Input_Undo);
-		}
-		if (!bRedoHasActionMapping)
-		{
-			InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
+			UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: PrimaryActionNames contains None."));
 		}
 	}
+
+	if (!CancelActionName.IsNone())
+	{
+		InputComponent->BindAction(CancelActionName, IE_Pressed, this, &ABezierEditPlayerController::Input_Cancel);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BezierEditPlayerController: CancelActionName is None."));
+	}
+
+	// Chord bindings. These work when this controller owns keyboard input.
+	FInputKeyBinding UndoChord(FInputChord(EKeys::Z, true, false, false, false), IE_Pressed);
+	UndoChord.KeyDelegate.BindDelegate(this, &ABezierEditPlayerController::Input_Undo);
+	InputComponent->KeyBindings.Add(MoveTemp(UndoChord));
+
+	FInputKeyBinding RedoChord(FInputChord(EKeys::Y, true, false, false, false), IE_Pressed);
+	RedoChord.KeyDelegate.BindDelegate(this, &ABezierEditPlayerController::Input_Redo);
+	InputComponent->KeyBindings.Add(MoveTemp(RedoChord));
+
+	// Plain-key fallback. Input_Undo/Input_Redo still check Ctrl, so Z/Y alone do nothing.
+	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ABezierEditPlayerController::Input_Undo);
+	InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
 }
 
 void ABezierEditPlayerController::PlayerTick(float DeltaSeconds)
@@ -558,8 +515,9 @@ void ABezierEditPlayerController::Input_Cancel()
 
 void ABezierEditPlayerController::Input_Undo()
 {
-	const bool bCtrlDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftControl) || PlayerInput->IsPressed(EKeys::RightControl));
-	const bool bShiftDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftShift) || PlayerInput->IsPressed(EKeys::RightShift));
+	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
+	const bool bShiftDown = IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift);
+
 	if (!bCtrlDown || bShiftDown)
 	{
 		return;
@@ -574,30 +532,13 @@ void ABezierEditPlayerController::Input_Undo()
 
 void ABezierEditPlayerController::Input_Redo()
 {
-	const bool bCtrlDown = PlayerInput && (PlayerInput->IsPressed(EKeys::LeftControl) || PlayerInput->IsPressed(EKeys::RightControl));
+	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
+
 	if (!bCtrlDown)
 	{
 		return;
 	}
 
-	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
-	{
-		StopDrag(true);
-		Sub->History_Redo();
-	}
-}
-
-void ABezierEditPlayerController::Input_UndoAction()
-{
-	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
-	{
-		StopDrag(true);
-		Sub->History_Undo();
-	}
-}
-
-void ABezierEditPlayerController::Input_RedoAction()
-{
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
 		StopDrag(true);

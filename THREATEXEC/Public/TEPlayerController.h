@@ -1,9 +1,5 @@
 #pragma once
 
-/**
- * @file TEPlayerController.h
- * @brief Player controller helpers for input-mode switching and photo-mode transitions.
- */
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "TEPlayerController.generated.h"
@@ -12,72 +8,55 @@ class UUserWidget;
 class APawn;
 class AActor;
 
-/**
- * @brief Utility player controller for switching input modes and managing photo-mode ownership.
- */
 UCLASS()
 class THREATEXEC_API ATEPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
 public:
-	/** Default constructor. */
 	ATEPlayerController();
 
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	void SetUIOnlyInput(UUserWidget* FocusWidget = nullptr, bool bShowCursor = true);
+	virtual void SetupInputComponent() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
-	void SetGameOnlyInput(bool bShowCursor = false);
+	void SetUIOnlyInput(UUserWidget* FocusWidget, bool bShowCursor = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
-	void SetGameAndUIInput(UUserWidget* FocusWidget = nullptr, bool bShowCursor = true);
+	void SetGameOnlyInput(bool bShowCursor = true);
 
-	/** Manually sets a cinematic view target, useful for static cameras or level-sequence cameras. */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void SetGameAndUIInput(UUserWidget* FocusWidget, bool bShowCursor = true);
+
 	UFUNCTION(BlueprintCallable, Category = "Photo Mode")
-	void SetCinematicViewTarget(AActor* NewViewTarget, float BlendTime = 0.5f);
-
-	/**
-	 * Switches from the current cinematic or gameplay camera to a dedicated photo pawn.
-	 * Optionally possesses the photo pawn so free camera controls work immediately.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Photo Mode")
-	bool EnterPhotoMode(APawn* InPhotoPawn, float BlendTime = 0.5f, bool bPossessPhotoPawn = true);
-
-	/**
-	 * Returns from the photo pawn back to the previously active camera target and original pawn.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Photo Mode")
-	bool ExitPhotoMode(float BlendTime = 0.5f);
-
-	UFUNCTION(BlueprintPure, Category = "Photo Mode")
-	bool IsInPhotoMode() const { return bPhotoModeActive; }
-
-	UFUNCTION(BlueprintPure, Category = "Photo Mode")
-	APawn* GetPhotoPawn() const { return PhotoPawn.Get(); }
-
-	UFUNCTION(BlueprintPure, Category = "Photo Mode")
-	AActor* GetPreviousViewTarget() const { return PreviousViewTarget.Get(); }
-
-protected:
-	/**
-	 * Implement this in your PlayerController Blueprint.
-	 * From ActivePhotoPawn, get the plugin photo mode component and call its open photo mode logic.
-	 */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Photo Mode|Plugin")
-	void BP_OpenPhotoModePlugin(APawn* ActivePhotoPawn);
-
-	/**
-	 * Optional close hook for the plugin UI.
-	 * Safe to leave empty if your plugin handles closing internally.
-	 */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Photo Mode|Plugin")
-	void BP_ClosePhotoModePlugin(APawn* ActivePhotoPawn);
-
-private:
 	void CachePrePhotoModeState();
 
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	void SetCinematicViewTarget(AActor* NewViewTarget, float BlendTime = 0.35f);
+
+	UFUNCTION(BlueprintCallable, Category = "Photo Mode")
+	bool EnterPhotoMode(APawn* InPhotoPawn, float BlendTime = 0.35f, bool bPossessPhotoPawn = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Photo Mode")
+	bool ExitPhotoMode(float BlendTime = 0.35f);
+
+	// Use these for UI buttons too. They bypass keyboard-focus problems.
+	UFUNCTION(BlueprintCallable, Category = "Bezier|History")
+	bool BezierUndo();
+
+	UFUNCTION(BlueprintCallable, Category = "Bezier|History")
+	bool BezierRedo();
+
+protected:
+	UFUNCTION(BlueprintImplementableEvent, Category = "Photo Mode")
+	void BP_OpenPhotoModePlugin(APawn* InPhotoPawn);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Photo Mode")
+	void BP_ClosePhotoModePlugin(APawn* InPhotoPawn);
+
 private:
+	void Input_BezierUndo();
+	void Input_BezierRedo();
+
 	UPROPERTY(Transient)
 	TWeakObjectPtr<APawn> OriginalPawn;
 

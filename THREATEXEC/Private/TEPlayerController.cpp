@@ -1,16 +1,16 @@
 // ============================================================================
 // TEPlayerController.cpp
-// Implements player-controller helpers for input-mode management, view transitions, and photo-mode flow.
-//
-// Notes:
-// - Comments in this file are documentation-only and do not alter behaviour.
-// - Function signatures, ordering, and implementation logic are preserved.
+// Implements player-controller helpers for input-mode management, view transitions,
+// photo-mode flow, and global Bezier undo/redo shortcuts.
 // ============================================================================
 
 #include "TEPlayerController.h"
 
+#include "BezierEditSubsystem.h"
+
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/Pawn.h"
+#include "InputCoreTypes.h"
 
 ATEPlayerController::ATEPlayerController()
 {
@@ -19,6 +19,74 @@ ATEPlayerController::ATEPlayerController()
 	bEnableMouseOverEvents = true;
 
 	DefaultMouseCursor = EMouseCursor::Default;
+}
+
+void ATEPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	if (!InputComponent)
+	{
+		return;
+	}
+
+	// Chord bindings for normal game input focus.
+	FInputKeyBinding UndoChord(FInputChord(EKeys::Z, true, false, false, false), IE_Pressed);
+	UndoChord.KeyDelegate.BindDelegate(this, &ATEPlayerController::Input_BezierUndo);
+	InputComponent->KeyBindings.Add(MoveTemp(UndoChord));
+
+	FInputKeyBinding RedoChord(FInputChord(EKeys::Y, true, false, false, false), IE_Pressed);
+	RedoChord.KeyDelegate.BindDelegate(this, &ATEPlayerController::Input_BezierRedo);
+	InputComponent->KeyBindings.Add(MoveTemp(RedoChord));
+
+	// Plain-key fallback. The handlers still require Ctrl, so Z/Y alone do nothing.
+	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &ATEPlayerController::Input_BezierUndo);
+	InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ATEPlayerController::Input_BezierRedo);
+}
+
+void ATEPlayerController::Input_BezierUndo()
+{
+	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
+	const bool bShiftDown = IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift);
+
+	if (!bCtrlDown || bShiftDown)
+	{
+		return;
+	}
+
+	BezierUndo();
+}
+
+void ATEPlayerController::Input_BezierRedo()
+{
+	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
+
+	if (!bCtrlDown)
+	{
+		return;
+	}
+
+	BezierRedo();
+}
+
+bool ATEPlayerController::BezierUndo()
+{
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Sub->History_Undo();
+	}
+
+	return false;
+}
+
+bool ATEPlayerController::BezierRedo()
+{
+	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
+	{
+		return Sub->History_Redo();
+	}
+
+	return false;
 }
 
 void ATEPlayerController::SetUIOnlyInput(UUserWidget* FocusWidget, bool bShowCursor)

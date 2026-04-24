@@ -93,6 +93,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|History")
 	bool History_Redo();
 
+	UFUNCTION(BlueprintPure, Category="Bezier|Edit|History")
+	bool History_CanUndo() const;
+
+	UFUNCTION(BlueprintPure, Category="Bezier|Edit|History")
+	bool History_CanRedo() const;
+
 	UFUNCTION(BlueprintCallable, Category="Bezier|Edit|History")
 	void History_Clear();
 
@@ -227,10 +233,9 @@ private:
 	bool CaptureCurveSnapshot(AActor* Actor, FBezierCurveActorSnapshot& Out) const;
 	bool RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot, bool bPreserveCurrentEditMode = false);
 	bool AreHistorySnapshotsEquivalent(const FBezierHistorySnapshot& A, const FBezierHistorySnapshot& B) const;
-	void AppendHistorySnapshotIfDifferent(const FBezierHistorySnapshot& Snapshot);
-	void TruncateHistoryFuture();
 	void TrimHistoryStacks();
 
-	TArray<FBezierHistorySnapshot> UndoHistory;
-	int32 HistoryCursor = INDEX_NONE;
+	TArray<FBezierHistorySnapshot> UndoStack;
+	TArray<FBezierHistorySnapshot> RedoStack;
+	bool bIsRestoringHistory = false;
 };

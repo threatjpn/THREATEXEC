@@ -33,12 +33,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	FName CancelActionName = "Cancel";
 
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	FName UndoActionName = "BezierUndo";
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	FName RedoActionName = "BezierRedo";
-
 	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (ClampMin = "0.05"))
 	float DoubleClickTimeSeconds = 0.3f;
 
@@ -58,8 +52,6 @@ protected:
 	void Input_Cancel();
 	void Input_Undo();
 	void Input_Redo();
-	void Input_UndoAction();
-	void Input_RedoAction();
 
 	// Hover + trace
 	void UpdateHover();
