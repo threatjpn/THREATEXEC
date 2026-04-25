@@ -226,12 +226,10 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
-#if !ENABLE_DRAW_DEBUG
 	if (ULineBatchComponent* RuntimeBatcher = TE_GetRuntimeLineBatcher3D(this, GetWorld()))
 	{
 		RuntimeBatcher->Flush();
 	}
-#endif
 
 	const FTransform Xf = GetActorTransform();
 	const float DebugPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f;
@@ -270,7 +268,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(Control[i] * Scale),
 				Xf.TransformPosition(Control[i + 1] * Scale),
-					DebugLineColor.CopyWithNewOpacity(FinalDebugAlpha),
+				DebugLineColor.CopyWithNewOpacity(FMath::Clamp(DebugLineColor.A * FinalDebugAlpha, 0.0f, 1.0f)),
 				DebugDepthPriority,
 				FinalDebugThickness);
 		}
@@ -285,12 +283,13 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 			const FLinearColor LevelColor = (L == Levels.Num() - 1) ? DebugResultColor : DebugLevelColor;
 			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
 			{
+				const float LevelAlpha = FMath::Clamp(LevelColor.A * FinalDebugAlpha, 0.0f, 1.0f);
 				TE_DrawRuntimeLine3D(
 					this,
 					GetWorld(),
 					Xf.TransformPosition(Levels[L][i] * Scale),
 					Xf.TransformPosition(Levels[L][i + 1] * Scale),
-					LevelColor.CopyWithNewOpacity(FinalDebugAlpha),
+					LevelColor.CopyWithNewOpacity(LevelAlpha),
 					DebugDepthPriority,
 					FinalDebugThickness);
 			}
@@ -309,7 +308,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(Sample * Scale),
 				6.0f,
-				DebugSamplePointColor.CopyWithNewOpacity(FinalDebugAlpha),
+				DebugSamplePointColor.CopyWithNewOpacity(FMath::Clamp(DebugSamplePointColor.A * FinalDebugAlpha, 0.0f, 1.0f)),
 				DebugDepthPriority);
 		}
 	}

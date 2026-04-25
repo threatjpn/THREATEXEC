@@ -212,12 +212,10 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
-#if !ENABLE_DRAW_DEBUG
 	if (ULineBatchComponent* RuntimeBatcher = TE_GetRuntimeLineBatcher2D(this, GetWorld()))
 	{
 		RuntimeBatcher->Flush();
 	}
-#endif
 	const FTransform Xf = GetActorTransform();
 	const float DebugPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f;
 	const float GridPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f;
@@ -250,14 +248,14 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	{
 		for (int32 i = 0; i + 1 < Control.Num(); ++i)
 		{
-			TE_DrawRuntimeLine2D(
-				this,
-				GetWorld(),
-				Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
-				Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
-					DebugLineColor.CopyWithNewOpacity(FinalDebugAlpha),
-				DebugDepthPriority,
-				FinalDebugThickness);
+				TE_DrawRuntimeLine2D(
+					this,
+					GetWorld(),
+					Xf.TransformPosition(FVector(Control[i].X * Scale, Control[i].Y * Scale, 0)),
+					Xf.TransformPosition(FVector(Control[i + 1].X * Scale, Control[i + 1].Y * Scale, 0)),
+					DebugLineColor.CopyWithNewOpacity(FMath::Clamp(DebugLineColor.A * FinalDebugAlpha, 0.0f, 1.0f)),
+					DebugDepthPriority,
+					FinalDebugThickness);
 		}
 	}
 
@@ -270,12 +268,13 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			const FLinearColor LevelColor = (L == Levels.Num() - 1) ? DebugResultColor : DebugLevelColor;
 			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
 			{
+				const float LevelAlpha = FMath::Clamp(LevelColor.A * FinalDebugAlpha, 0.0f, 1.0f);
 				TE_DrawRuntimeLine2D(
 					this,
 					GetWorld(),
 					Xf.TransformPosition(FVector(Levels[L][i].X * Scale, Levels[L][i].Y * Scale, 0.0f)),
 					Xf.TransformPosition(FVector(Levels[L][i + 1].X * Scale, Levels[L][i + 1].Y * Scale, 0.0f)),
-						LevelColor.CopyWithNewOpacity(FinalDebugAlpha),
+					LevelColor.CopyWithNewOpacity(LevelAlpha),
 					DebugDepthPriority,
 					FinalDebugThickness);
 			}
@@ -294,7 +293,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(FVector(Sample.X * Scale, Sample.Y * Scale, 0.0f)),
 				6.0f,
-					DebugSamplePointColor.CopyWithNewOpacity(FinalDebugAlpha),
+				DebugSamplePointColor.CopyWithNewOpacity(FMath::Clamp(DebugSamplePointColor.A * FinalDebugAlpha, 0.0f, 1.0f)),
 				DebugDepthPriority);
 		}
 	}
