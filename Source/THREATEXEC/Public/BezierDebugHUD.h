@@ -59,6 +59,7 @@ private:
 
 	void ApplyAndRefresh();
 	ABezierDebugActor* ResolveDebugActor();
+	ABezierDebugActor* ResolveAndSyncDebugActor();
 	void DrawLineText(float& Y, const FString& Text);
 	void DrawRightAlignedText(float& Y, const FString& Text);
 };
