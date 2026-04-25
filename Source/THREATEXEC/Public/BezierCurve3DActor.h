@@ -189,7 +189,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render")
 	bool bForceVisualsOnTop = true;
 
-	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render")
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render", meta=(ClampMin="0"))
 	int32 VisualTranslucencySortPriority = 1000;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")

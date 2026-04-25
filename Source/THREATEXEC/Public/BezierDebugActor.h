@@ -224,7 +224,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
 	bool bForceVisualsOnTop = false;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0"))
 	int32 VisualTranslucencySortPriority = 1000;
 
 

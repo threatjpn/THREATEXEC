@@ -23,7 +23,6 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Engine/EngineTypes.h"
-#include "Components/LineBatchComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
 #include "HAL/PlatformFilemanager.h"
@@ -32,90 +31,45 @@
 
 namespace
 {
-	static ULineBatchComponent* TE_GetRuntimeLineBatcher3D(const UObject* Owner, UWorld* World)
+	static void TE_DrawRuntimeLine3D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!Owner || !World)
 		{
-			return nullptr;
-		}
-
-
-		static TMap<TWeakObjectPtr<const UObject>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers3D;
-		for (auto It = LineBatchers3D.CreateIterator(); It; ++It)
-		{
-			if (!It.Key().IsValid() || !It.Value().IsValid())
-			{
-				It.RemoveCurrent();
-			}
-		}
-
-		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers3D.FindOrAdd(Owner);
-		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
-		if (IsValid(LineBatcher) && LineBatcher->GetWorld() != World)
-		{
-			LineBatcher->DestroyComponent();
-			LineBatcher = nullptr;
-			CachedBatcher = nullptr;
-		}
-
-		if (!IsValid(LineBatcher))
-		{
-			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
-			if (LineBatcher)
-			{
-				LineBatcher->bNeverDistanceCull = true;
-				LineBatcher->LDMaxDrawDistance = 0.0f;
-				LineBatcher->DetailMode = DM_Low;
-				LineBatcher->RegisterComponentWithWorld(World);
-				CachedBatcher = LineBatcher;
-			}
-		}
-		return LineBatcher;
-	}
-
-	static void TE_ConfigureRuntimeLineBatcher3D(ULineBatchComponent* LineBatcher, bool bForceOnTop, int32 InSortPriority)
-	{
-		if (!LineBatcher)
-		{
 			return;
 		}
 
-		LineBatcher->SetDepthPriorityGroup(bForceOnTop ? SDPG_Foreground : SDPG_World);
-		LineBatcher->TranslucencySortPriority = bForceOnTop ? InSortPriority : 0;
-	}
-
-	static void TE_DrawRuntimeLine3D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
-	{
-		if (!World)
-		{
-			return;
-		}
-
-		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
-		if (LineBatcher)
-		{
-			FLinearColor RuntimeColor = Color;
-			const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
-			RuntimeColor.A = RuntimeAlpha;
-			LineBatcher->DrawLine(Start, End, RuntimeColor, DepthPriority, Thickness * RuntimeAlpha, 0.0f);
-		}
+		FLinearColor RuntimeColor = Color;
+		const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
+		RuntimeColor.A = RuntimeAlpha;
+		DrawDebugLine(
+			World,
+			Start,
+			End,
+			RuntimeColor.ToFColor(true),
+			false,
+			0.0f,
+			DepthPriority,
+			Thickness * RuntimeAlpha);
 	}
 
 	static void TE_DrawRuntimePoint3D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FLinearColor& Color, uint8 DepthPriority)
 	{
-		if (!World)
+		if (!Owner || !World)
 		{
 			return;
 		}
 
-		ULineBatchComponent* LineBatcher = TE_GetRuntimeLineBatcher3D(Owner, World);
-		if (LineBatcher)
-		{
-			FLinearColor RuntimeColor = Color;
-			const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
-			RuntimeColor.A = RuntimeAlpha;
-			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, DepthPriority, 0.0f);
-		}
+		FLinearColor RuntimeColor = Color;
+		const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
+		RuntimeColor.A = RuntimeAlpha;
+		DrawDebugPoint(
+			World,
+			Position,
+			PointSize * RuntimeAlpha,
+			RuntimeColor.ToFColor(true),
+			false,
+			0.0f,
+			DepthPriority);
 	}
 }
 
@@ -252,11 +206,6 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
-	if (ULineBatchComponent* RuntimeBatcher = TE_GetRuntimeLineBatcher3D(this, GetWorld()))
-	{
-		TE_ConfigureRuntimeLineBatcher3D(RuntimeBatcher, bForceVisualsOnTop, VisualTranslucencySortPriority);
-		RuntimeBatcher->Flush();
-	}
 
 	const FTransform Xf = GetActorTransform();
 	const float DebugPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f;
@@ -352,7 +301,11 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 			FMath::Clamp(GridColor.B, 0.0f, 1.0f),
 			FinalAlpha
 		);
-		const FVector Origin = GridOriginWorld;
+		const FVector WorldGridOrigin = GridOriginWorld;
+		const auto ToWorld = [&Xf, &WorldGridOrigin](const FVector& LocalPoint)
+		{
+			return Xf.TransformVector(LocalPoint) + WorldGridOrigin;
+		};
 		for (int32 i = -HalfCells; i <= HalfCells; ++i)
 		{
 			const float Offset = i * G;
@@ -361,33 +314,33 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 			{
 				const FVector A(-Extent, Offset, 0.0f);
 				const FVector B(Extent, Offset, 0.0f);
-				TE_DrawRuntimeLine3D(this, GetWorld(), A + Origin, B + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(A), ToWorld(B), GridLineColor, DebugDepthPriority, FinalGridThickness);
 
 				const FVector C(Offset, -Extent, 0.0f);
 				const FVector D(Offset, Extent, 0.0f);
-				TE_DrawRuntimeLine3D(this, GetWorld(), C + Origin, D + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(C), ToWorld(D), GridLineColor, DebugDepthPriority, FinalGridThickness);
 			}
 
 			if (bShowGridXZ)
 			{
 				const FVector E(-Extent, 0.0f, Offset);
 				const FVector F(Extent, 0.0f, Offset);
-				TE_DrawRuntimeLine3D(this, GetWorld(), E + Origin, F + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(E), ToWorld(F), GridLineColor, DebugDepthPriority, FinalGridThickness);
 
 				const FVector G0(Offset, 0.0f, -Extent);
 				const FVector H(Offset, 0.0f, Extent);
-				TE_DrawRuntimeLine3D(this, GetWorld(), G0 + Origin, H + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(G0), ToWorld(H), GridLineColor, DebugDepthPriority, FinalGridThickness);
 			}
 
 			if (bShowGridYZ)
 			{
 				const FVector I(0.0f, -Extent, Offset);
 				const FVector J(0.0f, Extent, Offset);
-				TE_DrawRuntimeLine3D(this, GetWorld(), I + Origin, J + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(I), ToWorld(J), GridLineColor, DebugDepthPriority, FinalGridThickness);
 
 				const FVector K(0.0f, Offset, -Extent);
 				const FVector L(0.0f, Offset, Extent);
-				TE_DrawRuntimeLine3D(this, GetWorld(), K + Origin, L + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(K), ToWorld(L), GridLineColor, DebugDepthPriority, FinalGridThickness);
 			}
 		}
 	}

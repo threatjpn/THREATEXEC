@@ -182,7 +182,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Render")
 	bool bForceVisualsOnTop = true;
 
-	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Render")
+	UPROPERTY(EditAnywhere, Category = "Bezier2D|Visual|Render", meta=(ClampMin="0"))
 	int32 VisualTranslucencySortPriority = 1000;
 
 	// --- Constraints & Snapping ---
