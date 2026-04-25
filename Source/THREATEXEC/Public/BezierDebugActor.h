@@ -108,6 +108,12 @@ public:
 	bool bShowControlPolygon = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier|Debug|Visuals")
+	bool bShowSamplePoints = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Debug|Visuals")
+	bool bShowDeCasteljauLevels = false;
+
+	UPROPERTY(EditAnywhere, Category = "Bezier|Debug|Visuals")
 	bool bOverridePulseSettings = true;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier|Debug|Visuals")
