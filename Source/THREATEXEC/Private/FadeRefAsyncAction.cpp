@@ -1,3 +1,10 @@
+// ============================================================================
+// FadeRefAsyncAction.cpp
+// Wraps fade-widget transitions as Blueprint async actions.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: FadeRefAsyncAction.cpp
  * Summary: Async Blueprint action implementation for coordinating fade requests through the shared fade system.
@@ -12,21 +19,25 @@
 #include "Engine/World.h"
 #include "TimerManager.h"
 
+// Runs a fade-in transition and exposes completion to Blueprint.
 UFadeRefAsyncAction* UFadeRefAsyncAction::FadeInAndWait(UFadeRefWidget* FadeWidget)
 {
     return CreateAction(FadeWidget, EFadeRefAsyncMode::FadeIn);
 }
 
+// Runs a fade-out transition and exposes completion to Blueprint.
 UFadeRefAsyncAction* UFadeRefAsyncAction::FadeOutAndWait(UFadeRefWidget* FadeWidget)
 {
     return CreateAction(FadeWidget, EFadeRefAsyncMode::FadeOut);
 }
 
+// Handles fade transition and wait.
 UFadeRefAsyncAction* UFadeRefAsyncAction::FadeTransitionAndWait(UFadeRefWidget* FadeWidget)
 {
     return CreateAction(FadeWidget, EFadeRefAsyncMode::Transition);
 }
 
+// Handles gifade in and wait.
 UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeInAndWait(UGI_ThreatExec* ThreatExecGameInstance)
 {
     if (!ThreatExecGameInstance)
@@ -38,6 +49,7 @@ UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeInAndWait(UGI_ThreatExec* Threat
     return CreateAction(ThreatExecGameInstance->GetFadeWidget(), EFadeRefAsyncMode::FadeIn);
 }
 
+// Handles gifade out and wait.
 UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeOutAndWait(UGI_ThreatExec* ThreatExecGameInstance)
 {
     if (!ThreatExecGameInstance)
@@ -49,6 +61,7 @@ UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeOutAndWait(UGI_ThreatExec* Threa
     return CreateAction(ThreatExecGameInstance->GetFadeWidget(), EFadeRefAsyncMode::FadeOut);
 }
 
+// Handles gifade transition and wait.
 UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeTransitionAndWait(UGI_ThreatExec* ThreatExecGameInstance)
 {
     if (!ThreatExecGameInstance)
@@ -60,6 +73,7 @@ UFadeRefAsyncAction* UFadeRefAsyncAction::GIFadeTransitionAndWait(UGI_ThreatExec
     return CreateAction(ThreatExecGameInstance->GetFadeWidget(), EFadeRefAsyncMode::Transition);
 }
 
+// Creates the requested runtime object or widget.
 UFadeRefAsyncAction* UFadeRefAsyncAction::CreateAction(UFadeRefWidget* FadeWidget, EFadeRefAsyncMode InMode)
 {
     UFadeRefAsyncAction* Action = NewObject<UFadeRefAsyncAction>();
@@ -74,6 +88,7 @@ UFadeRefAsyncAction* UFadeRefAsyncAction::CreateAction(UFadeRefWidget* FadeWidge
     return Action;
 }
 
+// Handles activate.
 void UFadeRefAsyncAction::Activate()
 {
     UFadeRefWidget* FadeWidget = TargetFadeWidget.Get();
@@ -108,6 +123,7 @@ void UFadeRefAsyncAction::Activate()
     }
 }
 
+// Handles cleanup bindings.
 void UFadeRefAsyncAction::CleanupBindings()
 {
     if (UFadeRefWidget* FadeWidget = TargetFadeWidget.Get())
@@ -122,6 +138,7 @@ void UFadeRefAsyncAction::CleanupBindings()
     }
 }
 
+// Starts the named operation and initialises its state.
 void UFadeRefAsyncAction::BeginCompletionAfterDelay(float DelaySeconds)
 {
     if (bCompleted)
@@ -151,6 +168,7 @@ void UFadeRefAsyncAction::BeginCompletionAfterDelay(float DelaySeconds)
     );
 }
 
+// Handles complete action.
 void UFadeRefAsyncAction::CompleteAction()
 {
     if (bCompleted)
@@ -164,6 +182,7 @@ void UFadeRefAsyncAction::CompleteAction()
     SetReadyToDestroy();
 }
 
+// Handles fail action.
 void UFadeRefAsyncAction::FailAction()
 {
     if (bCompleted)
@@ -177,6 +196,7 @@ void UFadeRefAsyncAction::FailAction()
     SetReadyToDestroy();
 }
 
+// Handles an event from UI, input, or runtime state.
 void UFadeRefAsyncAction::HandleFadeInFinished()
 {
     UFadeRefWidget* FadeWidget = TargetFadeWidget.Get();
@@ -202,6 +222,7 @@ void UFadeRefAsyncAction::HandleFadeInFinished()
     }
 }
 
+// Handles an event from UI, input, or runtime state.
 void UFadeRefAsyncAction::HandleFadeOutFinished()
 {
     UFadeRefWidget* FadeWidget = TargetFadeWidget.Get();
@@ -223,6 +244,7 @@ void UFadeRefAsyncAction::HandleFadeOutFinished()
     }
 }
 
+// Handles an event from UI, input, or runtime state.
 void UFadeRefAsyncAction::HandleCompletionDelayElapsed()
 {
     CompleteAction();

@@ -1,3 +1,10 @@
+// ============================================================================
+// PhotoLocationNameLibrary.cpp
+// Provides display-name helpers for photo-location identifiers.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: PhotoLocationNameLibrary.cpp
  * Summary: Implementation of photo location name lookup and formatting helpers.
@@ -8,6 +15,7 @@
 
 #include "Kismet/GameplayStatics.h"
 
+// Returns the display name for the current photo location.
 FText UPhotoLocationNameLibrary::GetCurrentPhotoLocationDisplayName(const UObject* WorldContextObject)
 {
     if (!WorldContextObject)
@@ -25,6 +33,7 @@ FText UPhotoLocationNameLibrary::GetCurrentPhotoLocationDisplayName(const UObjec
     return GetPhotoLocationDisplayNameFromLevelName(LevelName);
 }
 
+// Returns a photo-location display name from a level identifier.
 FText UPhotoLocationNameLibrary::GetPhotoLocationDisplayNameFromLevelName(const FString& LevelName)
 {
     if (LevelName.Equals(TEXT("TE_PL_AHRWEILER"), ESearchCase::IgnoreCase))

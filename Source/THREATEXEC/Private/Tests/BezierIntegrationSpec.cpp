@@ -81,6 +81,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_IT_2D_SyncAndExport,
 	"Bezier/Integration/2D_SyncAndExport",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
+/** Runs the automation case for IT 2D SyncAndExport. */
 bool FBezier_IT_2D_SyncAndExport::RunTest(const FString&)
 {
 	UWorld* World = GetEditorWorldChecked();
@@ -128,6 +129,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_IT_3D_SyncAndExport,
 	"Bezier/Integration/3D_SyncAndExport",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
+/** Runs the automation case for IT 3D SyncAndExport. */
 bool FBezier_IT_3D_SyncAndExport::RunTest(const FString&)
 {
 	UWorld* World = GetEditorWorldChecked();
@@ -174,6 +176,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_IT_ResampleButtons,
 	"Bezier/Integration/ResampleButtons",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
+/** Runs the automation case for IT ResampleButtons. */
 bool FBezier_IT_ResampleButtons::RunTest(const FString&)
 {
 	UWorld* World = GetEditorWorldChecked();
@@ -219,6 +222,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_IT_SceneExporter,
 	"Bezier/Integration/SceneExporter",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
+/** Runs the automation case for IT SceneExporter. */
 bool FBezier_IT_SceneExporter::RunTest(const FString&)
 {
 	UWorld* World = GetEditorWorldChecked();

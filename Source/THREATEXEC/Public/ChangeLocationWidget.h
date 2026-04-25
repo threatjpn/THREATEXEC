@@ -26,8 +26,8 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Change Location")
     FChangeLocationRequestedSignature OnChangeLocationRequested;
 
+    /** Re-collects child entry widgets and binds their click/selection delegates. */
     UFUNCTION(BlueprintCallable, Category = "Change Location")
-        /** Re-collects child entry widgets and binds their click/selection delegates. */
 void RebindLocationEntries();
 
 protected:

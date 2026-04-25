@@ -1,3 +1,10 @@
+// ============================================================================
+// PhotoLocationNameWidget.cpp
+// Displays the active photo-location name in the UI.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: PhotoLocationNameWidget.cpp
  * Summary: Implementation of the photo location name display widget.
@@ -10,6 +17,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "PhotoLocationNameLibrary.h"
 
+// Initialises widget state and binds required UI behaviour.
 void UPhotoLocationNameWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -30,6 +38,7 @@ void UPhotoLocationNameWidget::NativeConstruct()
     TXT_LocationName->SetText(ResolveDisplayNameForLevel(CurrentLevelName));
 }
 
+// Resolves paths, references, or settings used by this component.
 FText UPhotoLocationNameWidget::ResolveDisplayNameForLevel(const FString& LevelName) const
 {
     for (const FPhotoLocationDisplayNameOverride& Override : LevelDisplayNameOverrides)

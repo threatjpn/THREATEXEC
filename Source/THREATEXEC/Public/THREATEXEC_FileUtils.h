@@ -1,14 +1,10 @@
-#pragma once
-
 /**
- * @file THREATEXEC_FileUtils.h
- * @brief Shared file and path helpers for JSON IO used by the THREATEXEC module.
+ * File: THREATEXEC_FileUtils.h
+ * Summary: Shared Saved-folder path and JSON file helpers for the THREATEXEC module.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
  */
-// ============================================================================
-// THREATEXEC_FileUtils.h
-// Centralised helpers for JSON IO, directory creation, and Saved-folder
-// path normalization. Used by BezierCurve2DActor and BezierCurve3DActor.
-// ============================================================================
+
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Dom/JsonObject.h"

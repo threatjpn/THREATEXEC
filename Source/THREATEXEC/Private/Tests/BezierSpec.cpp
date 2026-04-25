@@ -44,6 +44,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_Linear1D,
 "Bezier.Math.1D.Linear",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for Linear1D. */
 bool FBezier_Linear1D::RunTest(const FString& Params)
 {
 	TArray<double> C = { 0.0, 10.0 };
@@ -63,6 +64,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_Linear2D,
 "Bezier.Math.2D.Linear",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for Linear2D. */
 bool FBezier_Linear2D::RunTest(const FString& Params)
 {
 	TArray<FVector2D> C = { FVector2D(0,0), FVector2D(1,1) };
@@ -78,6 +80,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_QuadSymmetry2D,
 "Bezier.Math.2D.QuadraticSymmetry",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for QuadSymmetry2D. */
 bool FBezier_QuadSymmetry2D::RunTest(const FString& Params)
 {
 	// symmetric about x-axis → midpoint must lie near (0.5*peak)
@@ -99,6 +102,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_CubicLevelsShape,
 "Bezier.Math.2D.CubicLevels",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for CubicLevelsShape. */
 bool FBezier_CubicLevelsShape::RunTest(const FString& Params)
 {
 	TArray<FVector2D> C = {
@@ -130,6 +134,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_3D_AffineConsistency,
 "Bezier.Math.3D.AffineConsistency",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for 3D AffineConsistency. */
 bool FBezier_3D_AffineConsistency::RunTest(const FString& Params)
 {
 	TArray<FVector> C3 = {
@@ -161,6 +166,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_DegenerateSinglePoint,
 "Bezier.Robust.Degenerate.SinglePoint",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for DegenerateSinglePoint. */
 bool FBezier_DegenerateSinglePoint::RunTest(const FString& Params)
 {
 	TArray<FVector2D> C = { FVector2D(5,6) };
@@ -177,6 +183,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_DegenerateIdenticalPoints,
 "Bezier.Robust.Degenerate.Identical",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for DegenerateIdenticalPoints. */
 bool FBezier_DegenerateIdenticalPoints::RunTest(const FString& Params)
 {
 	TArray<FVector2D> C = {
@@ -206,6 +213,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_ArcLengthUniform2D,
 "Bezier.Sampling.2D.ArcLength",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for ArcLengthUniform2D. */
 bool FBezier_ArcLengthUniform2D::RunTest(const FString& Params)
 {
 	TArray<FVector2D> C = {
@@ -227,6 +235,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_ArcLengthUniform3D,
 "Bezier.Sampling.3D.ArcLength",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for ArcLengthUniform3D. */
 bool FBezier_ArcLengthUniform3D::RunTest(const FString& Params)
 {
 	TArray<FVector> C = {
@@ -252,6 +261,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_JSONShape2D,
 "Bezier.JSON.Shape2D",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for JSONShape2D. */
 bool FBezier_JSONShape2D::RunTest(const FString& Params)
 {
 	// minimal JSON shape test
@@ -274,6 +284,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_Integration_2D_SyncAndExport,
 "Bezier.Integration.2D.SyncExport",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for Integration 2D SyncAndExport. */
 bool FBezier_Integration_2D_SyncAndExport::RunTest(const FString& Params)
 {
 	UWorld* World = GetTestWorld();
@@ -303,6 +314,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_Integration_3D_SyncAndExport,
 "Bezier.Integration.3D.SyncExport",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for Integration 3D SyncAndExport. */
 bool FBezier_Integration_3D_SyncAndExport::RunTest(const FString& Params)
 {
 	UWorld* World = GetTestWorld();
@@ -336,6 +348,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_ReverseOrderIdentity,
 "Bezier.Integration.ReverseOrder",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for ReverseOrderIdentity. */
 bool FBezier_ReverseOrderIdentity::RunTest(const FString& Params)
 {
 	UWorld* World = GetTestWorld();
@@ -367,6 +380,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_PerfSmoke1024,
 "Bezier.Performance.Smoke.1024Samples",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for PerfSmoke1024. */
 bool FBezier_PerfSmoke1024::RunTest(const FString& Params)
 {
 	TArray<FVector> C = {
@@ -390,6 +404,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_EvalTClamp,
 "Bezier.Math.ClampT",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for EvalTClamp. */
 bool FBezier_EvalTClamp::RunTest(const FString& Params)
 {
 	TArray<FVector2D> C = { FVector2D(0,0), FVector2D(10,0) };
@@ -406,6 +421,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_LevelsTClamp,
 "Bezier.Math.Levels.ClampT",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for LevelsTClamp. */
 bool FBezier_LevelsTClamp::RunTest(const FString& Params)
 {
 	TArray<FVector2D> C = { FVector2D(1,1), FVector2D(3,1), FVector2D(5,1) };
@@ -426,6 +442,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_SampleUniform_SingleControl,
 "Bezier.Sampling.Param.SingleControl",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for SampleUniform SingleControl. */
 bool FBezier_SampleUniform_SingleControl::RunTest(const FString& Params)
 {
 	TArray<FVector2D> C = { FVector2D(7, 9) };
@@ -444,6 +461,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_ArcLength_ClampAndInvalidInput,
 "Bezier.Sampling.ArcLength.ClampAndInvalidInput",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for ArcLength ClampAndInvalidInput. */
 bool FBezier_ArcLength_ClampAndInvalidInput::RunTest(const FString& Params)
 {
 	TArray<FVector2D> EmptyControl;
@@ -464,6 +482,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_JSON_InvalidShape,
 "Bezier.JSON.InvalidShape",
 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
+/** Runs the automation case for JSON InvalidShape. */
 bool FBezier_JSON_InvalidShape::RunTest(const FString& Params)
 {
 	const FString BadJ = TEXT("{\"control\": [ [0,1], }"); // malformed

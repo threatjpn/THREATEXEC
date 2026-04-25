@@ -1,3 +1,10 @@
+// ============================================================================
+// PhotoLocationEntryWidget.cpp
+// Implements a selectable photo-location list entry and forwards selection events to the parent widget.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: PhotoLocationEntryWidget.cpp
  * Summary: Implementation of photo-location entry widget setup, hover feedback and selection forwarding.
@@ -10,6 +17,7 @@
 #include "Styling/SlateBrush.h"
 #include "Styling/SlateTypes.h"
 
+// Handles native on initialized.
 void UPhotoLocationEntryWidget::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
@@ -26,24 +34,28 @@ void UPhotoLocationEntryWidget::NativeOnInitialized()
     }
 }
 
+// Handles native pre construct.
 void UPhotoLocationEntryWidget::NativePreConstruct()
 {
     Super::NativePreConstruct();
     RefreshVisuals();
 }
 
+// Initialises widget state and binds required UI behaviour.
 void UPhotoLocationEntryWidget::NativeConstruct()
 {
     Super::NativeConstruct();
     RefreshVisuals();
 }
 
+// Synchronises internal state with the engine representation.
 void UPhotoLocationEntryWidget::SynchronizeProperties()
 {
     Super::SynchronizeProperties();
     RefreshVisuals();
 }
 
+// Rebuilds cached output from the current source data.
 void UPhotoLocationEntryWidget::RefreshVisuals()
 {
     if (!MainButton)
@@ -83,15 +95,18 @@ void UPhotoLocationEntryWidget::RefreshVisuals()
     MainButton->SetStyle(Style);
 }
 
+// Handles an event from UI, input, or runtime state.
 void UPhotoLocationEntryWidget::HandleHovered()
 {
     OnEntryHovered.Broadcast(PreviewTexture);
 }
 
+// Handles an event from UI, input, or runtime state.
 void UPhotoLocationEntryWidget::HandleUnhovered()
 {
 }
 
+// Handles an event from UI, input, or runtime state.
 void UPhotoLocationEntryWidget::HandleClicked()
 {
     OnEntryClicked.Broadcast(PreviewTexture);

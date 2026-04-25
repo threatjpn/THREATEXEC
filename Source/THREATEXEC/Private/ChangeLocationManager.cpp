@@ -1,3 +1,10 @@
+// ============================================================================
+// ChangeLocationManager.cpp
+// Controls location changes, camera targets, fades, and scene visibility groups.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: ChangeLocationManager.cpp
  * Summary: Implementation of the change-location variant manager. Handles variant discovery, activation and runtime visibility/collision state changes.
@@ -15,6 +22,7 @@
 
 /** Initialises the manager as a non-ticking actor because updates are event-driven. */
 
+// Sets default components, ticking, collision, and editable values.
 AChangeLocationManager::AChangeLocationManager()
 {
     PrimaryActorTick.bCanEverTick = false;
@@ -22,6 +30,7 @@ AChangeLocationManager::AChangeLocationManager()
 
 /** Builds the initial variant cache and optionally applies the configured startup state. */
 
+// Initialises runtime state when play begins.
 void AChangeLocationManager::BeginPlay()
 {
     Super::BeginPlay();
@@ -63,6 +72,7 @@ void AChangeLocationManager::BeginPlay()
 
 /** Scans the world for tagged variant roots and records their attached actor hierarchies. */
 
+// Rebuilds cached output from the current source data.
 void AChangeLocationManager::RefreshVariantCache()
 {
     VariantGroups.Empty();
@@ -115,6 +125,7 @@ void AChangeLocationManager::RefreshVariantCache()
     }
 }
 
+// Handles try get variant idfrom root actor.
 bool AChangeLocationManager::TryGetVariantIDFromRootActor(const AActor* Actor, FName& OutVariantID) const
 {
     if (!Actor)
@@ -135,6 +146,7 @@ bool AChangeLocationManager::TryGetVariantIDFromRootActor(const AActor* Actor, F
     return false;
 }
 
+// Handles gather attached actors recursive.
 void AChangeLocationManager::GatherAttachedActorsRecursive(AActor* RootActor, TArray<AActor*>& OutActors) const
 {
     if (!RootActor)
@@ -166,6 +178,7 @@ void AChangeLocationManager::GatherAttachedActorsRecursive(AActor* RootActor, TA
     }
 }
 
+// Sets whether a location actor variant is active.
 void AChangeLocationManager::SetActorVariantActive(AActor* Actor, bool bActive) const
 {
     if (!Actor)
@@ -203,6 +216,7 @@ void AChangeLocationManager::SetActorVariantActive(AActor* Actor, bool bActive) 
 
 /** Enables the requested variant hierarchy while disabling all other cached variants. */
 
+// Handles switch to variant.
 void AChangeLocationManager::SwitchToVariant(FName VariantID)
 {
     if (VariantID == NAME_None)

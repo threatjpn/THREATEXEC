@@ -1,3 +1,10 @@
+// ============================================================================
+// BezierEditPlayerController.cpp
+// Handles runtime Bezier editing input, point selection, dragging, undo, and redo.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 #include "BezierEditPlayerController.h"
 
 #include "BezierEditSubsystem.h"
@@ -12,6 +19,7 @@
 #include "Camera/PlayerCameraManager.h"
 #include "InputCoreTypes.h"
 
+// Sets default components, ticking, collision, and editable values.
 ABezierEditPlayerController::ABezierEditPlayerController()
 {
 	bShowMouseCursor = true;
@@ -25,6 +33,7 @@ ABezierEditPlayerController::ABezierEditPlayerController()
 
 ABezierEditPlayerController::~ABezierEditPlayerController() = default;
 
+// Captures current state for later restore.
 void ABezierEditPlayerController::CaptureDragBeforeSnapshot(UBezierEditSubsystem* Sub)
 {
 	if (!Sub)
@@ -38,6 +47,7 @@ void ABezierEditPlayerController::CaptureDragBeforeSnapshot(UBezierEditSubsystem
 	bHasDragBeforeSnapshot = true;
 }
 
+// Handles commit drag snapshot if needed.
 void ABezierEditPlayerController::CommitDragSnapshotIfNeeded(UBezierEditSubsystem* Sub)
 {
 	if (!Sub || !bHasDragBeforeSnapshot || !DragBeforeSnapshot.IsValid())
@@ -48,6 +58,7 @@ void ABezierEditPlayerController::CommitDragSnapshotIfNeeded(UBezierEditSubsyste
 	Sub->History_CommitInteractiveChange(*DragBeforeSnapshot);
 }
 
+// Binds edit, cancel, undo, and redo input actions.
 void ABezierEditPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -98,6 +109,7 @@ void ABezierEditPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ABezierEditPlayerController::Input_Redo);
 }
 
+// Updates hover or drag state each controller tick.
 void ABezierEditPlayerController::PlayerTick(float DeltaSeconds)
 {
 	Super::PlayerTick(DeltaSeconds);
@@ -112,6 +124,7 @@ void ABezierEditPlayerController::PlayerTick(float DeltaSeconds)
 	}
 }
 
+// Traces the cursor against visibility collision.
 bool ABezierEditPlayerController::TraceUnderCursor(FHitResult& OutHit) const
 {
 	OutHit = FHitResult();
@@ -120,6 +133,7 @@ bool ABezierEditPlayerController::TraceUnderCursor(FHitResult& OutHit) const
 	return GetHitResultUnderCursor(ECC_Visibility, true, OutHit);
 }
 
+// Deprojects the mouse position into a world-space ray.
 bool ABezierEditPlayerController::GetMouseRay(FVector& OutOrigin, FVector& OutDirection) const
 {
 	float ScreenX = 0.0f;
@@ -132,6 +146,7 @@ bool ABezierEditPlayerController::GetMouseRay(FVector& OutOrigin, FVector& OutDi
 	return DeprojectScreenPositionToWorld(ScreenX, ScreenY, OutOrigin, OutDirection);
 }
 
+// Finds and returns the requested runtime object or index.
 bool ABezierEditPlayerController::FindClosestControlPointOnMouseRay(AActor*& OutActor, int32& OutIndex) const
 {
 	OutActor = nullptr;
@@ -217,6 +232,7 @@ bool ABezierEditPlayerController::FindClosestControlPointOnMouseRay(AActor*& Out
 	return false;
 }
 
+// Refreshes derived state from the latest runtime values.
 void ABezierEditPlayerController::UpdateHover()
 {
 	FHitResult Hit;
@@ -291,6 +307,7 @@ void ABezierEditPlayerController::UpdateHover()
 	}
 }
 
+// Clears stored state and resets dependent output.
 void ABezierEditPlayerController::ClearHovered()
 {
 	if (AActor* A = HoveredActor.Get())
@@ -309,6 +326,7 @@ void ABezierEditPlayerController::ClearHovered()
 	HoveredIndex = -1;
 }
 
+// Applies hover state to the target curve actor.
 void ABezierEditPlayerController::SetHoveredOnActor(AActor* Actor, int32 ControlPointIndex) const
 {
 	if (!Actor || ControlPointIndex < 0) return;
@@ -323,6 +341,7 @@ void ABezierEditPlayerController::SetHoveredOnActor(AActor* Actor, int32 Control
 	}
 }
 
+// Starts dragging from the selected control point.
 void ABezierEditPlayerController::StartDragFromControlPoint(AActor* HitActor, int32 ControlPointIndex, const FVector& ImpactPoint)
 {
 	if (!HitActor || ControlPointIndex == INDEX_NONE)
@@ -383,6 +402,7 @@ void ABezierEditPlayerController::StartDragFromControlPoint(AActor* HitActor, in
 	ClearHovered();
 }
 
+// Handles primary pressed input.
 void ABezierEditPlayerController::Input_PrimaryPressed()
 {
 	FHitResult Hit;
@@ -493,11 +513,13 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 	StartDragFromControlPoint(HitActor, HitIndex, HitPoint);
 }
 
+// Handles primary released input.
 void ABezierEditPlayerController::Input_PrimaryReleased()
 {
 	StopDrag();
 }
 
+// Handles cancel input.
 void ABezierEditPlayerController::Input_Cancel()
 {
 	StopDrag();
@@ -513,6 +535,7 @@ void ABezierEditPlayerController::Input_Cancel()
 	}
 }
 
+// Handles undo input.
 void ABezierEditPlayerController::Input_Undo()
 {
 	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
@@ -530,6 +553,7 @@ void ABezierEditPlayerController::Input_Undo()
 	}
 }
 
+// Handles redo input.
 void ABezierEditPlayerController::Input_Redo()
 {
 	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
@@ -546,6 +570,7 @@ void ABezierEditPlayerController::Input_Redo()
 	}
 }
 
+// Clears stored state and resets dependent output.
 void ABezierEditPlayerController::ClearSelectedOnActor(AActor* Actor) const
 {
 	if (!Actor) return;
@@ -560,6 +585,7 @@ void ABezierEditPlayerController::ClearSelectedOnActor(AActor* Actor) const
 	}
 }
 
+// Clears stored state and resets dependent output.
 void ABezierEditPlayerController::ClearSelectedOnAllActors() const
 {
 	UWorld* World = GetWorld();
@@ -579,6 +605,7 @@ void ABezierEditPlayerController::ClearSelectedOnAllActors() const
 	}
 }
 
+// Starts a drag operation from the current hover state.
 void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 {
 	AActor* HitActor = Hit.GetActor();
@@ -643,6 +670,7 @@ void ABezierEditPlayerController::StartDrag(const FHitResult& Hit)
 	ClearHovered();
 }
 
+// Refreshes derived state from the latest runtime values.
 void ABezierEditPlayerController::UpdateDrag()
 {
 	AActor* A = DraggedActor.Get();
@@ -692,6 +720,7 @@ void ABezierEditPlayerController::UpdateDrag()
 	}
 }
 
+// Stops stop drag.
 void ABezierEditPlayerController::StopDrag(bool bCommitHistory)
 {
 	if (bCommitHistory)
@@ -708,6 +737,7 @@ void ABezierEditPlayerController::StopDrag(bool bCommitHistory)
 	DragBeforeSnapshot.Reset();
 }
 
+// Handles deproject mouse to plane.
 bool ABezierEditPlayerController::DeprojectMouseToPlane(const FVector& PlanePoint, const FVector& PlaneNormal, FVector& OutWorldPoint) const
 {
 	OutWorldPoint = FVector::ZeroVector;

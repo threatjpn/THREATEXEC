@@ -1,3 +1,9 @@
+/**
+ * File: MuseumWidget.h
+ * Summary: Widget that cycles through museum slides with paired images and text.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"

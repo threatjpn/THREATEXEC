@@ -1,5 +1,10 @@
 #pragma once
 
+/**
+ * @file BezierEditSubsystem.h
+ * @brief World subsystem that coordinates focused curve editing, selection state, edit operations, and history snapshots.
+ */
+
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "TimerManager.h"
@@ -11,6 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBezierFocusChanged, AActor*, Focu
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBezierMirrorAxisCycleReset);
 
 
+/** Captures all actor-level data required to restore a curve actor during undo or redo. */
 struct FBezierCurveActorSnapshot
 {
 	TWeakObjectPtr<AActor> Actor;
@@ -55,6 +61,7 @@ struct FBezierCurveActorSnapshot
 	bool bSelectAllControlPoints = false;
 };
 
+/** Groups curve snapshots into a single undoable edit state. */
 struct FBezierHistorySnapshot
 {
 	TArray<FBezierCurveActorSnapshot> Curves;
@@ -62,6 +69,7 @@ struct FBezierHistorySnapshot
 };
 
 UCLASS()
+/** Coordinates focused editing, history management, and shared curve operations. */
 class THREATEXEC_API UBezierEditSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()

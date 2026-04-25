@@ -1,3 +1,10 @@
+// ============================================================================
+// GI_ThreatExec.cpp
+// Provides global fade and transition helpers through the game instance.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: GI_ThreatExec.cpp
  * Summary: Implementation of the custom game instance fade and transition helpers.
@@ -10,11 +17,13 @@
 #include "Blueprint/UserWidget.h"
 #include "Engine/World.h"
 
+// Handles init.
 void UGI_ThreatExec::Init()
 {
     Super::Init();
 }
 
+// Handles init fade widget.
 void UGI_ThreatExec::InitFadeWidget()
 {
     if (FadeWidget && IsValid(FadeWidget))
@@ -49,6 +58,7 @@ void UGI_ThreatExec::InitFadeWidget()
     FadeWidget->AddToViewport(FadeWidgetZOrder);
 }
 
+// Runs the fade overlay toward visible opacity.
 void UGI_ThreatExec::FadeIn()
 {
     InitFadeWidget();
@@ -59,6 +69,7 @@ void UGI_ThreatExec::FadeIn()
     }
 }
 
+// Runs the fade overlay toward hidden opacity.
 void UGI_ThreatExec::FadeOut()
 {
     InitFadeWidget();
@@ -69,6 +80,7 @@ void UGI_ThreatExec::FadeOut()
     }
 }
 
+// Handles fade transition.
 void UGI_ThreatExec::FadeTransition()
 {
     InitFadeWidget();
@@ -79,6 +91,7 @@ void UGI_ThreatExec::FadeTransition()
     }
 }
 
+// Handles fade transition to level.
 void UGI_ThreatExec::FadeTransitionToLevel(FName LevelName)
 {
     InitFadeWidget();
@@ -89,6 +102,7 @@ void UGI_ThreatExec::FadeTransitionToLevel(FName LevelName)
     }
 }
 
+// Checks whether cancel fade.
 void UGI_ThreatExec::CancelFade()
 {
     if (FadeWidget && IsValid(FadeWidget))
@@ -97,6 +111,7 @@ void UGI_ThreatExec::CancelFade()
     }
 }
 
+// Checks whether is fade busy.
 bool UGI_ThreatExec::IsFadeBusy() const
 {
     return FadeWidget && IsValid(FadeWidget) && FadeWidget->IsFadeBusy();

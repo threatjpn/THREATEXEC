@@ -1,3 +1,10 @@
+// ============================================================================
+// BezierEditSubSystem.cpp
+// Coordinates Bezier edit mode, shared settings, history snapshots, and file-menu operations.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 #include "BezierEditSubsystem.h"
 #include "BezierCurve2DActor.h"
 #include "BezierCurve3DActor.h"
@@ -130,6 +137,7 @@ static bool SnapshotArraysEqual(const TArray<FVector2D>& A, const TArray<FVector
 
 
 
+// Captures current state for later restore.
 bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActorSnapshot& Out) const
 {
 	if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(Actor))
@@ -215,6 +223,7 @@ bool UBezierEditSubsystem::CaptureCurveSnapshot(AActor* Actor, FBezierCurveActor
 	return false;
 }
 
+// Captures editable curve state for undo or redo.
 FBezierHistorySnapshot UBezierEditSubsystem::CaptureHistorySnapshot() const
 {
 	FBezierHistorySnapshot Snapshot;
@@ -254,6 +263,7 @@ FBezierHistorySnapshot UBezierEditSubsystem::CaptureHistorySnapshot() const
 	return Snapshot;
 }
 
+// Handles are history snapshots equivalent.
 bool UBezierEditSubsystem::AreHistorySnapshotsEquivalent(const FBezierHistorySnapshot& A, const FBezierHistorySnapshot& B) const
 {
 	if (A.FocusedIndex != B.FocusedIndex || A.Curves.Num() != B.Curves.Num())
@@ -291,6 +301,7 @@ bool UBezierEditSubsystem::AreHistorySnapshotsEquivalent(const FBezierHistorySna
 	return true;
 }
 
+// Handles trim history stacks.
 void UBezierEditSubsystem::TrimHistoryStacks()
 {
 	const int32 MaxStepsClamped = FMath::Max(1, MaxUndoSteps);
@@ -308,6 +319,7 @@ void UBezierEditSubsystem::TrimHistoryStacks()
 	}
 }
 
+// Restores curve state from a saved history snapshot.
 bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& Snapshot, bool bPreserveCurrentEditMode)
 {
 	CompactRegistry();
@@ -480,6 +492,7 @@ bool UBezierEditSubsystem::RestoreHistorySnapshot(const FBezierHistorySnapshot& 
 	return true;
 }
 
+// Handles history state for commit interactive change.
 bool UBezierEditSubsystem::History_CommitInteractiveChange(const FBezierHistorySnapshot& BeforeSnapshot)
 {
 	if (bIsRestoringHistory)
@@ -499,6 +512,7 @@ bool UBezierEditSubsystem::History_CommitInteractiveChange(const FBezierHistoryS
 	return true;
 }
 
+// Handles history state for clear.
 void UBezierEditSubsystem::History_Clear()
 {
 	UndoStack.Reset();
@@ -506,16 +520,19 @@ void UBezierEditSubsystem::History_Clear()
 	bIsRestoringHistory = false;
 }
 
+// Handles history state for can undo.
 bool UBezierEditSubsystem::History_CanUndo() const
 {
 	return UndoStack.Num() > 0;
 }
 
+// Handles history state for can redo.
 bool UBezierEditSubsystem::History_CanRedo() const
 {
 	return RedoStack.Num() > 0;
 }
 
+// Handles history state for undo.
 bool UBezierEditSubsystem::History_Undo()
 {
 	if (!History_CanUndo())
@@ -536,6 +553,7 @@ bool UBezierEditSubsystem::History_Undo()
 	return bRestored;
 }
 
+// Handles history state for redo.
 bool UBezierEditSubsystem::History_Redo()
 {
 	if (!History_CanRedo())
@@ -556,6 +574,7 @@ bool UBezierEditSubsystem::History_Redo()
 	return bRestored;
 }
 
+// Checks whether is editable.
 bool UBezierEditSubsystem::IsEditable(AActor* Actor) const
 {
 	if (!Actor)
@@ -573,11 +592,13 @@ bool UBezierEditSubsystem::IsEditable(AActor* Actor) const
 	return Cast<ABezierCurve2DActor>(Actor) != nullptr || Cast<ABezierCurve3DActor>(Actor) != nullptr;
 }
 
+// Handles compact registry.
 void UBezierEditSubsystem::CompactRegistry()
 {
 	Editables.RemoveAll([](const TWeakObjectPtr<AActor>& P){ return !P.IsValid(); });
 }
 
+// Handles register editable.
 void UBezierEditSubsystem::RegisterEditable(AActor* Actor)
 {
 	if (!IsEditable(Actor)) return;
@@ -590,6 +611,7 @@ void UBezierEditSubsystem::RegisterEditable(AActor* Actor)
 	Editables.Add(Actor);
 }
 
+// Handles unregister editable.
 void UBezierEditSubsystem::UnregisterEditable(AActor* Actor)
 {
 	if (!Actor) return;
@@ -606,6 +628,7 @@ void UBezierEditSubsystem::UnregisterEditable(AActor* Actor)
 	}
 }
 
+// Sets the actor currently controlled by edit-mode actions.
 void UBezierEditSubsystem::SetFocused(AActor* Actor)
 {
 	if (Actor && !IsEditable(Actor)) return;
@@ -620,16 +643,19 @@ void UBezierEditSubsystem::SetFocused(AActor* Actor)
 	}
 }
 
+// Returns the actor currently controlled by edit-mode actions.
 AActor* UBezierEditSubsystem::GetFocused() const
 {
 	return FocusedActor.Get();
 }
 
+// Checks whether has focused.
 bool UBezierEditSubsystem::HasFocused() const
 {
 	return FocusedActor.IsValid();
 }
 
+// Handles for focused.
 void UBezierEditSubsystem::ForFocused(TFunctionRef<void(UObject* Obj)> Fn)
 {
 	AActor* A = FocusedActor.Get();
@@ -684,6 +710,7 @@ void UBezierEditSubsystem::ForFocused(TFunctionRef<void(UObject* Obj)> Fn)
 	Fn(A);
 }
 
+// Handles for all.
 void UBezierEditSubsystem::ForAll(TFunctionRef<void(UObject* Obj)> Fn)
 {
 	if (bApplyAllToFocusedOnly && HasFocused())
@@ -736,6 +763,7 @@ void UBezierEditSubsystem::Focus_SetEditMode(bool bInEditMode)
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetEditMode(Obj, bInEditMode); });
 }
 
+// Handles focus toggle edit mode.
 void UBezierEditSubsystem::Focus_ToggleEditMode()
 {
 	ForFocused([&](UObject* Obj)
@@ -745,11 +773,13 @@ void UBezierEditSubsystem::Focus_ToggleEditMode()
 	});
 }
 
+// Handles focus set actor visible in game.
 void UBezierEditSubsystem::Focus_SetActorVisibleInGame(bool bInVisible)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetActorVisibleInGame(Obj, bInVisible); });
 }
 
+// Handles focus toggle actor visible in game.
 void UBezierEditSubsystem::Focus_ToggleActorVisibleInGame()
 {
 	ForFocused([&](UObject* Obj)
@@ -759,11 +789,13 @@ void UBezierEditSubsystem::Focus_ToggleActorVisibleInGame()
 	});
 }
 
+// Handles focus set show control points.
 void UBezierEditSubsystem::Focus_SetShowControlPoints(bool bInShow)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetShowControlPoints(Obj, bInShow); });
 }
 
+// Handles focus toggle show control points.
 void UBezierEditSubsystem::Focus_ToggleShowControlPoints()
 {
 	ForFocused([&](UObject* Obj)
@@ -773,11 +805,13 @@ void UBezierEditSubsystem::Focus_ToggleShowControlPoints()
 	});
 }
 
+// Handles focus set show strip.
 void UBezierEditSubsystem::Focus_SetShowStrip(bool bInShow)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetShowStrip(Obj, bInShow); });
 }
 
+// Handles focus toggle show strip.
 void UBezierEditSubsystem::Focus_ToggleShowStrip()
 {
 	ForFocused([&](UObject* Obj)
@@ -787,26 +821,31 @@ void UBezierEditSubsystem::Focus_ToggleShowStrip()
 	});
 }
 
+// Handles focus set control point size.
 void UBezierEditSubsystem::Focus_SetControlPointSize(float InVisualScale)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetControlPointSize(Obj, InVisualScale); });
 }
 
+// Handles focus set strip size.
 void UBezierEditSubsystem::Focus_SetStripSize(float InWidth, float InThickness)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetStripSize(Obj, InWidth, InThickness); });
 }
 
+// Handles focus set control point colors.
 void UBezierEditSubsystem::Focus_SetControlPointColors(FLinearColor Normal, FLinearColor Hover, FLinearColor Selected)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetControlPointColors(Obj, Normal, Hover, Selected); });
 }
 
+// Handles focus set snap to grid.
 void UBezierEditSubsystem::Focus_SetSnapToGrid(bool bInSnap)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetSnapToGrid(Obj, bInSnap); });
 }
 
+// Handles focus toggle snap to grid.
 void UBezierEditSubsystem::Focus_ToggleSnapToGrid()
 {
 	ForFocused([&](UObject* Obj)
@@ -816,16 +855,19 @@ void UBezierEditSubsystem::Focus_ToggleSnapToGrid()
 	});
 }
 
+// Handles focus set grid size.
 void UBezierEditSubsystem::Focus_SetGridSize(float InGridSizeCm)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetGridSize(Obj, InGridSizeCm); });
 }
 
+// Handles focus set force planar.
 void UBezierEditSubsystem::Focus_SetForcePlanar(bool bInForce)
 {
 	ForFocused([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetForcePlanar(Obj, bInForce); });
 }
 
+// Handles focus cycle force planar axis.
 EBezierPlanarAxis UBezierEditSubsystem::Focus_CycleForcePlanarAxis()
 {
 	EBezierPlanarAxis Result = EBezierPlanarAxis::None;
@@ -847,6 +889,7 @@ EBezierPlanarAxis UBezierEditSubsystem::Focus_CycleForcePlanarAxis()
 	return Result;
 }
 
+// Handles focus reset curve state.
 void UBezierEditSubsystem::Focus_ResetCurveState()
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -854,6 +897,7 @@ void UBezierEditSubsystem::Focus_ResetCurveState()
 	History_CommitInteractiveChange(Before);
 }
 
+// Handles focus add control point after selected.
 bool UBezierEditSubsystem::Focus_AddControlPointAfterSelected()
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -866,6 +910,7 @@ bool UBezierEditSubsystem::Focus_AddControlPointAfterSelected()
 	return bResult;
 }
 
+// Handles focus delete selected control point.
 bool UBezierEditSubsystem::Focus_DeleteSelectedControlPoint()
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -879,6 +924,7 @@ bool UBezierEditSubsystem::Focus_DeleteSelectedControlPoint()
 	return bResult;
 }
 
+// Handles focus duplicate selected control point.
 bool UBezierEditSubsystem::Focus_DuplicateSelectedControlPoint()
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -891,6 +937,7 @@ bool UBezierEditSubsystem::Focus_DuplicateSelectedControlPoint()
 	return bResult;
 }
 
+// Handles focus center curve.
 void UBezierEditSubsystem::Focus_CenterCurve()
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -908,6 +955,7 @@ void UBezierEditSubsystem::Focus_CenterCurve()
 	History_CommitInteractiveChange(Before);
 }
 
+// Handles focus mirror curve.
 void UBezierEditSubsystem::Focus_MirrorCurve()
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -966,6 +1014,7 @@ void UBezierEditSubsystem::Focus_MirrorCurve()
 	History_CommitInteractiveChange(Before);
 }
 
+// Handles focus reverse control order.
 void UBezierEditSubsystem::Focus_ReverseControlOrder()
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -983,6 +1032,7 @@ void UBezierEditSubsystem::Focus_ReverseControlOrder()
 	History_CommitInteractiveChange(Before);
 }
 
+// Handles focus toggle closed loop.
 void UBezierEditSubsystem::Focus_ToggleClosedLoop()
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -1000,6 +1050,7 @@ void UBezierEditSubsystem::Focus_ToggleClosedLoop()
 	History_CommitInteractiveChange(Before);
 }
 
+// Handles focus set closed loop.
 void UBezierEditSubsystem::Focus_SetClosedLoop(bool bInClosed)
 {
 	const FBezierHistorySnapshot Before = CaptureHistorySnapshot();
@@ -1017,6 +1068,7 @@ void UBezierEditSubsystem::Focus_SetClosedLoop(bool bInClosed)
 	History_CommitInteractiveChange(Before);
 }
 
+// Handles focus is closed loop.
 bool UBezierEditSubsystem::Focus_IsClosedLoop()
 {
 	bool bClosed = false;
@@ -1034,6 +1086,7 @@ bool UBezierEditSubsystem::Focus_IsClosedLoop()
 	return bClosed;
 }
 
+// Handles focus duplicate curve.
 void UBezierEditSubsystem::Focus_DuplicateCurve()
 {
 	if (!Focus_EnsureFocused())
@@ -1147,6 +1200,7 @@ void UBezierEditSubsystem::Focus_DuplicateCurve()
 	}
 }
 
+// Handles focus isolate curve.
 void UBezierEditSubsystem::Focus_IsolateCurve(bool bInIsolate)
 {
 	if (bInIsolate && bIsolateFocusedCurve)
@@ -1160,12 +1214,14 @@ void UBezierEditSubsystem::Focus_IsolateCurve(bool bInIsolate)
 	ApplyIsolateVisibility();
 }
 
+// Handles focus toggle isolate curve.
 void UBezierEditSubsystem::Focus_ToggleIsolateCurve()
 {
 	bIsolateFocusedCurve = !bIsolateFocusedCurve;
 	ApplyIsolateVisibility();
 }
 
+// Applies derived settings to the relevant runtime objects.
 void UBezierEditSubsystem::ApplyIsolateVisibility()
 {
 	AActor* Focused = FocusedActor.Get();
@@ -1182,6 +1238,7 @@ void UBezierEditSubsystem::ApplyIsolateVisibility()
 	}
 }
 
+// Handles focus set sampling mode.
 void UBezierEditSubsystem::Focus_SetSamplingMode(EBezierSamplingMode InMode)
 {
 	ForFocused([&](UObject* Obj)
@@ -1197,6 +1254,7 @@ void UBezierEditSubsystem::Focus_SetSamplingMode(EBezierSamplingMode InMode)
 	});
 }
 
+// Handles focus get sampling mode.
 EBezierSamplingMode UBezierEditSubsystem::Focus_GetSamplingMode()
 {
 	EBezierSamplingMode Mode = EBezierSamplingMode::Parametric;
@@ -1214,6 +1272,7 @@ EBezierSamplingMode UBezierEditSubsystem::Focus_GetSamplingMode()
 	return Mode;
 }
 
+// Handles focus set sample count.
 void UBezierEditSubsystem::Focus_SetSampleCount(int32 InCount)
 {
 	ForFocused([&](UObject* Obj)
@@ -1229,6 +1288,7 @@ void UBezierEditSubsystem::Focus_SetSampleCount(int32 InCount)
 	});
 }
 
+// Handles focus get sample count.
 int32 UBezierEditSubsystem::Focus_GetSampleCount()
 {
 	int32 Count = 0;
@@ -1246,6 +1306,7 @@ int32 UBezierEditSubsystem::Focus_GetSampleCount()
 	return Count;
 }
 
+// Handles focus set proof t.
 void UBezierEditSubsystem::Focus_SetProofT(double InT)
 {
 	ForFocused([&](UObject* Obj)
@@ -1261,6 +1322,7 @@ void UBezierEditSubsystem::Focus_SetProofT(double InT)
 	});
 }
 
+// Handles focus get proof t.
 double UBezierEditSubsystem::Focus_GetProofT()
 {
 	double Value = 0.0;
@@ -1278,6 +1340,7 @@ double UBezierEditSubsystem::Focus_GetProofT()
 	return Value;
 }
 
+// Handles focus set show sample points.
 void UBezierEditSubsystem::Focus_SetShowSamplePoints(bool bInShow)
 {
 	ForFocused([&](UObject* Obj)
@@ -1293,6 +1356,7 @@ void UBezierEditSubsystem::Focus_SetShowSamplePoints(bool bInShow)
 	});
 }
 
+// Handles focus get show sample points.
 bool UBezierEditSubsystem::Focus_GetShowSamplePoints()
 {
 	bool bShow = false;
@@ -1310,6 +1374,7 @@ bool UBezierEditSubsystem::Focus_GetShowSamplePoints()
 	return bShow;
 }
 
+// Handles focus set show de casteljau levels.
 void UBezierEditSubsystem::Focus_SetShowDeCasteljauLevels(bool bInShow)
 {
 	ForFocused([&](UObject* Obj)
@@ -1325,6 +1390,7 @@ void UBezierEditSubsystem::Focus_SetShowDeCasteljauLevels(bool bInShow)
 	});
 }
 
+// Handles focus get show de casteljau levels.
 bool UBezierEditSubsystem::Focus_GetShowDeCasteljauLevels()
 {
 	bool bShow = false;
@@ -1342,6 +1408,7 @@ bool UBezierEditSubsystem::Focus_GetShowDeCasteljauLevels()
 	return bShow;
 }
 
+// Handles focus ensure focused.
 bool UBezierEditSubsystem::Focus_EnsureFocused()
 {
 	if (HasFocused())
@@ -1392,6 +1459,7 @@ bool UBezierEditSubsystem::Focus_EnsureFocused()
 	return false;
 }
 
+// Handles focus reset mirror axis cycle.
 void UBezierEditSubsystem::Focus_ResetMirrorAxisCycle()
 {
 	MirrorAxisCycleIndex = 0;
@@ -1403,6 +1471,7 @@ void UBezierEditSubsystem::Focus_ResetMirrorAxisCycle()
 	OnMirrorAxisCycleReset.Broadcast();
 }
 
+// Handles focus get mirror axis cycle seconds remaining.
 float UBezierEditSubsystem::Focus_GetMirrorAxisCycleSecondsRemaining() const
 {
 	if (LastMirrorAxisCycleTimeSeconds < 0.0f)
@@ -1431,6 +1500,7 @@ static void ApplyEditInteraction(UObject* Obj, bool bEnabled, bool bShowControlP
 	IBezierEditable::Execute_BEZ_SetShowStrip(Obj, bEnabled && bShowStrip);
 }
 
+// Handles focus set edit interaction enabled.
 void UBezierEditSubsystem::Focus_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints, bool bShowStrip)
 {
 	ForFocused([&](UObject* Obj){ ApplyEditInteraction(Obj, bEnabled, bShowControlPoints, bShowStrip); });
@@ -1442,6 +1512,7 @@ void UBezierEditSubsystem::All_SetEditMode(bool bInEditMode)
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetEditMode(Obj, bInEditMode); });
 }
 
+// Handles all toggle edit mode.
 void UBezierEditSubsystem::All_ToggleEditMode()
 {
 	// Toggle based on focused if available, else default to true
@@ -1459,11 +1530,13 @@ void UBezierEditSubsystem::All_ToggleEditMode()
 	}
 }
 
+// Handles all set actor visible in game.
 void UBezierEditSubsystem::All_SetActorVisibleInGame(bool bInVisible)
 {
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetActorVisibleInGame(Obj, bInVisible); });
 }
 
+// Handles all toggle actor visible in game.
 void UBezierEditSubsystem::All_ToggleActorVisibleInGame()
 {
 	if (HasFocused())
@@ -1480,11 +1553,13 @@ void UBezierEditSubsystem::All_ToggleActorVisibleInGame()
 	}
 }
 
+// Handles all set show control points.
 void UBezierEditSubsystem::All_SetShowControlPoints(bool bInShow)
 {
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetShowControlPoints(Obj, bInShow); });
 }
 
+// Handles all toggle show control points.
 void UBezierEditSubsystem::All_ToggleShowControlPoints()
 {
 	if (HasFocused())
@@ -1501,11 +1576,13 @@ void UBezierEditSubsystem::All_ToggleShowControlPoints()
 	}
 }
 
+// Handles all set show strip.
 void UBezierEditSubsystem::All_SetShowStrip(bool bInShow)
 {
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetShowStrip(Obj, bInShow); });
 }
 
+// Handles all toggle show strip.
 void UBezierEditSubsystem::All_ToggleShowStrip()
 {
 	if (HasFocused())
@@ -1522,6 +1599,7 @@ void UBezierEditSubsystem::All_ToggleShowStrip()
 	}
 }
 
+// Handles all set snap to grid.
 void UBezierEditSubsystem::All_SetSnapToGrid(bool bInSnap)
 {
 	ForAll([&](UObject* Obj)
@@ -1541,6 +1619,7 @@ void UBezierEditSubsystem::All_SetSnapToGrid(bool bInSnap)
 	});
 }
 
+// Handles all toggle snap to grid.
 void UBezierEditSubsystem::All_ToggleSnapToGrid()
 {
 	if (HasFocused())
@@ -1564,11 +1643,13 @@ void UBezierEditSubsystem::All_ToggleSnapToGrid()
 	}
 }
 
+// Handles all set grid size.
 void UBezierEditSubsystem::All_SetGridSize(float InGridSizeCm)
 {
 	ForAll([&](UObject* Obj){ IBezierEditable::Execute_BEZ_SetGridSize(Obj, InGridSizeCm); });
 }
 
+// Handles all set sample count.
 void UBezierEditSubsystem::All_SetSampleCount(int32 InCount)
 {
 	ForAll([&](UObject* Obj)
@@ -1584,6 +1665,7 @@ void UBezierEditSubsystem::All_SetSampleCount(int32 InCount)
 	});
 }
 
+// Handles all set proof t.
 void UBezierEditSubsystem::All_SetProofT(double InT)
 {
 	ForAll([&](UObject* Obj)
@@ -1599,11 +1681,13 @@ void UBezierEditSubsystem::All_SetProofT(double InT)
 	});
 }
 
+// Handles all set edit interaction enabled.
 void UBezierEditSubsystem::All_SetEditInteractionEnabled(bool bEnabled, bool bShowControlPoints, bool bShowStrip)
 {
 	ForAll([&](UObject* Obj){ ApplyEditInteraction(Obj, bEnabled, bShowControlPoints, bShowStrip); });
 }
 
+// Handles all export curve set json.
 void UBezierEditSubsystem::All_ExportCurveSetJson()
 {
 	UWorld* World = GetWorld();
@@ -1616,6 +1700,7 @@ void UBezierEditSubsystem::All_ExportCurveSetJson()
 	}
 }
 
+// Handles all import curve set json.
 void UBezierEditSubsystem::All_ImportCurveSetJson()
 {
 	UWorld* World = GetWorld();
@@ -1628,26 +1713,31 @@ void UBezierEditSubsystem::All_ImportCurveSetJson()
 	}
 }
 
+// Sets whether batch actions apply only to the focused actor.
 void UBezierEditSubsystem::SetApplyAllToFocusedOnly(bool bInFocusedOnly)
 {
 	bApplyAllToFocusedOnly = bInFocusedOnly;
 }
 
+// Toggles the requested feature and refreshes dependent visuals.
 void UBezierEditSubsystem::ToggleApplyAllToFocusedOnly()
 {
 	bApplyAllToFocusedOnly = !bApplyAllToFocusedOnly;
 }
 
+// Returns whether batch actions apply only to the focused actor.
 bool UBezierEditSubsystem::GetApplyAllToFocusedOnly() const
 {
 	return bApplyAllToFocusedOnly;
 }
 
+// Sets whether edit mode auto-focuses the first editable actor.
 void UBezierEditSubsystem::SetAutoFocusFirstEditable(bool bInAutoFocus)
 {
 	bAutoFocusFirstEditable = bInAutoFocus;
 }
 
+// Returns whether edit mode auto-focuses the first editable actor.
 bool UBezierEditSubsystem::GetAutoFocusFirstEditable() const
 {
 	return bAutoFocusFirstEditable;

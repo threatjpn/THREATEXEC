@@ -1,3 +1,10 @@
+// ============================================================================
+// MuseumWidget.cpp
+// Implements the museum slideshow widget, including slide data, timed cycling, and fade transitions.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 #include "MuseumWidget.h"
 
 #include "Components/Image.h"
@@ -5,6 +12,7 @@
 #include "Components/Widget.h"
 #include "Engine/Texture2D.h"
 
+// Initialises widget state and binds required UI behaviour.
 void UMuseumWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -27,6 +35,7 @@ void UMuseumWidget::NativeConstruct()
     }
 }
 
+// Updates time-dependent widget behaviour each frame.
 void UMuseumWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
@@ -50,6 +59,7 @@ void UMuseumWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
     }
 }
 
+// Adds an image entry to the slideshow data.
 void UMuseumWidget::AddMuseumImage(UTexture2D* MuseumImage)
 {
     MuseumImages.Add(MuseumImage);
@@ -59,6 +69,7 @@ void UMuseumWidget::AddMuseumImage(UTexture2D* MuseumImage)
     }
 }
 
+// Adds body text to the slideshow data.
 void UMuseumWidget::AddMuseumText(const FText& MuseumTxt)
 {
     MuseumTexts.Add(MuseumTxt);
@@ -68,6 +79,7 @@ void UMuseumWidget::AddMuseumText(const FText& MuseumTxt)
     }
 }
 
+// Adds a basic museum slide from image and body text.
 void UMuseumWidget::AddMuseumSlide(UTexture2D* MuseumImage, const FText& MuseumTxt)
 {
     MuseumImages.Add(MuseumImage);
@@ -81,6 +93,7 @@ void UMuseumWidget::AddMuseumSlide(UTexture2D* MuseumImage, const FText& MuseumT
     }
 }
 
+// Adds a title entry to the slideshow data.
 void UMuseumWidget::AddMuseumTitle(const FText& MuseumTitle)
 {
     MuseumTitles.Add(MuseumTitle);
@@ -90,6 +103,7 @@ void UMuseumWidget::AddMuseumTitle(const FText& MuseumTitle)
     }
 }
 
+// Adds a credit entry to the slideshow data.
 void UMuseumWidget::AddMuseumPhotoCredit(const FText& MuseumPhotoCredit)
 {
     MuseumPhotoCredits.Add(MuseumPhotoCredit);
@@ -99,6 +113,7 @@ void UMuseumWidget::AddMuseumPhotoCredit(const FText& MuseumPhotoCredit)
     }
 }
 
+// Adds a complete museum slide with image, title, text, and credit.
 void UMuseumWidget::AddMuseumSlideExtended(UTexture2D* MuseumImage, const FText& MuseumTitle, const FText& MuseumTxt, const FText& MuseumPhotoCredit)
 {
     MuseumImages.Add(MuseumImage);
@@ -112,6 +127,7 @@ void UMuseumWidget::AddMuseumSlideExtended(UTexture2D* MuseumImage, const FText&
     }
 }
 
+// Clears all slide data and resets the visible widget state.
 void UMuseumWidget::ClearMuseumSlides()
 {
     MuseumImages.Empty();
@@ -172,17 +188,20 @@ void UMuseumWidget::ClearMuseumSlides()
     }
 }
 
+// Starts automatic slide cycling from the current slide.
 void UMuseumWidget::StartCycling()
 {
     bCycling = true;
     TimeUntilNextSlide = FMath::Max(0.1f, SlideIntervalSeconds);
 }
 
+// Stops automatic slide cycling without changing the active slide.
 void UMuseumWidget::StopCycling()
 {
     bCycling = false;
 }
 
+// Returns the largest populated slide-data count.
 int32 UMuseumWidget::GetSlideCount() const
 {
     int32 SlideCount = MuseumImages.Num();
@@ -192,6 +211,7 @@ int32 UMuseumWidget::GetSlideCount() const
     return SlideCount;
 }
 
+// Applies the current slide and resets hidden transition widgets.
 void UMuseumWidget::InitializeVisibleSlide()
 {
     if (GetSlideCount() <= 0)
@@ -223,6 +243,7 @@ void UMuseumWidget::InitializeVisibleSlide()
     }
 }
 
+// Starts a fade transition to the requested slide index.
 void UMuseumWidget::BeginTransitionTo(int32 NewSlideIndex)
 {
     if (bTransitioning || GetSlideCount() <= 1)
@@ -262,6 +283,7 @@ void UMuseumWidget::BeginTransitionTo(int32 NewSlideIndex)
     }
 }
 
+// Writes slide image, title, text, and credit into target widgets.
 void UMuseumWidget::ApplySlideToWidgets(int32 SlideIndex, UImage* ImageWidget, UTextBlock* BodyTextWidget, UTextBlock* TitleTextWidget, UTextBlock* PhotoCreditTextWidget) const
 {
     SetImageFromSlide(ImageWidget, SlideIndex);
@@ -274,6 +296,7 @@ void UMuseumWidget::ApplySlideToWidgets(int32 SlideIndex, UImage* ImageWidget, U
     ApplyTextStyle(PhotoCreditTextWidget);
 }
 
+// Applies derived settings to the relevant runtime objects.
 void UMuseumWidget::ApplyTextStyle(UTextBlock* TextWidget, float OverrideWrapAt) const
 {
     if (!TextWidget)
@@ -301,6 +324,7 @@ void UMuseumWidget::ApplyTextStyle(UTextBlock* TextWidget, float OverrideWrapAt)
     }
 }
 
+// Applies the slide image to the target image widget.
 void UMuseumWidget::SetImageFromSlide(UImage* ImageWidget, int32 SlideIndex) const
 {
     if (!ImageWidget)
@@ -319,6 +343,7 @@ void UMuseumWidget::SetImageFromSlide(UImage* ImageWidget, int32 SlideIndex) con
     }
 }
 
+// Advances the active slide fade and finalises completed transitions.
 void UMuseumWidget::UpdateTransition(float InDeltaTime)
 {
     FadeProgressSeconds += InDeltaTime;
@@ -419,6 +444,7 @@ void UMuseumWidget::UpdateTransition(float InDeltaTime)
     }
 }
 
+// Resolves paths, references, or settings used by this component.
 float UMuseumWidget::ResolveStabilizedWrapWidth() const
 {
     if (!bStabilizeAutoWrapDuringFade || MuseumTextWrapAt > 0.0f || !MuseumTxt_Current)
@@ -435,6 +461,7 @@ float UMuseumWidget::ResolveStabilizedWrapWidth() const
     return 0.0f;
 }
 
+// Applies optional slide text to the target text widget.
 void UMuseumWidget::SetOptionalText(UTextBlock* TextWidget, const TArray<FText>& TextArray, int32 SlideIndex)
 {
     if (!TextWidget)

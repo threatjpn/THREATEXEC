@@ -1,3 +1,10 @@
+// ============================================================================
+// FadeRefWidget.cpp
+// Implements the fade overlay widget and its timed fade transitions.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: FadeRefWidget.cpp
  * Summary: Implementation of the shared fade overlay widget used for screen transition effects.
@@ -9,6 +16,7 @@
 #include "Components/Widget.h"
 #include "Kismet/GameplayStatics.h"
 
+// Initialises widget state and binds required UI behaviour.
 void UFadeRefWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -26,6 +34,7 @@ void UFadeRefWidget::NativeConstruct()
     SetLoadingIconVisible(false);
 }
 
+// Updates time-dependent widget behaviour each frame.
 void UFadeRefWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
@@ -95,6 +104,7 @@ void UFadeRefWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
     }
 }
 
+// Runs the fade overlay toward visible opacity.
 void UFadeRefWidget::FadeIn()
 {
     // Public meaning: reveal scene from black
@@ -103,6 +113,7 @@ void UFadeRefWidget::FadeIn()
     StartFadeWithDelay(EFadeRefState::FadingOut, FadeInDelaySeconds);
 }
 
+// Runs the fade overlay toward hidden opacity.
 void UFadeRefWidget::FadeOut()
 {
     // Public meaning: cover scene to black
@@ -111,6 +122,7 @@ void UFadeRefWidget::FadeOut()
     StartFadeWithDelay(EFadeRefState::FadingIn, FadeOutDelaySeconds);
 }
 
+// Handles fade transition.
 void UFadeRefWidget::FadeTransition()
 {
     PendingLevelToLoad = NAME_None;
@@ -118,6 +130,7 @@ void UFadeRefWidget::FadeTransition()
     StartFadeWithDelay(EFadeRefState::TransitionIn, FadeOutDelaySeconds);
 }
 
+// Handles fade transition to level.
 void UFadeRefWidget::FadeTransitionToLevel(FName LevelName)
 {
     PendingLevelToLoad = LevelName;
@@ -125,6 +138,7 @@ void UFadeRefWidget::FadeTransitionToLevel(FName LevelName)
     StartFadeWithDelay(EFadeRefState::LevelSwitchIn, FadeOutDelaySeconds);
 }
 
+// Sets loading icon visibility during fade transitions.
 void UFadeRefWidget::SetLoadingIconVisible(bool bVisible)
 {
     bShowLoadingIcon = bVisible;
@@ -142,6 +156,7 @@ void UFadeRefWidget::SetLoadingIconVisible(bool bVisible)
     }
 }
 
+// Checks whether cancel fade.
 void UFadeRefWidget::CancelFade()
 {
     FadeState = EFadeRefState::Idle;
@@ -153,6 +168,7 @@ void UFadeRefWidget::CancelFade()
     ApplyFadeAlpha(0.0f);
 }
 
+// Checks whether is fade busy.
 bool UFadeRefWidget::IsFadeBusy() const
 {
     return FadeState != EFadeRefState::Idle
@@ -160,6 +176,7 @@ bool UFadeRefWidget::IsFadeBusy() const
         || DelayedFadeState != EFadeRefState::Idle;
 }
 
+// Handles start fade with delay.
 void UFadeRefWidget::StartFadeWithDelay(EFadeRefState NewState, float DelaySeconds)
 {
     DelayedFadeState = EFadeRefState::Idle;
@@ -177,6 +194,7 @@ void UFadeRefWidget::StartFadeWithDelay(EFadeRefState NewState, float DelaySecon
     StartFade(NewState);
 }
 
+// Handles start fade.
 void UFadeRefWidget::StartFade(EFadeRefState NewState)
 {
     FadeState = NewState;
@@ -192,6 +210,7 @@ void UFadeRefWidget::StartFade(EFadeRefState NewState)
     }
 }
 
+// Handles execute pending level travel.
 void UFadeRefWidget::ExecutePendingLevelTravel()
 {
     if (!PendingLevelToLoad.IsNone())
@@ -200,6 +219,7 @@ void UFadeRefWidget::ExecutePendingLevelTravel()
     }
 }
 
+// Applies derived settings to the relevant runtime objects.
 void UFadeRefWidget::ApplyFadeAlpha(float Alpha)
 {
     CurrentFadeAlpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
@@ -211,6 +231,7 @@ void UFadeRefWidget::ApplyFadeAlpha(float Alpha)
     }
 }
 
+// Completes the named operation and commits final state.
 void UFadeRefWidget::FinishFadeStep()
 {
     switch (FadeState)

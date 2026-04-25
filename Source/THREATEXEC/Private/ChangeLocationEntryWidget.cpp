@@ -1,3 +1,10 @@
+// ============================================================================
+// ChangeLocationEntryWidget.cpp
+// Implements one entry in the change-location menu.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: ChangeLocationEntryWidget.cpp
  * Summary: Implementation of the individual change-location entry widget behaviour.
@@ -10,6 +17,7 @@
 #include "Styling/SlateBrush.h"
 #include "Styling/SlateTypes.h"
 
+// Handles native on initialized.
 void UChangeLocationEntryWidget::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
@@ -26,24 +34,28 @@ void UChangeLocationEntryWidget::NativeOnInitialized()
     }
 }
 
+// Handles native pre construct.
 void UChangeLocationEntryWidget::NativePreConstruct()
 {
     Super::NativePreConstruct();
     RefreshVisuals();
 }
 
+// Initialises widget state and binds required UI behaviour.
 void UChangeLocationEntryWidget::NativeConstruct()
 {
     Super::NativeConstruct();
     RefreshVisuals();
 }
 
+// Synchronises internal state with the engine representation.
 void UChangeLocationEntryWidget::SynchronizeProperties()
 {
     Super::SynchronizeProperties();
     RefreshVisuals();
 }
 
+// Rebuilds cached output from the current source data.
 void UChangeLocationEntryWidget::RefreshVisuals()
 {
     if (!MainButton)
@@ -81,15 +93,18 @@ void UChangeLocationEntryWidget::RefreshVisuals()
     MainButton->SetStyle(Style);
 }
 
+// Handles an event from UI, input, or runtime state.
 void UChangeLocationEntryWidget::HandleHovered()
 {
     OnEntryHovered.Broadcast(VariantID);
 }
 
+// Handles an event from UI, input, or runtime state.
 void UChangeLocationEntryWidget::HandleUnhovered()
 {
 }
 
+// Handles an event from UI, input, or runtime state.
 void UChangeLocationEntryWidget::HandleClicked()
 {
     OnEntryClicked.Broadcast(VariantID);

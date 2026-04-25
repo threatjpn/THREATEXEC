@@ -32,10 +32,6 @@ ABezierSceneExporterActor::ABezierSceneExporterActor()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void ABezierSceneExporterActor::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-}
 
 FString ABezierSceneExporterActor::MakeAbs(const FString& FileName) const
 {

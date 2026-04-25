@@ -17,12 +17,14 @@
 #include "Components/Widget.h"
 #include "Engine/Texture2D.h"
 
+/** Performs one-time widget setup after construction. */
 void UPhotoLocationWidget::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
     BindEntries();
 }
 
+/** Binds entries and builds preview widgets when the menu becomes active. */
 void UPhotoLocationWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -51,6 +53,7 @@ void UPhotoLocationWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
     }
 }
 
+/** Finds location entry widgets and binds their hover/click callbacks. */
 void UPhotoLocationWidget::BindEntries()
 {
     CachedEntries.Empty();
@@ -105,6 +108,7 @@ void UPhotoLocationWidget::CollectEntriesRecursive(UWidget* RootWidget, TArray<U
     }
 }
 
+/** Builds the ordered texture list used by the preview stack. */
 void UPhotoLocationWidget::BuildPreviewTextureStack()
 {
     PreviewStackItems.Empty();
@@ -131,6 +135,7 @@ void UPhotoLocationWidget::BuildPreviewTextureStack()
     }
 }
 
+/** Creates or validates runtime image widgets for stacked previews. */
 void UPhotoLocationWidget::EnsureRuntimeStackImages()
 {
     if (!PreviewStackContainer || !WidgetTree)
@@ -155,6 +160,7 @@ void UPhotoLocationWidget::EnsureRuntimeStackImages()
     }
 }
 
+/** Creates or validates runtime text widgets for stacked descriptions. */
 void UPhotoLocationWidget::EnsureRuntimeStackTexts()
 {
     if (!PreviewTextStackContainer || !WidgetTree)
@@ -187,6 +193,7 @@ void UPhotoLocationWidget::EnsureRuntimeStackTexts()
     }
 }
 
+/** Updates the visible description text for the active preview item. */
 void UPhotoLocationWidget::RefreshActiveDescriptionWidget()
 {
     if (!PreviewTextStackContainer)
@@ -234,6 +241,7 @@ void UPhotoLocationWidget::SetImageTexture(UImage* ImageWidget, UTexture2D* Text
     }
 }
 
+/** Applies the configured typography and layout to preview text widgets. */
 void UPhotoLocationWidget::ApplyPreviewTextStyle(UTextBlock* TextWidget) const
 {
     if (!TextWidget || !bOverridePreviewTextStyle)
@@ -276,6 +284,7 @@ FWidgetTransform UPhotoLocationWidget::BuildTargetTransformForDepth(int32 DepthI
     return Transform;
 }
 
+/** Refreshes image and text layout targets for the current preview order. */
 void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
 {
     if (PreviewStackContainer)
@@ -374,6 +383,7 @@ void UPhotoLocationWidget::RefreshPreviewStackVisuals(bool bAnimateFrontSwap)
     }
 }
 
+/** Interpolates preview widgets toward their target transforms. */
 void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
 {
     if (StackShuffleDuration <= KINDA_SMALL_NUMBER)
@@ -424,6 +434,7 @@ void UPhotoLocationWidget::AnimateStackTowardTargets(float InDeltaTime)
     }
 }
 
+/** Moves a selected texture to the front of the preview stack. */
 void UPhotoLocationWidget::BringTextureToFront(UTexture2D* Texture, bool bAnimateFrontSwap)
 {
     if (!Texture || PreviewStackItems.Num() == 0)
@@ -457,16 +468,19 @@ void UPhotoLocationWidget::BringTextureToFront(UTexture2D* Texture, bool bAnimat
     RefreshPreviewStackVisuals(bAnimateFrontSwap);
 }
 
+/** Updates the preview stack when a location entry is hovered. */
 void UPhotoLocationWidget::HandleEntryHovered(UTexture2D* Texture)
 {
     BringTextureToFront(Texture, true);
 }
 
+/** Updates the preview stack when a location entry is clicked. */
 void UPhotoLocationWidget::HandleEntryClicked(UTexture2D* Texture)
 {
     BringTextureToFront(Texture, true);
 }
 
+/** Finalises preview state after the fade animation completes. */
 void UPhotoLocationWidget::HandlePreviewFadeFinished()
 {
     RefreshPreviewStackVisuals(false);

@@ -36,12 +36,12 @@ class THREATEXEC_API AChangeLocationManager : public AActor
 public:
     AChangeLocationManager();
 
+    /** Rebuilds the internal cache of variant roots and their attached actor hierarchies. */
     UFUNCTION(BlueprintCallable, Category = "Change Location")
-        /** Rebuilds the internal cache of variant roots and their attached actor hierarchies. */
 void RefreshVariantCache();
 
+    /** Activates the requested variant and deactivates all other cached variants. */
     UFUNCTION(BlueprintCallable, Category = "Change Location")
-        /** Activates the requested variant and deactivates all other cached variants. */
 void SwitchToVariant(FName VariantID);
 
     UFUNCTION(BlueprintCallable, Category = "Change Location")

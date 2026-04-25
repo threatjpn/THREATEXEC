@@ -465,6 +465,7 @@ bool FBezier_UI_CurveSet_IO::RunTest(const FString&)
 	SetActor->UI_CycleGridSizeForAll();
 	TestTrue(TEXT("Cycle grid size"), SetActor->GridSizeCycleIndex == 1);
 
+	SetActor->UI_ClearSpawned();
 	SetActor->Destroy();
 	return true;
 }
@@ -517,6 +518,7 @@ bool FBezier_UI_CurveSet_FileMenuOps::RunTest(const FString&)
 	TestTrue(TEXT("Delete by filename"), SetActor->UI_DeleteCurveSetJsonByFileName(SavedName));
 	TestTrue(TEXT("Deleted file removed"), !FPaths::FileExists(OutDir / SavedName));
 
+	SetActor->UI_ClearSpawned();
 	SetActor->Destroy();
 	return true;
 }

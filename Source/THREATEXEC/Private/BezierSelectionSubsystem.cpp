@@ -13,10 +13,12 @@
 #include "BezierCurve2DActor.h"
 #include "BezierCurve3DActor.h"
 
+// Sets default components, ticking, collision, and editable values.
 UBezierSelectionSubsystem::UBezierSelectionSubsystem()
 {
 }
 
+// Checks whether the actor can be selected by this subsystem.
 bool UBezierSelectionSubsystem::IsAllowedActor(AActor* InActor) const
 {
 	if (!InActor) return true;
@@ -25,6 +27,7 @@ bool UBezierSelectionSubsystem::IsAllowedActor(AActor* InActor) const
 	return InActor->IsA<ABezierCurve2DActor>() || InActor->IsA<ABezierCurve3DActor>();
 }
 
+// Updates the currently focused Bezier actor and broadcasts the change.
 void UBezierSelectionSubsystem::SetFocusedActor(AActor* InActor)
 {
 	if (!IsAllowedActor(InActor))
@@ -42,16 +45,19 @@ void UBezierSelectionSubsystem::SetFocusedActor(AActor* InActor)
 	OnFocusedBezierActorChanged.Broadcast(InActor);
 }
 
+// Clears the current focused actor selection.
 void UBezierSelectionSubsystem::ClearFocusedActor()
 {
 	SetFocusedActor(nullptr);
 }
 
+// Returns the currently focused actor, if one is still valid.
 AActor* UBezierSelectionSubsystem::GetFocusedActor() const
 {
 	return FocusedActor.Get();
 }
 
+// Reports whether a valid focused actor exists.
 bool UBezierSelectionSubsystem::HasFocusedActor() const
 {
 	return FocusedActor.IsValid();

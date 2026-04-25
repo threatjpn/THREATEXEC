@@ -1,5 +1,10 @@
 #pragma once
 
+/**
+ * @file BezierEditPlayerController.h
+ * @brief Player controller for runtime Bézier point selection, dragging, snapping, and undo/redo input.
+ */
+
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "BezierEditPlayerController.generated.h"
@@ -8,6 +13,7 @@ struct FBezierHistorySnapshot;
 class UBezierEditSubsystem;
 
 UCLASS()
+/** Handles viewport interaction for selecting and dragging Bézier control points. */
 class THREATEXEC_API ABezierEditPlayerController : public APlayerController
 {
 	GENERATED_BODY()

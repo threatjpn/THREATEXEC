@@ -30,6 +30,7 @@ void UPhotoRenderControllerComponent::BeginPlay()
 	ResetAccumulation();
 }
 
+/** Collects long-exposure samples while capture is active. */
 void UPhotoRenderControllerComponent::TickComponent(
 	float DeltaTime,
 	ELevelTick TickType,
@@ -97,6 +98,7 @@ void UPhotoRenderControllerComponent::ResetAccumulation()
 	AccumulatedPixels.Reset();
 }
 
+/** Reads pixel data from the configured render target. */
 bool UPhotoRenderControllerComponent::CaptureRenderTargetPixels(
 	TArray<FColor>& OutPixels,
 	int32& OutWidth,
@@ -283,6 +285,7 @@ bool UPhotoRenderControllerComponent::BuildTextureFromAccumulation(UTexture2D*& 
 	return BuildTextureFromPixels(FinalPixels, Width, Height, OutTexture);
 }
 
+/** Writes captured pixel data to a PNG file. */
 bool UPhotoRenderControllerComponent::SavePixelsToPng(
 	const TArray<FColor>& Pixels,
 	int32 Width,
@@ -329,6 +332,7 @@ bool UPhotoRenderControllerComponent::SavePixelsToPng(
 	return true;
 }
 
+/** Creates a unique output path for a new photo capture. */
 FString UPhotoRenderControllerComponent::BuildTimestampedOutputPath() const
 {
 	const FString SafePrefix = FilePrefix.IsEmpty() ? TEXT("TE_Photo") : FilePrefix;
@@ -347,6 +351,7 @@ void UPhotoRenderControllerComponent::LogPhotoMessage(const FString& Message) co
 	UE_LOG(LogTemp, Log, TEXT("%s"), *Message);
 }
 
+/** Captures and saves a single high-quality render target image. */
 bool UPhotoRenderControllerComponent::RenderHighQualityPhoto()
 {
 	TArray<FColor> Pixels;
@@ -376,6 +381,7 @@ bool UPhotoRenderControllerComponent::RenderHighQualityPhoto()
 	return true;
 }
 
+/** Begins a multi-frame long-exposure capture. */
 void UPhotoRenderControllerComponent::StartLongExposure()
 {
 	if (!ValidateCaptureSetup())
@@ -390,6 +396,7 @@ void UPhotoRenderControllerComponent::StartLongExposure()
 	LogPhotoMessage(TEXT("PhotoRenderController: long exposure started."));
 }
 
+/** Stops exposure capture and saves the accumulated image. */
 bool UPhotoRenderControllerComponent::StopLongExposureAndSave()
 {
 	if (!bLongExposureActive && AccumulatedFrameCount <= 0)
@@ -437,12 +444,14 @@ bool UPhotoRenderControllerComponent::StopLongExposureAndSave()
 	return true;
 }
 
+/** Cancels exposure capture without saving the accumulated result. */
 void UPhotoRenderControllerComponent::CancelLongExposure()
 {
 	ResetAccumulation();
 	LogPhotoMessage(TEXT("PhotoRenderController: long exposure cancelled."));
 }
 
+/** Saves the most recently generated photo to the gallery path. */
 bool UPhotoRenderControllerComponent::SaveLastPhotoToGallery()
 {
 	if (!LastCapturedTexture)
@@ -455,6 +464,7 @@ bool UPhotoRenderControllerComponent::SaveLastPhotoToGallery()
 	return BP_SaveLastPhotoToPluginGallery(LastCapturedTexture, SuggestedName);
 }
 
+/** Requests the external photo gallery to open. */
 void UPhotoRenderControllerComponent::OpenPluginGallery()
 {
 	BP_OpenPluginGallery();

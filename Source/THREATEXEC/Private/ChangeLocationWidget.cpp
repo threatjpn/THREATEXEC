@@ -1,3 +1,10 @@
+// ============================================================================
+// ChangeLocationWidget.cpp
+// Builds and manages the change-location menu entries.
+//
+// Comments are documentation-only and do not alter behaviour.
+// ============================================================================
+
 /**
  * File: ChangeLocationWidget.cpp
  * Summary: Implementation of the change-location selection widget and its child-entry rebinding logic.
@@ -12,6 +19,7 @@
 
 /** Performs one-time widget initialisation. */
 
+// Handles native on initialized.
 void UChangeLocationWidget::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
@@ -20,6 +28,7 @@ void UChangeLocationWidget::NativeOnInitialized()
 
 /** Refreshes entry bindings when the widget is constructed. */
 
+// Initialises widget state and binds required UI behaviour.
 void UChangeLocationWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -28,6 +37,7 @@ void UChangeLocationWidget::NativeConstruct()
 
 /** Rebuilds widget entry bindings after construction or dynamic UI changes. */
 
+// Handles rebind location entries.
 void UChangeLocationWidget::RebindLocationEntries()
 {
     CachedEntries.Empty();
@@ -60,6 +70,7 @@ void UChangeLocationWidget::RebindLocationEntries()
     UE_LOG(LogTemp, Log, TEXT("ChangeLocationWidget: Bound %d ChangeLocationEntryWidget instance(s) from CL_LIST"), CachedEntries.Num());
 }
 
+// Handles collect entries recursive.
 void UChangeLocationWidget::CollectEntriesRecursive(UWidget* RootWidget, TArray<UChangeLocationEntryWidget*>& OutEntries)
 {
     if (!RootWidget)
@@ -83,11 +94,13 @@ void UChangeLocationWidget::CollectEntriesRecursive(UWidget* RootWidget, TArray<
     }
 }
 
+// Handles an event from UI, input, or runtime state.
 void UChangeLocationWidget::HandleEntryHovered(FName VariantID)
 {
     UE_LOG(LogTemp, Verbose, TEXT("ChangeLocationWidget: Hovered variant '%s'"), *VariantID.ToString());
 }
 
+// Handles a clicked location entry and forwards the selection.
 void UChangeLocationWidget::HandleEntryClicked(FName VariantID)
 {
     if (VariantID == NAME_None)

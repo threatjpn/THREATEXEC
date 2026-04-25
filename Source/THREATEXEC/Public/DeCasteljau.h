@@ -1,33 +1,10 @@
-#pragma once
-
 /**
- * @file DeCasteljau.h
- * @brief Header-only Bézier evaluation and sampling helpers.
- *
- * The utilities in this file provide deterministic de Casteljau evaluation for
- * scalar, 2D, and 3D control-point types, along with proof-level generation and
- * uniform/arc-length style sampling support used by the runtime toolkit.
+ * File: DeCasteljau.h
+ * Summary: Header-only Bézier evaluation, proof-level and sampling helpers.
+ * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
  */
-// ============================================================================
-// DeCasteljau.h
-//
-// Header-only, allocation-free Bezier evaluation utilities for:
-//   - double       (1D scalar)
-//   - FVector2D    (2D)
-//   - FVector      (3D)
-//
-// Features:
-//   Safe Eval(t) with degenerate guards (0,1 control points)
-//   Fully deterministic for identical inputs
-//   No dynamic allocations inside hot loops
-//   NaN protection where needed
-//   De Casteljau levels builder for proof visualisation
-//   Uniform arc-length sampling (2D/3D)
-//   Suitable for real-time use in Unreal Engine editor
-//
-// Everything sits inside namespace TEBezier.
-//
-// ============================================================================
+
+#pragma once
 
 #include "CoreMinimal.h"
 

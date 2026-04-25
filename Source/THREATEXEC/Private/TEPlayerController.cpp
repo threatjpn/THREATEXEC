@@ -12,6 +12,7 @@
 #include "GameFramework/Pawn.h"
 #include "InputCoreTypes.h"
 
+/** Initialises controller defaults for cursor visibility and click interaction. */
 ATEPlayerController::ATEPlayerController()
 {
 	bShowMouseCursor = true;
@@ -21,6 +22,7 @@ ATEPlayerController::ATEPlayerController()
 	DefaultMouseCursor = EMouseCursor::Default;
 }
 
+/** Registers keyboard shortcuts used by global Bézier undo and redo. */
 void ATEPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -44,6 +46,7 @@ void ATEPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::Y, IE_Pressed, this, &ATEPlayerController::Input_BezierRedo);
 }
 
+/** Runs undo only when the Ctrl+Z shortcut is active. */
 void ATEPlayerController::Input_BezierUndo()
 {
 	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
@@ -57,6 +60,7 @@ void ATEPlayerController::Input_BezierUndo()
 	BezierUndo();
 }
 
+/** Runs redo only when the Ctrl+Y shortcut is active. */
 void ATEPlayerController::Input_BezierRedo()
 {
 	const bool bCtrlDown = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
@@ -69,6 +73,7 @@ void ATEPlayerController::Input_BezierRedo()
 	BezierRedo();
 }
 
+/** Delegates undo to the world Bézier edit subsystem. */
 bool ATEPlayerController::BezierUndo()
 {
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
@@ -79,6 +84,7 @@ bool ATEPlayerController::BezierUndo()
 	return false;
 }
 
+/** Delegates redo to the world Bézier edit subsystem. */
 bool ATEPlayerController::BezierRedo()
 {
 	if (UBezierEditSubsystem* Sub = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
@@ -89,6 +95,7 @@ bool ATEPlayerController::BezierRedo()
 	return false;
 }
 
+/** Switches input to UI focus while preserving cursor behaviour. */
 void ATEPlayerController::SetUIOnlyInput(UUserWidget* FocusWidget, bool bShowCursor)
 {
 	FInputModeUIOnly InputMode;
@@ -102,6 +109,7 @@ void ATEPlayerController::SetUIOnlyInput(UUserWidget* FocusWidget, bool bShowCur
 	bShowMouseCursor = bShowCursor;
 }
 
+/** Switches input back to game-only control. */
 void ATEPlayerController::SetGameOnlyInput(bool bShowCursor)
 {
 	FInputModeGameOnly InputMode;
@@ -110,6 +118,7 @@ void ATEPlayerController::SetGameOnlyInput(bool bShowCursor)
 	bShowMouseCursor = bShowCursor;
 }
 
+/** Enables combined gameplay and widget interaction. */
 void ATEPlayerController::SetGameAndUIInput(UUserWidget* FocusWidget, bool bShowCursor)
 {
 	FInputModeGameAndUI InputMode;
@@ -123,12 +132,14 @@ void ATEPlayerController::SetGameAndUIInput(UUserWidget* FocusWidget, bool bShow
 	bShowMouseCursor = bShowCursor;
 }
 
+/** Stores the current pawn and camera target before photo mode changes them. */
 void ATEPlayerController::CachePrePhotoModeState()
 {
 	OriginalPawn = GetPawn();
 	PreviousViewTarget = GetViewTarget();
 }
 
+/** Blends the camera to a valid cinematic target. */
 void ATEPlayerController::SetCinematicViewTarget(AActor* NewViewTarget, float BlendTime)
 {
 	if (!IsValid(NewViewTarget))
@@ -140,6 +151,7 @@ void ATEPlayerController::SetCinematicViewTarget(AActor* NewViewTarget, float Bl
 	SetViewTargetWithBlend(NewViewTarget, FMath::Max(0.0f, BlendTime));
 }
 
+/** Activates photo mode and optionally possesses the supplied photo pawn. */
 bool ATEPlayerController::EnterPhotoMode(APawn* InPhotoPawn, float BlendTime, bool bPossessPhotoPawn)
 {
 	if (!IsValid(InPhotoPawn))
@@ -175,6 +187,7 @@ bool ATEPlayerController::EnterPhotoMode(APawn* InPhotoPawn, float BlendTime, bo
 	return true;
 }
 
+/** Restores the pawn, camera target, and input state used before photo mode. */
 bool ATEPlayerController::ExitPhotoMode(float BlendTime)
 {
 	if (!bPhotoModeActive)
