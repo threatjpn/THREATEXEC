@@ -58,6 +58,17 @@ namespace
 		return LineBatcher;
 	}
 
+	static void TE_ConfigureRuntimeLineBatcher3D(ULineBatchComponent* LineBatcher, bool bForceOnTop, int32 InSortPriority)
+	{
+		if (!LineBatcher)
+		{
+			return;
+		}
+
+		LineBatcher->SetDepthPriorityGroup(bForceOnTop ? SDPG_Foreground : SDPG_World);
+		LineBatcher->TranslucencySortPriority = bForceOnTop ? InSortPriority : 0;
+	}
+
 	static void TE_DrawRuntimeLine3D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!World)
@@ -226,12 +237,11 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
-#if !ENABLE_DRAW_DEBUG
 	if (ULineBatchComponent* RuntimeBatcher = TE_GetRuntimeLineBatcher3D(this, GetWorld()))
 	{
+		TE_ConfigureRuntimeLineBatcher3D(RuntimeBatcher, bForceVisualsOnTop, VisualTranslucencySortPriority);
 		RuntimeBatcher->Flush();
 	}
-#endif
 
 	const FTransform Xf = GetActorTransform();
 	const float DebugPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f;
@@ -270,7 +280,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(Control[i] * Scale),
 				Xf.TransformPosition(Control[i + 1] * Scale),
-					DebugLineColor.CopyWithNewOpacity(FinalDebugAlpha),
+				DebugLineColor.CopyWithNewOpacity(FMath::Clamp(DebugLineColor.A * FinalDebugAlpha, 0.0f, 1.0f)),
 				DebugDepthPriority,
 				FinalDebugThickness);
 		}
@@ -285,12 +295,13 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 			const FLinearColor LevelColor = (L == Levels.Num() - 1) ? DebugResultColor : DebugLevelColor;
 			for (int32 i = 0; i + 1 < Levels[L].Num(); ++i)
 			{
+				const float LevelAlpha = FMath::Clamp(LevelColor.A * FinalDebugAlpha, 0.0f, 1.0f);
 				TE_DrawRuntimeLine3D(
 					this,
 					GetWorld(),
 					Xf.TransformPosition(Levels[L][i] * Scale),
 					Xf.TransformPosition(Levels[L][i + 1] * Scale),
-					LevelColor.CopyWithNewOpacity(FinalDebugAlpha),
+					LevelColor.CopyWithNewOpacity(LevelAlpha),
 					DebugDepthPriority,
 					FinalDebugThickness);
 			}
@@ -309,7 +320,7 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 				GetWorld(),
 				Xf.TransformPosition(Sample * Scale),
 				6.0f,
-				DebugSamplePointColor.CopyWithNewOpacity(FinalDebugAlpha),
+				DebugSamplePointColor.CopyWithNewOpacity(FMath::Clamp(DebugSamplePointColor.A * FinalDebugAlpha, 0.0f, 1.0f)),
 				DebugDepthPriority);
 		}
 	}
@@ -391,7 +402,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		// Important: do NOT block mouse traces unless editing and CP are visible
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? FMath::Max(VisualTranslucencySortPriority, 10000) : 0;
+		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
 	}
 
 	if (StripMeshComponent)
@@ -400,7 +411,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		StripMeshComponent->SetHiddenInGame(!bShowProc);
 		StripMeshComponent->SetVisibility(bShowProc, true);
 		StripMeshComponent->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		StripMeshComponent->TranslucencySortPriority = bForceVisualsOnTop ? FMath::Max(VisualTranslucencySortPriority, 10000) : 0;
+		StripMeshComponent->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
 	}
 
 	if (CubeStripISM)
@@ -409,7 +420,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		CubeStripISM->SetHiddenInGame(!bShowCube);
 		CubeStripISM->SetVisibility(bShowCube, true);
 		CubeStripISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		CubeStripISM->TranslucencySortPriority = bForceVisualsOnTop ? FMath::Max(VisualTranslucencySortPriority, 10000) : 0;
+		CubeStripISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
 	}
 }
 

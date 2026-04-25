@@ -82,6 +82,8 @@ void ABezierDebugActor::SyncFromWorldState()
 		bForcePlanar = A3->bForcePlanar;
 		ForcePlanarAxis = A3->ForcePlanarAxis;
 		bShowControlPolygon = A3->bShowControlPolygon;
+		bShowSamplePoints = A3->UI_GetShowSamplePoints();
+		bShowDeCasteljauLevels = A3->UI_GetShowDeCasteljauLevels();
 		DebugLineColor = A3->DebugLineColor;
 		DebugLevelColor = A3->DebugLevelColor;
 		DebugResultColor = A3->DebugResultColor;
@@ -134,6 +136,8 @@ void ABezierDebugActor::SyncFromWorldState()
 		bForcePlanar = A2->bForcePlanar;
 		ForcePlanarAxis = bForcePlanar ? EBezierPlanarAxis::XY : EBezierPlanarAxis::None;
 		bShowControlPolygon = A2->bShowControlPolygon;
+		bShowSamplePoints = A2->UI_GetShowSamplePoints();
+		bShowDeCasteljauLevels = A2->UI_GetShowDeCasteljauLevels();
 		DebugLineColor = A2->DebugLineColor;
 		DebugLevelColor = A2->DebugLevelColor;
 		DebugResultColor = A2->DebugResultColor;
@@ -215,6 +219,8 @@ void ABezierDebugActor::ApplyCurveSetDebug(ABezierCurveSetActor* CurveSet) const
 	CurveSet->UI_SetShowGridXZForAll(bShowGridXZ);
 	CurveSet->UI_SetShowGridYZForAll(bShowGridYZ);
 	CurveSet->UI_SetLockToLocalXYForAll(bLockToLocalXY);
+	CurveSet->UI_SetShowSamplePointsForAll(bShowSamplePoints);
+	CurveSet->UI_SetShowDeCasteljauLevelsForAll(bShowDeCasteljauLevels);
 	if (bForcePlanar)
 	{
 		const EBezierPlanarAxis AxisToApply = (ForcePlanarAxis == EBezierPlanarAxis::None) ? EBezierPlanarAxis::XY : ForcePlanarAxis;
@@ -300,6 +306,8 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 			Curve3D->UI_SetForcePlanarAxis(EBezierPlanarAxis::None);
 		}
 		Curve3D->bShowControlPolygon = bShowControlPolygon;
+		Curve3D->UI_SetShowSamplePoints(bShowSamplePoints);
+		Curve3D->UI_SetShowDeCasteljauLevels(bShowDeCasteljauLevels);
 		Curve3D->DebugLineColor = DebugLineColor;
 		Curve3D->DebugLevelColor = DebugLevelColor;
 		Curve3D->DebugResultColor = DebugResultColor;
@@ -380,6 +388,8 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 		Curve2D->UI_SetLockToLocalXY(bLockToLocalXY);
 		Curve2D->UI_SetForcePlanar(bForcePlanar);
 		Curve2D->bShowControlPolygon = bShowControlPolygon;
+		Curve2D->UI_SetShowSamplePoints(bShowSamplePoints);
+		Curve2D->UI_SetShowDeCasteljauLevels(bShowDeCasteljauLevels);
 		Curve2D->DebugLineColor = DebugLineColor;
 		Curve2D->DebugLevelColor = DebugLevelColor;
 		Curve2D->DebugResultColor = DebugResultColor;
