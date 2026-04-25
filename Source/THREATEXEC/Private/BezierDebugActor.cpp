@@ -9,6 +9,29 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 
+namespace
+{
+static void TE_ClampAlphaPair(float& InOutA, float& InOutB)
+{
+	InOutA = FMath::Clamp(InOutA, 0.0f, 1.0f);
+	InOutB = FMath::Clamp(InOutB, 0.0f, 1.0f);
+	if (InOutA > InOutB)
+	{
+		Swap(InOutA, InOutB);
+	}
+}
+
+static void TE_ClampPositivePair(float& InOutA, float& InOutB, const float MinValue)
+{
+	InOutA = FMath::Max(MinValue, InOutA);
+	InOutB = FMath::Max(MinValue, InOutB);
+	if (InOutA > InOutB)
+	{
+		Swap(InOutA, InOutB);
+	}
+}
+}
+
 ABezierDebugActor::ABezierDebugActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -27,6 +50,25 @@ void ABezierDebugActor::BeginPlay()
 
 void ABezierDebugActor::ApplyDebugSettings()
 {
+	UndoMaxSteps = FMath::Max(1, UndoMaxSteps);
+	VisualTranslucencySortPriority = FMath::Max(0, VisualTranslucencySortPriority);
+	DebugPulseSpeed = FMath::Max(0.01f, DebugPulseSpeed);
+	ControlPointPulseSpeed = FMath::Max(0.01f, ControlPointPulseSpeed);
+	StripPulseSpeed = FMath::Max(0.01f, StripPulseSpeed);
+	GridPulseSpeed = FMath::Max(0.01f, GridPulseSpeed);
+	VisualFadeSpeed = FMath::Max(0.01f, VisualFadeSpeed);
+	GridThicknessScale = FMath::Max(0.01f, GridThicknessScale);
+	DebugThicknessScale = FMath::Max(0.01f, DebugThicknessScale);
+	TE_ClampAlphaPair(DebugPulseMinAlpha, DebugPulseMaxAlpha);
+	TE_ClampAlphaPair(ControlPointPulseMinAlpha, ControlPointPulseMaxAlpha);
+	TE_ClampAlphaPair(StripPulseMinAlpha, StripPulseMaxAlpha);
+	TE_ClampAlphaPair(GridPulseMinAlpha, GridPulseMaxAlpha);
+	TE_ClampPositivePair(DebugPulseMinThickness, DebugPulseMaxThickness, 0.01f);
+	TE_ClampPositivePair(ControlPointPulseMinScale, ControlPointPulseMaxScale, 0.001f);
+	TE_ClampPositivePair(StripPulseMinWidth, StripPulseMaxWidth, 0.001f);
+	TE_ClampPositivePair(StripPulseMinThickness, StripPulseMaxThickness, 0.001f);
+	TE_ClampPositivePair(GridPulseMinThickness, GridPulseMaxThickness, 0.01f);
+
 	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
 		Subsystem->SetMaxUndoSteps(UndoMaxSteps);
@@ -180,6 +222,9 @@ void ABezierDebugActor::SyncFromWorldState()
 	{
 		UndoMaxSteps = Subsystem->GetMaxUndoSteps();
 	}
+
+	UndoMaxSteps = FMath::Max(1, UndoMaxSteps);
+	VisualTranslucencySortPriority = FMath::Max(0, VisualTranslucencySortPriority);
 }
 
 void ABezierDebugActor::ApplyControllerDebug() const

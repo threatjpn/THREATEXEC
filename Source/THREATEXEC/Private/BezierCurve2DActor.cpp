@@ -337,7 +337,11 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 			FMath::Clamp(GridColor.B, 0.0f, 1.0f),
 			FinalAlpha
 		);
-		const FVector Origin(GridOriginWorld.X, GridOriginWorld.Y, GridOriginWorld.Z);
+		const FVector WorldGridOrigin(GridOriginWorld.X, GridOriginWorld.Y, GridOriginWorld.Z);
+		const auto ToWorld = [&Xf, &WorldGridOrigin](const FVector& LocalPoint)
+		{
+			return Xf.TransformVector(LocalPoint) + WorldGridOrigin;
+		};
 		if (bShowGridXY)
 		{
 			for (int32 i = -HalfCells; i <= HalfCells; ++i)
@@ -345,11 +349,11 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 				const float Offset = i * G;
 				const FVector A(-Extent, Offset, 0.0f);
 				const FVector B(Extent, Offset, 0.0f);
-				TE_DrawRuntimeLine2D(this, GetWorld(), A + Origin, B + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine2D(this, GetWorld(), ToWorld(A), ToWorld(B), GridLineColor, DebugDepthPriority, FinalGridThickness);
 
 				const FVector C(Offset, -Extent, 0.0f);
 				const FVector D(Offset, Extent, 0.0f);
-				TE_DrawRuntimeLine2D(this, GetWorld(), C + Origin, D + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine2D(this, GetWorld(), ToWorld(C), ToWorld(D), GridLineColor, DebugDepthPriority, FinalGridThickness);
 			}
 		}
 	}

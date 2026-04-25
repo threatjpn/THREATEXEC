@@ -352,7 +352,11 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 			FMath::Clamp(GridColor.B, 0.0f, 1.0f),
 			FinalAlpha
 		);
-		const FVector Origin = GridOriginWorld;
+		const FVector WorldGridOrigin = GridOriginWorld;
+		const auto ToWorld = [&Xf, &WorldGridOrigin](const FVector& LocalPoint)
+		{
+			return Xf.TransformVector(LocalPoint) + WorldGridOrigin;
+		};
 		for (int32 i = -HalfCells; i <= HalfCells; ++i)
 		{
 			const float Offset = i * G;
@@ -361,33 +365,33 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 			{
 				const FVector A(-Extent, Offset, 0.0f);
 				const FVector B(Extent, Offset, 0.0f);
-				TE_DrawRuntimeLine3D(this, GetWorld(), A + Origin, B + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(A), ToWorld(B), GridLineColor, DebugDepthPriority, FinalGridThickness);
 
 				const FVector C(Offset, -Extent, 0.0f);
 				const FVector D(Offset, Extent, 0.0f);
-				TE_DrawRuntimeLine3D(this, GetWorld(), C + Origin, D + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(C), ToWorld(D), GridLineColor, DebugDepthPriority, FinalGridThickness);
 			}
 
 			if (bShowGridXZ)
 			{
 				const FVector E(-Extent, 0.0f, Offset);
 				const FVector F(Extent, 0.0f, Offset);
-				TE_DrawRuntimeLine3D(this, GetWorld(), E + Origin, F + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(E), ToWorld(F), GridLineColor, DebugDepthPriority, FinalGridThickness);
 
 				const FVector G0(Offset, 0.0f, -Extent);
 				const FVector H(Offset, 0.0f, Extent);
-				TE_DrawRuntimeLine3D(this, GetWorld(), G0 + Origin, H + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(G0), ToWorld(H), GridLineColor, DebugDepthPriority, FinalGridThickness);
 			}
 
 			if (bShowGridYZ)
 			{
 				const FVector I(0.0f, -Extent, Offset);
 				const FVector J(0.0f, Extent, Offset);
-				TE_DrawRuntimeLine3D(this, GetWorld(), I + Origin, J + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(I), ToWorld(J), GridLineColor, DebugDepthPriority, FinalGridThickness);
 
 				const FVector K(0.0f, Offset, -Extent);
 				const FVector L(0.0f, Offset, Extent);
-				TE_DrawRuntimeLine3D(this, GetWorld(), K + Origin, L + Origin, GridLineColor, DebugDepthPriority, FinalGridThickness);
+				TE_DrawRuntimeLine3D(this, GetWorld(), ToWorld(K), ToWorld(L), GridLineColor, DebugDepthPriority, FinalGridThickness);
 			}
 		}
 	}
