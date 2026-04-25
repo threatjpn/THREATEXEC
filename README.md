@@ -42,7 +42,8 @@ Add .cpp & .h to the following:
 1. .cpp files inside a Private folder
 2. .h files inside a Public folder
 3. Test files inside Private/Tests
-4. Regenerate project files from the Visual Studio left context menu (clean & build "YOURGAME").
+4. Replace all instances of “THREATEXEC_API” and “THREATEXEC” in target build files with your projects name e.g. “YOURGAME_API” and “YOURGAME.Target.cs” / “YOURGAMEEditor.Target.cs”
+5. Regenerate project files by right clicking on the ".uproject" file.
 
 ### 4) Build and open editor
 
