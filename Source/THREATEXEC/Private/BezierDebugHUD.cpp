@@ -6,7 +6,6 @@
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "GameFramework/PlayerController.h"
-#include "EngineUtils.h"
 #include "InputCoreTypes.h"
 
 ABezierDebugHUD::ABezierDebugHUD()
@@ -35,8 +34,6 @@ void ABezierDebugHUD::DrawHUD()
 		return;
 	}
 
-	Debug->SyncFromWorldState();
-
 	float Y = 20.0f;
 	DrawLineText(Y, TEXT("Bezier Debug HUD (F7 to toggle overlay)"));
 	DrawLineText(Y, FString::Printf(TEXT("E: EditMode [%s]"), Debug->bEnableEditMode ? TEXT("ON") : TEXT("OFF")));
@@ -45,8 +42,8 @@ void ABezierDebugHUD::DrawHUD()
 	DrawLineText(Y, FString::Printf(TEXT("C: Control Points [%s]"), Debug->bShowControlPoints ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("S: Strip [%s]"), Debug->bShowStrip ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("O: Control Polygon / Debug Lines [%s]"), Debug->bShowControlPolygon ? TEXT("ON") : TEXT("OFF")));
-	DrawLineText(Y, FString::Printf(TEXT("M: Sample Points [%s]"), Debug->bShowControlPolygon ? TEXT("Driven per-curve") : TEXT("Driven per-curve")));
-	DrawLineText(Y, FString::Printf(TEXT("J: De Casteljau Levels [%s]"), Debug->bShowControlPolygon ? TEXT("Driven per-curve") : TEXT("Driven per-curve")));
+	DrawLineText(Y, FString::Printf(TEXT("M: Sample Points [%s]"), Debug->bShowSamplePoints ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("J: De Casteljau Levels [%s]"), Debug->bShowDeCasteljauLevels ? TEXT("ON") : TEXT("OFF")));
 	const bool bGridVisible = Debug->bShowGrid || Debug->bSnapToGrid;
 	DrawLineText(Y, FString::Printf(TEXT("G: Show Grid [%s]"), bGridVisible ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("N: Snap To Grid [%s]"), Debug->bSnapToGrid ? TEXT("ON") : TEXT("OFF")));
@@ -295,17 +292,7 @@ void ABezierDebugHUD::ToggleShowSamplePoints()
 {
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
-		if (UWorld* World = GetWorld())
-		{
-			for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
-			{
-				It->UI_SetShowSamplePoints(!It->UI_GetShowSamplePoints());
-			}
-			for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
-			{
-				It->UI_SetShowSamplePoints(!It->UI_GetShowSamplePoints());
-			}
-		}
+		Debug->bShowSamplePoints = !Debug->bShowSamplePoints;
 		ApplyAndRefresh();
 	}
 }
@@ -314,17 +301,7 @@ void ABezierDebugHUD::ToggleShowDeCasteljauLevels()
 {
 	if (ABezierDebugActor* Debug = ResolveDebugActor())
 	{
-		if (UWorld* World = GetWorld())
-		{
-			for (TActorIterator<ABezierCurve3DActor> It(World); It; ++It)
-			{
-				It->UI_SetShowDeCasteljauLevels(!It->UI_GetShowDeCasteljauLevels());
-			}
-			for (TActorIterator<ABezierCurve2DActor> It(World); It; ++It)
-			{
-				It->UI_SetShowDeCasteljauLevels(!It->UI_GetShowDeCasteljauLevels());
-			}
-		}
+		Debug->bShowDeCasteljauLevels = !Debug->bShowDeCasteljauLevels;
 		ApplyAndRefresh();
 	}
 }

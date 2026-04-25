@@ -895,7 +895,6 @@ void ABezierCurveSetActor::UI_RegisterSpawned(AActor* Actor)
 
 		for (TActorIterator<ABezierDebugActor> It(World); It; ++It)
 		{
-			It->SyncFromWorldState();
 			It->ApplyDebugToCurve(Actor);
 			break;
 		}
