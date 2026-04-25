@@ -5,6 +5,7 @@
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
+#include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 
@@ -27,7 +28,7 @@ void ABezierDebugHUD::DrawHUD()
 		return;
 	}
 
-	ABezierDebugActor* Debug = ResolveDebugActor();
+	ABezierDebugActor* Debug = ResolveAndSyncDebugActor();
 	if (!Debug)
 	{
 		DrawLineText(/*Y*/LineHeight, TEXT("Bezier Debug HUD: No BezierDebugActor found."));
@@ -120,7 +121,7 @@ void ABezierDebugHUD::ToggleOverlay()
 
 void ABezierDebugHUD::ToggleEditMode()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bEnableEditMode = !Debug->bEnableEditMode;
 		ApplyAndRefresh();
@@ -129,7 +130,7 @@ void ABezierDebugHUD::ToggleEditMode()
 
 void ABezierDebugHUD::ToggleControlPoints()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bShowControlPoints = !Debug->bShowControlPoints;
 		ApplyAndRefresh();
@@ -138,7 +139,7 @@ void ABezierDebugHUD::ToggleControlPoints()
 
 void ABezierDebugHUD::ToggleStrip()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bShowStrip = !Debug->bShowStrip;
 		ApplyAndRefresh();
@@ -147,7 +148,7 @@ void ABezierDebugHUD::ToggleStrip()
 
 void ABezierDebugHUD::ToggleSnapToGrid()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bSnapToGrid = !Debug->bSnapToGrid;
 		ApplyAndRefresh();
@@ -156,7 +157,7 @@ void ABezierDebugHUD::ToggleSnapToGrid()
 
 void ABezierDebugHUD::ToggleShowGrid()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bShowGrid = !Debug->bShowGrid;
 		ApplyAndRefresh();
@@ -165,7 +166,7 @@ void ABezierDebugHUD::ToggleShowGrid()
 
 void ABezierDebugHUD::CycleGridSize()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		static const TArray<float> GridSizes = { 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 25.0f };
 		int32 NextIndex = 0;
@@ -186,7 +187,7 @@ void ABezierDebugHUD::CycleGridSize()
 
 void ABezierDebugHUD::ToggleLockToXY()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bLockToLocalXY = !Debug->bLockToLocalXY;
 		ApplyAndRefresh();
@@ -195,7 +196,7 @@ void ABezierDebugHUD::ToggleLockToXY()
 
 void ABezierDebugHUD::ToggleForcePlanar()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bForcePlanar = !Debug->bForcePlanar;
 		if (Debug->bForcePlanar && Debug->ForcePlanarAxis == EBezierPlanarAxis::None)
@@ -208,7 +209,7 @@ void ABezierDebugHUD::ToggleForcePlanar()
 
 void ABezierDebugHUD::TogglePulseDebug()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bOverridePulseSettings = true;
 		Debug->bPulseDebugLines = !Debug->bPulseDebugLines;
@@ -218,7 +219,7 @@ void ABezierDebugHUD::TogglePulseDebug()
 
 void ABezierDebugHUD::TogglePulseControlPoints()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bOverridePulseSettings = true;
 		Debug->bPulseControlPoints = !Debug->bPulseControlPoints;
@@ -228,7 +229,7 @@ void ABezierDebugHUD::TogglePulseControlPoints()
 
 void ABezierDebugHUD::TogglePulseStrip()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bOverridePulseSettings = true;
 		Debug->bPulseStrip = !Debug->bPulseStrip;
@@ -244,7 +245,7 @@ void ABezierDebugHUD::ToggleOverridePulseSettings()
 		return;
 	}
 
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bOverridePulseSettings = !Debug->bOverridePulseSettings;
 		ApplyAndRefresh();
@@ -253,7 +254,7 @@ void ABezierDebugHUD::ToggleOverridePulseSettings()
 
 void ABezierDebugHUD::ToggleMouseTraceDebug()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bEnableMouseTraceDebug = !Debug->bEnableMouseTraceDebug;
 		ApplyAndRefresh();
@@ -263,7 +264,7 @@ void ABezierDebugHUD::ToggleMouseTraceDebug()
 
 void ABezierDebugHUD::ToggleActorVisible()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bActorVisibleInGame = !Debug->bActorVisibleInGame;
 		ApplyAndRefresh();
@@ -272,7 +273,7 @@ void ABezierDebugHUD::ToggleActorVisible()
 
 void ABezierDebugHUD::ToggleHideWhenNotEditing()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bHideVisualsWhenNotEditing = !Debug->bHideVisualsWhenNotEditing;
 		ApplyAndRefresh();
@@ -281,7 +282,7 @@ void ABezierDebugHUD::ToggleHideWhenNotEditing()
 
 void ABezierDebugHUD::ToggleControlPolygon()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bShowControlPolygon = !Debug->bShowControlPolygon;
 		ApplyAndRefresh();
@@ -290,7 +291,7 @@ void ABezierDebugHUD::ToggleControlPolygon()
 
 void ABezierDebugHUD::ToggleShowSamplePoints()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bShowSamplePoints = !Debug->bShowSamplePoints;
 		ApplyAndRefresh();
@@ -299,7 +300,7 @@ void ABezierDebugHUD::ToggleShowSamplePoints()
 
 void ABezierDebugHUD::ToggleShowDeCasteljauLevels()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bShowDeCasteljauLevels = !Debug->bShowDeCasteljauLevels;
 		ApplyAndRefresh();
@@ -308,7 +309,7 @@ void ABezierDebugHUD::ToggleShowDeCasteljauLevels()
 
 void ABezierDebugHUD::ToggleVisualsOnTop()
 {
-	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
 		Debug->bForceVisualsOnTop = !Debug->bForceVisualsOnTop;
 		ApplyAndRefresh();
@@ -325,22 +326,39 @@ void ABezierDebugHUD::ApplyAndRefresh()
 
 ABezierDebugActor* ABezierDebugHUD::ResolveDebugActor()
 {
-	if (DebugActor.IsValid())
+	UWorld* World = GetWorld();
+	if (!IsValid(World) || World->bIsTearingDown)
+	{
+		DebugActor = nullptr;
+		return nullptr;
+	}
+
+	if (DebugActor.IsValid() && DebugActor->GetWorld() == World)
 	{
 		return DebugActor.Get();
 	}
 
-	if (!GetWorld())
-	{
-		return nullptr;
-	}
+	DebugActor = nullptr;
 
-	for (TActorIterator<ABezierDebugActor> It(GetWorld()); It; ++It)
+	for (TActorIterator<ABezierDebugActor> It(World); It; ++It)
 	{
 		DebugActor = *It;
 		return DebugActor.Get();
 	}
 
+	return nullptr;
+}
+
+ABezierDebugActor* ABezierDebugHUD::ResolveAndSyncDebugActor()
+{
+	if (ABezierDebugActor* Debug = ResolveDebugActor())
+	{
+		if (UWorld* World = Debug->GetWorld(); IsValid(World) && !World->bIsTearingDown)
+		{
+			Debug->SyncFromWorldState();
+		}
+		return Debug;
+	}
 	return nullptr;
 }
 

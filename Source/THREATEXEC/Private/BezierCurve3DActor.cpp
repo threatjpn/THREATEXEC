@@ -41,8 +41,23 @@ namespace
 
 
 		static TMap<TWeakObjectPtr<const UObject>, TWeakObjectPtr<ULineBatchComponent>> LineBatchers3D;
+		for (auto It = LineBatchers3D.CreateIterator(); It; ++It)
+		{
+			if (!It.Key().IsValid() || !It.Value().IsValid())
+			{
+				It.RemoveCurrent();
+			}
+		}
+
 		TWeakObjectPtr<ULineBatchComponent>& CachedBatcher = LineBatchers3D.FindOrAdd(Owner);
 		ULineBatchComponent* LineBatcher = CachedBatcher.Get();
+		if (IsValid(LineBatcher) && LineBatcher->GetWorld() != World)
+		{
+			LineBatcher->DestroyComponent();
+			LineBatcher = nullptr;
+			CachedBatcher = nullptr;
+		}
+
 		if (!IsValid(LineBatcher))
 		{
 			LineBatcher = NewObject<ULineBatchComponent>(World, NAME_None, RF_Transient);
