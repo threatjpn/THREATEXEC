@@ -12,9 +12,9 @@
 
 #include "Components/SplineComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/LineBatchComponent.h"
 #include "ProceduralMeshComponent.h"
 #include "DeCasteljau.h"
-#include "DrawDebugHelpers.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
@@ -30,6 +30,54 @@
 
 namespace
 {
+	static ULineBatchComponent* TE_GetLineBatcher3D(const UObject* Owner)
+	{
+		if (!Owner)
+		{
+			return nullptr;
+		}
+
+		AActor* OwnerActor = Cast<AActor>(const_cast<UObject*>(Owner));
+		if (!OwnerActor)
+		{
+			return nullptr;
+		}
+
+		if (ULineBatchComponent* Existing = OwnerActor->FindComponentByClass<ULineBatchComponent>())
+		{
+			return Existing;
+		}
+
+		ULineBatchComponent* Created = NewObject<ULineBatchComponent>(OwnerActor, TEXT("RuntimeDebugLineBatcher"));
+		if (!Created)
+		{
+			return nullptr;
+		}
+
+		if (USceneComponent* Root = OwnerActor->GetRootComponent())
+		{
+			Created->SetupAttachment(Root);
+		}
+		Created->RegisterComponent();
+		return Created;
+	}
+
+	static void TE_ClearLineBatcher3D(const UObject* Owner)
+	{
+		if (!Owner)
+		{
+			return;
+		}
+
+		if (AActor* OwnerActor = Cast<AActor>(const_cast<UObject*>(Owner)))
+		{
+			if (ULineBatchComponent* Existing = OwnerActor->FindComponentByClass<ULineBatchComponent>())
+			{
+				Existing->Flush();
+			}
+		}
+	}
+
 	static void TE_DrawRuntimeLine3D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!Owner || !World)
@@ -40,15 +88,10 @@ namespace
 		FLinearColor RuntimeColor = Color;
 		const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 		RuntimeColor.A = RuntimeAlpha;
-		DrawDebugLine(
-			World,
-			Start,
-			End,
-			RuntimeColor.ToFColor(true),
-			false,
-			0.0f,
-			DepthPriority,
-			Thickness * RuntimeAlpha);
+		if (ULineBatchComponent* LineBatcher = TE_GetLineBatcher3D(Owner))
+		{
+			LineBatcher->DrawLine(Start, End, RuntimeColor, DepthPriority, Thickness * RuntimeAlpha, 0.0f);
+		}
 	}
 
 
@@ -79,14 +122,10 @@ namespace
 		FLinearColor RuntimeColor = Color;
 		const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 		RuntimeColor.A = RuntimeAlpha;
-		DrawDebugPoint(
-			World,
-			Position,
-			PointSize * RuntimeAlpha,
-			RuntimeColor.ToFColor(true),
-			false,
-			0.0f,
-			DepthPriority);
+		if (ULineBatchComponent* LineBatcher = TE_GetLineBatcher3D(Owner))
+		{
+			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, DepthPriority, 0.0f);
+		}
 	}
 }
 
@@ -223,6 +262,11 @@ void ABezierCurve3DActor::Tick(float DeltaSeconds)
 	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
+	TE_ClearLineBatcher3D(this);
+	if (!bActorVisibleInGame)
+	{
+		return;
+	}
 
 	const FTransform Xf = GetActorTransform();
 	const float DebugPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f;
