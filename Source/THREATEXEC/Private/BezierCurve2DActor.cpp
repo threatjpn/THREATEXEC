@@ -61,6 +61,22 @@ namespace
 		return Created;
 	}
 
+	static void TE_ClearLineBatcher2D(const UObject* Owner)
+	{
+		if (!Owner)
+		{
+			return;
+		}
+
+		if (AActor* OwnerActor = Cast<AActor>(const_cast<UObject*>(Owner)))
+		{
+			if (ULineBatchComponent* Existing = OwnerActor->FindComponentByClass<ULineBatchComponent>())
+			{
+				Existing->Flush();
+			}
+		}
+	}
+
 	static void TE_DrawRuntimeLine2D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!Owner || !World)
@@ -232,6 +248,12 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 	UpdateControlPointPulse();
 
 	if (!GetWorld()) return;
+	TE_ClearLineBatcher2D(this);
+	if (!bActorVisibleInGame)
+	{
+		return;
+	}
+
 	const FTransform Xf = GetActorTransform();
 	const float DebugPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * DebugPulseSpeed) + 1.0f) * 0.5f;
 	const float GridPulseT = (FMath::Sin(GetWorld()->GetTimeSeconds() * GridPulseSpeed) + 1.0f) * 0.5f;
