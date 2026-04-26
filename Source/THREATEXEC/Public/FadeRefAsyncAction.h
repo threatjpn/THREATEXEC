@@ -1,7 +1,6 @@
 /**
- * File: FadeRefAsyncAction.h
- * Summary: Blueprint async action nodes that wrap fade and transition completion flows.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file FadeRefAsyncAction.h
+ * @brief Blueprint async action nodes that wrap fade and transition completion flows.
  */
 
 #pragma once

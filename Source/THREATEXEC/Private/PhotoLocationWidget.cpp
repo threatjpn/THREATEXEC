@@ -1,8 +1,7 @@
-/**
- * File: PhotoLocationWidget.cpp
- * Summary: Implementation of the photo location browser widget, including preview image and text animation support.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
- */
+// ============================================================================
+// File: PhotoLocationWidget.cpp
+// Summary: Implementation of the photo location browser widget, including preview image and text animation support.
+// ============================================================================
 
 #include "PhotoLocationWidget.h"
 #include "PhotoLocationEntryWidget.h"

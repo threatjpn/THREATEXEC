@@ -1,9 +1,9 @@
-#pragma once
-
 /**
  * @file BezierSceneExporterActor.h
  * @brief Utility actor for exporting selected Bézier actors into one scene JSON file.
  */
+
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"

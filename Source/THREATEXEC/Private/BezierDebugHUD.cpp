@@ -1,3 +1,8 @@
+// ============================================================================
+// BezierDebugHUD.cpp
+// Draws the lightweight Bézier debug overlay and routes hotkey actions to the debug actor.
+// ============================================================================
+
 #include "BezierDebugHUD.h"
 
 #include "BezierDebugActor.h"

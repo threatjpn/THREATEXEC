@@ -1,7 +1,13 @@
 /**
- * File: PhotoRenderControllerComponent.h
- * Summary: Actor component that performs runtime photo capture, optional long-exposure accumulation and PNG export for the project photo workflow.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file PhotoRenderControllerComponent.h
+ * @brief Actor component that performs runtime photo capture, optional long-exposure accumulation and PNG export for the project photo workflow.
+ * 
+ * responsibilities
+ * - single high quality render capture
+ * - long exposure accumulation
+ * - saving PNG files to Project/Saved/Photos
+ * - holding the last captured texture
+ * - forwarding saves to a Blueprint/plugin gallery bridge
  */
 
 #pragma once
@@ -14,19 +20,6 @@ class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
 class UTexture2D;
 
-/**
- * Runtime photo rendering helper.
- *
- * Add this component to the same pawn that owns the photo mode plugin component.
- * Assign a SceneCaptureComponent2D and RenderTarget.
- *
- * Responsibilities:
- * - single high quality render capture
- * - long exposure accumulation
- * - saving PNG files to Project/Saved/Photos
- * - holding the last captured texture
- * - forwarding saves to a Blueprint/plugin gallery bridge
- */
 UCLASS(ClassGroup = (Custom), BlueprintType, Blueprintable, meta = (BlueprintSpawnableComponent))
 class THREATEXEC_API UPhotoRenderControllerComponent : public UActorComponent
 {

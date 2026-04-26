@@ -1,5 +1,3 @@
-#pragma once
-
 /**
  * @file BezierCurve2DActor.h
  * @brief Runtime and editor-facing 2D Bézier curve actor.
@@ -8,6 +6,9 @@
  * components, supports runtime editing, sampling, JSON import/export, and the
  * debug/visual overlays used by the toolkit UI.
  */
+
+#pragma once
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "BezierRuntimeTypes.h"
@@ -19,13 +20,6 @@ class UInstancedStaticMeshComponent;
 class UProceduralMeshComponent;
 class UMaterialInterface;
 
-/**
- * @brief 2D Bézier actor used for visualisation, interaction, and JSON-based persistence.
- *
- * The actor keeps an authoring-friendly 2D control representation while also
- * exposing the runtime/editor hooks needed to resample, redraw, and edit the
- * curve through shared UI systems.
- */
 UCLASS()
 class THREATEXEC_API ABezierCurve2DActor : public AActor, public IBezierEditable
 {

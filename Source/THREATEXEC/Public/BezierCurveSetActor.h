@@ -1,6 +1,8 @@
-// BezierCurveSetActor.h
-// Imports and exports whole sets of Bézier curves, manages spawned curve actors,
-// and exposes editor / runtime helper functions for the UMG file menu and edit UI.
+/**
+* @file BezierCurveSetActor.h
+* @brief imports and exports whole sets of Bézier curves, manages spawned curve actors,
+* and exposes editor / runtime helper functions for the UMG file menu and edit UI.
+ */
 
 #pragma once
 

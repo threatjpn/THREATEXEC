@@ -1,7 +1,6 @@
 /**
- * File: PhotoLocationNameLibrary.h
- * Summary: Utility library that converts internal level names into user-facing photo location display names.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file PhotoLocationNameLibrary.h
+ * @brief Utility library that converts internal level names into user-facing photo location display names.
  */
 
 #pragma once

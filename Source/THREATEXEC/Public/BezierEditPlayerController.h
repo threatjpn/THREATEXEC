@@ -1,9 +1,9 @@
-#pragma once
-
 /**
  * @file BezierEditPlayerController.h
  * @brief Player controller for runtime Bézier point selection, dragging, snapping, and undo/redo input.
  */
+
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"

@@ -1,7 +1,6 @@
 /**
- * File: GI_ThreatExec.h
- * Summary: Custom game instance that centralises fade widget access, fade orchestration and related project-wide transition helpers.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file GI_ThreatExec.h
+ * @brief Custom game instance that centralises fade widget access, fade orchestration and related project-wide transition helpers.
  */
 
 #pragma once

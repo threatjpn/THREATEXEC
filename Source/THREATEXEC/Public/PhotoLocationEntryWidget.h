@@ -1,7 +1,6 @@
 /**
- * File: PhotoLocationEntryWidget.h
- * Summary: Entry widget used by the photo-location browser to represent a single destination or level option.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file PhotoLocationEntryWidget.h
+ * @brief Entry widget used by the photo-location browser to represent a single destination or level option.
  */
 
 #pragma once

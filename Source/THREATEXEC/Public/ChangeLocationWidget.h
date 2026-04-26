@@ -1,7 +1,6 @@
 /**
- * File: ChangeLocationWidget.h
- * Summary: Widget that binds change-location entry widgets and forwards variant selection requests to Blueprint and external listeners.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file ChangeLocationWidget.h
+ * @brief Widget that binds change-location entry widgets and forwards variant selection requests to Blueprint and external listeners.
  */
 
 #pragma once

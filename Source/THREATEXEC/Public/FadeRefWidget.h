@@ -1,7 +1,6 @@
 /**
- * File: FadeRefWidget.h
- * Summary: Reusable fade overlay widget for screen fades, transitions and level travel.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file FadeRefWidget.h
+ * @brief Reusable fade overlay widget for screen fades, transitions and level travel.
  */
 
 #pragma once

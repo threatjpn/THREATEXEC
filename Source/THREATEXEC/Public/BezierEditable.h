@@ -1,5 +1,3 @@
-#pragma once
-
 /**
  * @file BezierEditable.h
  * @brief Common interface implemented by runtime-editable Bézier actors.
@@ -8,6 +6,9 @@
  * and debug systems so that both 2D and 3D curve actors can be driven through
  * the same higher-level tooling.
  */
+
+#pragma once
+
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "BezierEditable.generated.h"

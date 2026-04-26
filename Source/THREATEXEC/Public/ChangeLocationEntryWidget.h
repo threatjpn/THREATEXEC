@@ -1,7 +1,6 @@
 /**
- * File: ChangeLocationEntryWidget.h
- * Summary: Entry widget representing a single selectable location variant within the change-location menu.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file ChangeLocationEntryWidget.h
+ * @brief Entry widget representing a single selectable location variant within the change-location menu.
  */
 
 #pragma once

@@ -1,15 +1,7 @@
 // ============================================================================
 // ChangeLocationManager.cpp
 // Controls location changes, camera targets, fades, and scene visibility groups.
-//
-// Comments are documentation-only and do not alter behaviour.
 // ============================================================================
-
-/**
- * File: ChangeLocationManager.cpp
- * Summary: Implementation of the change-location variant manager. Handles variant discovery, activation and runtime visibility/collision state changes.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
- */
 
 #include "ChangeLocationManager.h"
 

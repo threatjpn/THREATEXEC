@@ -1,15 +1,8 @@
 // ============================================================================
 // ChangeLocationWidget.cpp
 // Builds and manages the change-location menu entries.
-//
 // Comments are documentation-only and do not alter behaviour.
 // ============================================================================
-
-/**
- * File: ChangeLocationWidget.cpp
- * Summary: Implementation of the change-location selection widget and its child-entry rebinding logic.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
- */
 
 #include "ChangeLocationWidget.h"
 #include "ChangeLocationEntryWidget.h"

@@ -1,9 +1,10 @@
-#pragma once
-
 /**
  * @file BezierRuntimeTypes.h
  * @brief Shared enums used by the runtime Bézier editing system.
  */
+
+#pragma once
+
 #include "CoreMinimal.h"
 #include "BezierRuntimeTypes.generated.h"
 

@@ -1,9 +1,10 @@
-#pragma once
-
 /**
  * @file BezierSelectionSubsystem.h
  * @brief World subsystem that stores the currently focused Bézier actor.
  */
+
+#pragma once
+
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "BezierSelectionSubsystem.generated.h"

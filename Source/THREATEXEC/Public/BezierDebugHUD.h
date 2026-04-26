@@ -1,4 +1,8 @@
-// BezierDebugHUD.h : Minimal runtime overlay for Bezier debug toggles
+/**
+* @file BezierDebugHUD.h
+* @brief Minimal runtime overlay for Bezier debug toggles.
+*/
+
 #pragma once
 
 #include "CoreMinimal.h"

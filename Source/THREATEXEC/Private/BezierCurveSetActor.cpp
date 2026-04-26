@@ -1,3 +1,10 @@
+// ============================================================================
+// BezierCurveSetActor.cpp
+// Implements grouped curve-set import, export, and lifecycle management for collections of Bézier actors..
+// 
+// Function signatures, ordering, and implementation logic are preserved.
+// ============================================================================
+
 #include "BezierCurveSetActor.h"
 #include "BezierCurve2DActor.h"
 #include "BezierCurve3DActor.h"

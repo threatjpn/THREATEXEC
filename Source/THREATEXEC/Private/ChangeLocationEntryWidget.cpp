@@ -1,15 +1,7 @@
 // ============================================================================
 // ChangeLocationEntryWidget.cpp
 // Implements one entry in the change-location menu.
-//
-// Comments are documentation-only and do not alter behaviour.
 // ============================================================================
-
-/**
- * File: ChangeLocationEntryWidget.cpp
- * Summary: Implementation of the individual change-location entry widget behaviour.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
- */
 
 #include "ChangeLocationEntryWidget.h"
 #include "Components/Button.h"

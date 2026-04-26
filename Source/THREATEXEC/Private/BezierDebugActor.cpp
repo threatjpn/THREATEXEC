@@ -1,3 +1,8 @@
+// ============================================================================
+// BezierDebugActor.cpp
+// Manages global Bézier debug defaults and applies them to controllers, curve actors, and curve sets.
+// ============================================================================
+
 #include "BezierDebugActor.h"
 
 #include "BezierCurve2DActor.h"

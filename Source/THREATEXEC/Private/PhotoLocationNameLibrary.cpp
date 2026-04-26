@@ -1,15 +1,7 @@
 // ============================================================================
 // PhotoLocationNameLibrary.cpp
 // Provides display-name helpers for photo-location identifiers.
-//
-// Comments are documentation-only and do not alter behaviour.
 // ============================================================================
-
-/**
- * File: PhotoLocationNameLibrary.cpp
- * Summary: Implementation of photo location name lookup and formatting helpers.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
- */
 
 #include "PhotoLocationNameLibrary.h"
 

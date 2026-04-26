@@ -1,7 +1,6 @@
 /**
- * File: PhotoLocationNameWidget.h
- * Summary: Widget responsible for displaying the resolved photo location name for the active map or selection.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file PhotoLocationNameWidget.h
+ * @brief Widget responsible for displaying the resolved photo location name for the active map or selection.
  */
 
 #pragma once

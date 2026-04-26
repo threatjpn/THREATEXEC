@@ -1,8 +1,7 @@
-/**
- * File: PhotoRenderControllerComponent.cpp
- * Summary: Implementation of runtime photo capture, long-exposure accumulation, texture creation and file export helpers.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
- */
+// ============================================================================
+ // File: PhotoRenderControllerComponent.cpp
+ // Summary: Implementation of runtime photo capture, long-exposure accumulation, texture creation and file export helpers.
+// ============================================================================
 
 #include "PhotoRenderControllerComponent.h"
 

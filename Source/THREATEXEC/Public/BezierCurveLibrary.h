@@ -1,9 +1,9 @@
-#pragma once
-
 /**
  * @file BezierCurveLibrary.h
  * @brief Static Bézier helper functions for arc-length resampling and control hashing.
  */
+
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"

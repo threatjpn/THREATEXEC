@@ -3,7 +3,6 @@
 // Implements the 2D Bézier actor, including control-point management, spline synchronisation, visualisation, and export workflows.
 //
 // Notes:
-// - Comments in this file are documentation-only and do not alter behaviour.
 // - Function signatures, ordering, and implementation logic are preserved.
 // ============================================================================
 

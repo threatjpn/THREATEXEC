@@ -1,8 +1,6 @@
 // ============================================================================
 // MuseumWidget.cpp
 // Implements the museum slideshow widget, including slide data, timed cycling, and fade transitions.
-//
-// Comments are documentation-only and do not alter behaviour.
 // ============================================================================
 
 #include "MuseumWidget.h"

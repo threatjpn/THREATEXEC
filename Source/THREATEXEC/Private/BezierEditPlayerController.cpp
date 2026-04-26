@@ -1,8 +1,6 @@
 // ============================================================================
 // BezierEditPlayerController.cpp
 // Handles runtime Bezier editing input, point selection, dragging, undo, and redo.
-//
-// Comments are documentation-only and do not alter behaviour.
 // ============================================================================
 
 #include "BezierEditPlayerController.h"

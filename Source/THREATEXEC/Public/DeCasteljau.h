@@ -1,7 +1,6 @@
 /**
- * File: DeCasteljau.h
- * Summary: Header-only Bézier evaluation, proof-level and sampling helpers.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file DeCasteljau.h
+ * @brief Header-only Bézier evaluation, proof-level and sampling helpers.
  */
 
 #pragma once

@@ -1,5 +1,3 @@
-#pragma once
-
 /**
  * @file BezierCurve3DActor.h
  * @brief Runtime and editor-facing 3D Bézier curve actor.
@@ -8,6 +6,9 @@
  * editing, sampling, visualisation, and import/export hooks used by the wider
  * runtime toolkit and editor tooling.
  */
+
+#pragma once
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "BezierRuntimeTypes.h"
@@ -19,12 +20,6 @@ class UInstancedStaticMeshComponent;
 class UProceduralMeshComponent;
 class UMaterialInterface;
 
-/**
- * @brief 3D Bézier actor used for runtime editing, sampling, and export workflows.
- *
- * This actor stores 3D control-point data and provides the editor/runtime hooks
- * required to convert user edits into spline updates, proof generation, and IO.
- */
 UCLASS()
 class THREATEXEC_API ABezierCurve3DActor : public AActor, public IBezierEditable
 {

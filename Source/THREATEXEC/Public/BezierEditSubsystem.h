@@ -1,9 +1,9 @@
-#pragma once
-
 /**
  * @file BezierEditSubsystem.h
  * @brief World subsystem that coordinates focused curve editing, selection state, edit operations, and history snapshots.
  */
+
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"

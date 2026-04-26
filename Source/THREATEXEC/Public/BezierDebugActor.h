@@ -1,4 +1,8 @@
-// BezierDebugActor.h : Runtime debug toggles for Bezier editing and IO
+/**
+* @file BezierDebugActor.h
+* @brief Runtime debug toggles for Bezier editing and IO.
+*/
+
 #pragma once
 
 #include "CoreMinimal.h"

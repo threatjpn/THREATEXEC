@@ -1,15 +1,7 @@
 // ============================================================================
 // PhotoLocationEntryWidget.cpp
 // Implements a selectable photo-location list entry and forwards selection events to the parent widget.
-//
-// Comments are documentation-only and do not alter behaviour.
 // ============================================================================
-
-/**
- * File: PhotoLocationEntryWidget.cpp
- * Summary: Implementation of photo-location entry widget setup, hover feedback and selection forwarding.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
- */
 
 #include "PhotoLocationEntryWidget.h"
 #include "Components/Button.h"

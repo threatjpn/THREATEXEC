@@ -1,7 +1,6 @@
 /**
- * File: TEPlayerController.h
- * Summary: Project player controller for input modes, photo mode transitions and Bézier undo/redo commands.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file TEPlayerController.h
+ * @brief Project player controller for input modes, photo mode transitions and Bézier undo/redo commands.
  */
 
 #pragma once

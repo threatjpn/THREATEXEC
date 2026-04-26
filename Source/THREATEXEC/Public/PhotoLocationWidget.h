@@ -1,7 +1,6 @@
 /**
- * File: PhotoLocationWidget.h
- * Summary: Main widget used for browsing, previewing and selecting photo locations, including associated image and text transitions.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file PhotoLocationWidget.h
+ * @brief Main widget used for browsing, previewing and selecting photo locations, including associated image and text transitions.
  */
 
 #pragma once

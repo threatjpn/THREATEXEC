@@ -1,7 +1,6 @@
 /**
- * File: ChangeLocationManager.h
- * Summary: Actor responsible for discovering, caching and switching between tagged location variants in the current level.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file ChangeLocationManager.h
+ * @brief Actor responsible for discovering, caching and switching between tagged location variants in the current level.
  */
 
 #pragma once

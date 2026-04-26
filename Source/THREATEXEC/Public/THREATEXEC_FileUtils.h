@@ -1,7 +1,6 @@
 /**
- * File: THREATEXEC_FileUtils.h
- * Summary: Shared Saved-folder path and JSON file helpers for the THREATEXEC module.
- * Note: Comments added for maintainability only. Behaviour and public API remain unchanged.
+ * @file THREATEXEC_FileUtils.h
+ * @brief Shared Saved-folder path and JSON file helpers for the THREATEXEC module.
  */
 
 #pragma once
