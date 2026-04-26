@@ -55,7 +55,7 @@ private:
 	void ToggleControlPolygon();
 	void ToggleShowSamplePoints();
 	void ToggleShowDeCasteljauLevels();
-	void ToggleVisualsOnTop();
+	void CycleVisualPriority();
 
 	void ApplyAndRefresh();
 	ABezierDebugActor* ResolveDebugActor();

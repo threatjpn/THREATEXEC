@@ -187,10 +187,10 @@ public:
 	float VisualFadeSpeed = 6.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render")
-	bool bForceVisualsOnTop = true;
+	EBezierVisualPriority VisualPriority = EBezierVisualPriority::Overlay;
 
-	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render", meta=(ClampMin="0"))
-	int32 VisualTranslucencySortPriority = 1000;
+	UPROPERTY(EditAnywhere, Category = "Bezier3D|Visual|Render", meta=(ClampMin="-128", ClampMax="128"))
+	int32 VisualPriorityBias = 0;
 
 	UFUNCTION(BlueprintCallable, Category = "Bezier3D|UI|RuntimeEdit")
 	void UI_SetShowControlPoints(bool bInShow);
