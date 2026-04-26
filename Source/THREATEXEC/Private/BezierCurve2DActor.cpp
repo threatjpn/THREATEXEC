@@ -107,6 +107,11 @@ namespace
 
 	static int32 TE_ResolveSortPriority2D(const EBezierVisualPriority InPriority, const int32 InBias)
 	{
+		if (InPriority == EBezierVisualPriority::World)
+		{
+			return 0;
+		}
+
 		const int32 BasePriority = (InPriority == EBezierVisualPriority::Overlay) ? 2000 : (InPriority == EBezierVisualPriority::Foreground ? 1000 : 0);
 		return BasePriority + InBias;
 	}
