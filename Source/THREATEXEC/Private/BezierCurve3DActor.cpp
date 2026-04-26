@@ -12,9 +12,9 @@
 
 #include "Components/SplineComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/LineBatchComponent.h"
 #include "ProceduralMeshComponent.h"
 #include "DeCasteljau.h"
-#include "DrawDebugHelpers.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
@@ -30,6 +30,26 @@
 
 namespace
 {
+	static ULineBatchComponent* TE_GetLineBatcher3D(UWorld* World, const uint8 DepthPriority)
+	{
+		if (!World)
+		{
+			return nullptr;
+		}
+
+		if (DepthPriority == SDPG_Foreground && World->ForegroundLineBatcher)
+		{
+			return World->ForegroundLineBatcher;
+		}
+
+		if (World->LineBatcher)
+		{
+			return World->LineBatcher;
+		}
+
+		return World->PersistentLineBatcher;
+	}
+
 	static void TE_DrawRuntimeLine3D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
 	{
 		if (!Owner || !World)
@@ -40,15 +60,10 @@ namespace
 		FLinearColor RuntimeColor = Color;
 		const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 		RuntimeColor.A = RuntimeAlpha;
-		DrawDebugLine(
-			World,
-			Start,
-			End,
-			RuntimeColor.ToFColor(true),
-			false,
-			0.0f,
-			DepthPriority,
-			Thickness * RuntimeAlpha);
+		if (ULineBatchComponent* LineBatcher = TE_GetLineBatcher3D(World, DepthPriority))
+		{
+			LineBatcher->DrawLine(Start, End, RuntimeColor, DepthPriority, Thickness * RuntimeAlpha, 0.0f);
+		}
 	}
 
 
@@ -79,14 +94,10 @@ namespace
 		FLinearColor RuntimeColor = Color;
 		const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 		RuntimeColor.A = RuntimeAlpha;
-		DrawDebugPoint(
-			World,
-			Position,
-			PointSize * RuntimeAlpha,
-			RuntimeColor.ToFColor(true),
-			false,
-			0.0f,
-			DepthPriority);
+		if (ULineBatchComponent* LineBatcher = TE_GetLineBatcher3D(World, DepthPriority))
+		{
+			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, DepthPriority, 0.0f);
+		}
 	}
 }
 
