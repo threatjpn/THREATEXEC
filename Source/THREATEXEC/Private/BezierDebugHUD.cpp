@@ -9,6 +9,20 @@
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 
+namespace
+{
+	static const TCHAR* TE_VisualPriorityToText(const EBezierVisualPriority Priority)
+	{
+		switch (Priority)
+		{
+		case EBezierVisualPriority::World: return TEXT("WORLD");
+		case EBezierVisualPriority::Foreground: return TEXT("FOREGROUND");
+		case EBezierVisualPriority::Overlay: return TEXT("OVERLAY");
+		default: return TEXT("UNKNOWN");
+		}
+	}
+}
+
 ABezierDebugHUD::ABezierDebugHUD()
 {
 }
@@ -56,7 +70,7 @@ void ABezierDebugHUD::DrawHUD()
 	DrawLineText(Y, FString::Printf(TEXT("I: Pulse Strip [%s]"), Debug->bPulseStrip ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("Y: Override Pulse Settings [%s]"), Debug->bOverridePulseSettings ? TEXT("ON") : TEXT("OFF")));
 	DrawLineText(Y, FString::Printf(TEXT("T: Trace Debug [%s]"), Debug->bEnableMouseTraceDebug ? TEXT("ON") : TEXT("OFF")));
-	DrawLineText(Y, FString::Printf(TEXT("F10: Force Visuals On Top [%s]"), Debug->bForceVisualsOnTop ? TEXT("ON") : TEXT("OFF")));
+	DrawLineText(Y, FString::Printf(TEXT("F10: Visual Priority [%s] (Bias %d)"), TE_VisualPriorityToText(Debug->VisualPriority), Debug->VisualPriorityBias));
 	DrawLineText(Y, FString::Printf(TEXT("Undo Steps: %d  | Ctrl+Z / Ctrl+Y"), Debug->UndoMaxSteps));
 	DrawLineText(Y, TEXT("K: Apply Debug Settings"));
 
@@ -110,7 +124,7 @@ void ABezierDebugHUD::BindInput()
 	InputComponent->BindKey(EKeys::O, IE_Pressed, this, &ABezierDebugHUD::ToggleControlPolygon);
 	InputComponent->BindKey(EKeys::M, IE_Pressed, this, &ABezierDebugHUD::ToggleShowSamplePoints);
 	InputComponent->BindKey(EKeys::J, IE_Pressed, this, &ABezierDebugHUD::ToggleShowDeCasteljauLevels);
-	InputComponent->BindKey(EKeys::F10, IE_Pressed, this, &ABezierDebugHUD::ToggleVisualsOnTop);
+	InputComponent->BindKey(EKeys::F10, IE_Pressed, this, &ABezierDebugHUD::CycleVisualPriority);
 	InputComponent->BindKey(EKeys::K, IE_Pressed, this, &ABezierDebugHUD::ApplyAndRefresh);
 }
 
@@ -307,11 +321,23 @@ void ABezierDebugHUD::ToggleShowDeCasteljauLevels()
 	}
 }
 
-void ABezierDebugHUD::ToggleVisualsOnTop()
+void ABezierDebugHUD::CycleVisualPriority()
 {
 	if (ABezierDebugActor* Debug = ResolveAndSyncDebugActor())
 	{
-		Debug->bForceVisualsOnTop = !Debug->bForceVisualsOnTop;
+		switch (Debug->VisualPriority)
+		{
+		case EBezierVisualPriority::World:
+			Debug->VisualPriority = EBezierVisualPriority::Foreground;
+			break;
+		case EBezierVisualPriority::Foreground:
+			Debug->VisualPriority = EBezierVisualPriority::Overlay;
+			break;
+		case EBezierVisualPriority::Overlay:
+		default:
+			Debug->VisualPriority = EBezierVisualPriority::World;
+			break;
+		}
 		ApplyAndRefresh();
 	}
 }

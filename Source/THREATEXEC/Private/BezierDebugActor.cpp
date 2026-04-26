@@ -51,7 +51,7 @@ void ABezierDebugActor::BeginPlay()
 void ABezierDebugActor::ApplyDebugSettings()
 {
 	UndoMaxSteps = FMath::Max(1, UndoMaxSteps);
-	VisualTranslucencySortPriority = FMath::Max(0, VisualTranslucencySortPriority);
+	VisualPriorityBias = FMath::Clamp(VisualPriorityBias, -128, 128);
 	DebugPulseSpeed = FMath::Max(0.01f, DebugPulseSpeed);
 	ControlPointPulseSpeed = FMath::Max(0.01f, ControlPointPulseSpeed);
 	StripPulseSpeed = FMath::Max(0.01f, StripPulseSpeed);
@@ -158,8 +158,8 @@ void ABezierDebugActor::SyncFromWorldState()
 		GridPulseMaxThickness = A3->GridPulseMaxThickness;
 		GridThicknessScale = A3->GridThicknessScale;
 		DebugThicknessScale = A3->DebugThicknessScale;
-		bForceVisualsOnTop = A3->bForceVisualsOnTop;
-		VisualTranslucencySortPriority = A3->VisualTranslucencySortPriority;
+		VisualPriority = A3->VisualPriority;
+		VisualPriorityBias = A3->VisualPriorityBias;
 		bEnableVisualFade = A3->bEnableVisualFade;
 		VisualFadeSpeed = A3->VisualFadeSpeed;
 	}
@@ -212,8 +212,8 @@ void ABezierDebugActor::SyncFromWorldState()
 		GridPulseMaxThickness = A2->GridPulseMaxThickness;
 		GridThicknessScale = A2->GridThicknessScale;
 		DebugThicknessScale = A2->DebugThicknessScale;
-		bForceVisualsOnTop = A2->bForceVisualsOnTop;
-		VisualTranslucencySortPriority = A2->VisualTranslucencySortPriority;
+		VisualPriority = A2->VisualPriority;
+		VisualPriorityBias = A2->VisualPriorityBias;
 		bEnableVisualFade = A2->bEnableVisualFade;
 		VisualFadeSpeed = A2->VisualFadeSpeed;
 	}
@@ -224,7 +224,7 @@ void ABezierDebugActor::SyncFromWorldState()
 	}
 
 	UndoMaxSteps = FMath::Max(1, UndoMaxSteps);
-	VisualTranslucencySortPriority = FMath::Max(0, VisualTranslucencySortPriority);
+	VisualPriorityBias = FMath::Clamp(VisualPriorityBias, -128, 128);
 }
 
 void ABezierDebugActor::ApplyControllerDebug() const
@@ -388,8 +388,8 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 			Curve3D->GridThicknessScale = GridThicknessScale;
 			Curve3D->DebugThicknessScale = DebugThicknessScale;
 		}
-		Curve3D->bForceVisualsOnTop = bForceVisualsOnTop;
-		Curve3D->VisualTranslucencySortPriority = VisualTranslucencySortPriority;
+		Curve3D->VisualPriority = VisualPriority;
+		Curve3D->VisualPriorityBias = VisualPriorityBias;
 		Curve3D->bEnableVisualFade = bEnableVisualFade;
 		Curve3D->VisualFadeSpeed = VisualFadeSpeed;
 		return;
@@ -470,8 +470,8 @@ void ABezierDebugActor::ApplyToCurveActor(AActor* CurveActor) const
 			Curve2D->GridThicknessScale = GridThicknessScale;
 			Curve2D->DebugThicknessScale = DebugThicknessScale;
 		}
-		Curve2D->bForceVisualsOnTop = bForceVisualsOnTop;
-		Curve2D->VisualTranslucencySortPriority = VisualTranslucencySortPriority;
+		Curve2D->VisualPriority = VisualPriority;
+		Curve2D->VisualPriorityBias = VisualPriorityBias;
 		Curve2D->bEnableVisualFade = bEnableVisualFade;
 		Curve2D->VisualFadeSpeed = VisualFadeSpeed;
 		return;

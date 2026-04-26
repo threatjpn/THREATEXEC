@@ -51,6 +51,24 @@ namespace
 			Thickness * RuntimeAlpha);
 	}
 
+
+	static uint8 TE_ResolveDepthPriority2D(const EBezierVisualPriority InPriority)
+	{
+		switch (InPriority)
+		{
+		case EBezierVisualPriority::World: return SDPG_World;
+		case EBezierVisualPriority::Foreground:
+		case EBezierVisualPriority::Overlay:
+		default: return SDPG_Foreground;
+		}
+	}
+
+	static int32 TE_ResolveSortPriority2D(const EBezierVisualPriority InPriority, const int32 InBias)
+	{
+		const int32 BasePriority = (InPriority == EBezierVisualPriority::Overlay) ? 2000 : (InPriority == EBezierVisualPriority::Foreground ? 1000 : 0);
+		return BasePriority + InBias;
+	}
+
 	static void TE_DrawRuntimePoint2D(const UObject* Owner, UWorld* World, const FVector& Position, float PointSize, const FLinearColor& Color, uint8 DepthPriority)
 	{
 		if (!Owner || !World)
@@ -218,7 +236,7 @@ void ABezierCurve2DActor::Tick(float DeltaSeconds)
 		: GridPulseMaxThickness;
 	const float FinalDebugThickness = FMath::Max(0.01f, DebugThickness * DebugThicknessScale);
 	const float FinalGridThickness = FMath::Max(0.01f, GridThickness * GridThicknessScale);
-	const uint8 DebugDepthPriority = bForceVisualsOnTop ? SDPG_Foreground : SDPG_World;
+	const uint8 DebugDepthPriority = TE_ResolveDepthPriority2D(VisualPriority);
 
 	if (bEditMode && bShowControlPolygon && Control.Num() >= 2)
 	{
@@ -327,8 +345,8 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		ControlPointISM->SetHiddenInGame(!bVisible);
 		ControlPointISM->SetVisibility(bVisible, true);
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		ControlPointISM->SetDepthPriorityGroup((ESceneDepthPriorityGroup)TE_ResolveDepthPriority2D(VisualPriority));
+		ControlPointISM->TranslucencySortPriority = TE_ResolveSortPriority2D(VisualPriority, VisualPriorityBias);
 		ControlPointISM->MarkRenderStateDirty();
 	}
 
@@ -337,8 +355,8 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		const bool bShowProc = bShowStrip && bShowStripVisual && !bUseCubeStrip;
 		StripMeshComponent->SetHiddenInGame(!bShowProc);
 		StripMeshComponent->SetVisibility(bShowProc, true);
-		StripMeshComponent->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		StripMeshComponent->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		StripMeshComponent->SetDepthPriorityGroup((ESceneDepthPriorityGroup)TE_ResolveDepthPriority2D(VisualPriority));
+		StripMeshComponent->TranslucencySortPriority = TE_ResolveSortPriority2D(VisualPriority, VisualPriorityBias);
 		StripMeshComponent->MarkRenderStateDirty();
 	}
 
@@ -347,8 +365,8 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		const bool bShowCube = bShowStrip && bShowStripVisual && bUseCubeStrip;
 		CubeStripISM->SetHiddenInGame(!bShowCube);
 		CubeStripISM->SetVisibility(bShowCube, true);
-		CubeStripISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
-		CubeStripISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		CubeStripISM->SetDepthPriorityGroup((ESceneDepthPriorityGroup)TE_ResolveDepthPriority2D(VisualPriority));
+		CubeStripISM->TranslucencySortPriority = TE_ResolveSortPriority2D(VisualPriority, VisualPriorityBias);
 		CubeStripISM->MarkRenderStateDirty();
 	}
 }

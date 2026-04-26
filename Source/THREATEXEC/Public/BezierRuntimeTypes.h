@@ -29,3 +29,15 @@ enum class EBezierPlanarAxis : uint8
 	YZ   UMETA(DisplayName = "YZ (X = 0)")
 };
 
+
+
+/**
+ * @brief Render-priority presets used by runtime visual components and debug draw.
+ */
+UENUM(BlueprintType)
+enum class EBezierVisualPriority : uint8
+{
+	World UMETA(DisplayName = "World"),
+	Foreground UMETA(DisplayName = "Foreground"),
+	Overlay UMETA(DisplayName = "Overlay")
+};
