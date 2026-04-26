@@ -29,24 +29,36 @@
 
 namespace
 {
-	static ULineBatchComponent* TE_GetLineBatcher2D(UWorld* World, const uint8 DepthPriority)
+	static ULineBatchComponent* TE_GetLineBatcher2D(const UObject* Owner)
 	{
-		if (!World)
+		if (!Owner)
 		{
 			return nullptr;
 		}
 
-		if (DepthPriority == SDPG_Foreground && World->ForegroundLineBatcher)
+		AActor* OwnerActor = Cast<AActor>(const_cast<UObject*>(Owner));
+		if (!OwnerActor)
 		{
-			return World->ForegroundLineBatcher;
+			return nullptr;
 		}
 
-		if (World->LineBatcher)
+		if (ULineBatchComponent* Existing = OwnerActor->FindComponentByClass<ULineBatchComponent>())
 		{
-			return World->LineBatcher;
+			return Existing;
 		}
 
-		return World->PersistentLineBatcher;
+		ULineBatchComponent* Created = NewObject<ULineBatchComponent>(OwnerActor, TEXT("RuntimeDebugLineBatcher"));
+		if (!Created)
+		{
+			return nullptr;
+		}
+
+		if (USceneComponent* Root = OwnerActor->GetRootComponent())
+		{
+			Created->SetupAttachment(Root);
+		}
+		Created->RegisterComponent();
+		return Created;
 	}
 
 	static void TE_DrawRuntimeLine2D(const UObject* Owner, UWorld* World, const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, float Thickness)
@@ -59,7 +71,7 @@ namespace
 		FLinearColor RuntimeColor = Color;
 		const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 		RuntimeColor.A = RuntimeAlpha;
-		if (ULineBatchComponent* LineBatcher = TE_GetLineBatcher2D(World, DepthPriority))
+		if (ULineBatchComponent* LineBatcher = TE_GetLineBatcher2D(Owner))
 		{
 			LineBatcher->DrawLine(Start, End, RuntimeColor, DepthPriority, Thickness * RuntimeAlpha, 0.0f);
 		}
@@ -93,7 +105,7 @@ namespace
 		FLinearColor RuntimeColor = Color;
 		const float RuntimeAlpha = FMath::Clamp(RuntimeColor.A, 0.0f, 1.0f);
 		RuntimeColor.A = RuntimeAlpha;
-		if (ULineBatchComponent* LineBatcher = TE_GetLineBatcher2D(World, DepthPriority))
+		if (ULineBatchComponent* LineBatcher = TE_GetLineBatcher2D(Owner))
 		{
 			LineBatcher->DrawPoint(Position, RuntimeColor, PointSize * RuntimeAlpha, DepthPriority, 0.0f);
 		}
