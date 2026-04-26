@@ -329,6 +329,7 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
 		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		ControlPointISM->MarkRenderStateDirty();
 	}
 
 	if (StripMeshComponent)
@@ -338,6 +339,7 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		StripMeshComponent->SetVisibility(bShowProc, true);
 		StripMeshComponent->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
 		StripMeshComponent->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		StripMeshComponent->MarkRenderStateDirty();
 	}
 
 	if (CubeStripISM)
@@ -347,6 +349,7 @@ void ABezierCurve2DActor::ApplyRuntimeEditVisibility()
 		CubeStripISM->SetVisibility(bShowCube, true);
 		CubeStripISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
 		CubeStripISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		CubeStripISM->MarkRenderStateDirty();
 	}
 }
 
@@ -612,15 +615,46 @@ void ABezierCurve2DActor::UpdateCubeStrip()
 
 void ABezierCurve2DActor::UpdateStripMesh()
 {
-	if (!bShowStripMesh) return;
+	if (!bShowStripMesh)
+	{
+		if (StripMeshComponent)
+		{
+			StripMeshComponent->ClearAllMeshSections();
+		}
+
+		if (CubeStripISM)
+		{
+			CubeStripISM->ClearInstances();
+		}
+
+		return;
+	}
 
 	if (bUseCubeStrip)
 	{
+		if (StripMeshComponent)
+		{
+			StripMeshComponent->ClearAllMeshSections();
+		}
+
 		UpdateCubeStrip();
 		return;
 	}
 
-	if (!StripMeshComponent || Control.Num() < 2) return;
+	if (CubeStripISM)
+	{
+		CubeStripISM->ClearInstances();
+	}
+
+	if (!StripMeshComponent || Control.Num() < 2)
+	{
+		if (StripMeshComponent)
+		{
+			StripMeshComponent->ClearAllMeshSections();
+		}
+
+		return;
+	}
 
 	TArray<FVector> Verts;
 	TArray<int32> Tris;
@@ -632,31 +666,55 @@ void ABezierCurve2DActor::UpdateStripMesh()
 
 	for (int32 i = 0; i <= Segs; ++i)
 	{
-		double t = (double)i / (double)Segs;
-		FVector2D P2 = Eval(t);
-		FVector P3 = FVector(P2.X * Scale, P2.Y * Scale, 0);
+		const double t = static_cast<double>(i) / static_cast<double>(Segs);
+		const FVector2D P2 = Eval(t);
+		const FVector P3(P2.X * Scale, P2.Y * Scale, 0.0f);
 
-		FVector2D PNext2 = Eval(FMath::Min(t + 0.001, 1.0));
-		FVector Tangent = FVector(PNext2.X * Scale - P3.X, PNext2.Y * Scale - P3.Y, 0).GetSafeNormal();
+		const double TangentStep = 0.001;
+		const double TA = FMath::Clamp(t - TangentStep, 0.0, 1.0);
+		const double TB = FMath::Clamp(t + TangentStep, 0.0, 1.0);
+		const FVector2D PA2 = Eval(TA);
+		const FVector2D PB2 = Eval(TB);
+
+		FVector Tangent((PB2.X - PA2.X) * Scale, (PB2.Y - PA2.Y) * Scale, 0.0f);
+		Tangent = Tangent.GetSafeNormal();
+		if (Tangent.IsNearlyZero())
+		{
+			Tangent = FVector::ForwardVector;
+		}
+
 		FVector Side = FVector::CrossProduct(Tangent, SideAxis).GetSafeNormal();
+		if (Side.IsNearlyZero())
+		{
+			Side = FVector::RightVector;
+		}
 
 		Verts.Add(P3 + (Side * EffectiveWidth * 0.5f));
 		Verts.Add(P3 - (Side * EffectiveWidth * 0.5f));
 
-		UVs.Add(FVector2D((float)t, 0.f));
-		UVs.Add(FVector2D((float)t, 1.f));
+		UVs.Add(FVector2D(static_cast<float>(t), 0.0f));
+		UVs.Add(FVector2D(static_cast<float>(t), 1.0f));
 
 		if (i < Segs)
 		{
-			int32 B = i * 2;
-			Tris.Add(B); Tris.Add(B + 1); Tris.Add(B + 2);
-			Tris.Add(B + 2); Tris.Add(B + 1); Tris.Add(B + 3);
+			const int32 B = i * 2;
+			Tris.Add(B);
+			Tris.Add(B + 1);
+			Tris.Add(B + 2);
+
+			Tris.Add(B + 2);
+			Tris.Add(B + 1);
+			Tris.Add(B + 3);
 		}
 	}
 
 	StripMeshComponent->CreateMeshSection_LinearColor(0, Verts, Tris, TArray<FVector>(), UVs, TArray<FLinearColor>(), TArray<FProcMeshTangent>(), false);
-	if (StripMaterial) { StripMeshComponent->SetMaterial(0, StripMaterial); }
+	if (StripMaterial)
+	{
+		StripMeshComponent->SetMaterial(0, StripMaterial);
+	}
 }
+
 
 void ABezierCurve2DActor::SampleCurvePoints(int32 TargetCount, TArray<FVector2D>& Out) const
 {

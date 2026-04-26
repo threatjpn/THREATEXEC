@@ -1,12 +1,3 @@
-// ============================================================================
-// BezierCurveSetActor.cpp
-// Implements grouped curve-set import, export, and lifecycle management for collections of Bézier actors.
-//
-// Notes:
-// - Comments in this file are documentation-only and do not alter behaviour.
-// - Function signatures, ordering, and implementation logic are preserved.
-// ============================================================================
-
 #include "BezierCurveSetActor.h"
 #include "BezierCurve2DActor.h"
 #include "BezierCurve3DActor.h"
@@ -686,7 +677,6 @@ void ABezierCurveSetActor::UI_ImportCurveSetJson()
 
 void ABezierCurveSetActor::UI_LoadDemoCurveSetJson()
 {
-	ClearSpawned();
 	ImportCurveSetJsonFromFile(DemoCurveSetFile);
 }
 
@@ -847,7 +837,6 @@ bool ABezierCurveSetActor::UI_FileMenuLoadCurveSetJsonByFileName(const FString& 
 		return false;
 	}
 
-	ClearSpawned();
 	return ImportCurveSetJsonFromFile(NormalizedFileName);
 }
 
@@ -895,6 +884,7 @@ void ABezierCurveSetActor::UI_RegisterSpawned(AActor* Actor)
 
 		for (TActorIterator<ABezierDebugActor> It(World); It; ++It)
 		{
+			It->SyncFromWorldState();
 			It->ApplyDebugToCurve(Actor);
 			break;
 		}

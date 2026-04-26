@@ -371,6 +371,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		ControlPointISM->SetCollisionEnabled((bVisible && bEditMode) ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 		ControlPointISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
 		ControlPointISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		ControlPointISM->MarkRenderStateDirty();
 	}
 
 	if (StripMeshComponent)
@@ -380,6 +381,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		StripMeshComponent->SetVisibility(bShowProc, true);
 		StripMeshComponent->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
 		StripMeshComponent->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		StripMeshComponent->MarkRenderStateDirty();
 	}
 
 	if (CubeStripISM)
@@ -389,6 +391,7 @@ void ABezierCurve3DActor::ApplyRuntimeEditVisibility()
 		CubeStripISM->SetVisibility(bShowCube, true);
 		CubeStripISM->SetDepthPriorityGroup(bForceVisualsOnTop ? SDPG_Foreground : SDPG_World);
 		CubeStripISM->TranslucencySortPriority = bForceVisualsOnTop ? VisualTranslucencySortPriority : 0;
+		CubeStripISM->MarkRenderStateDirty();
 	}
 }
 
@@ -612,61 +615,115 @@ void ABezierCurve3DActor::RefreshControlPointVisuals()
 
 void ABezierCurve3DActor::UpdateCubeStrip()
 {
-	if (!CubeStripISM) return;
+	if (!CubeStripISM)
+	{
+		return;
+	}
 
 	CubeStripISM->ClearInstances();
-	if (StripMaterial) CubeStripISM->SetMaterial(0, StripMaterial);
+	if (StripMaterial)
+	{
+		CubeStripISM->SetMaterial(0, StripMaterial);
+	}
 
-	if (Control.Num() < 2) return;
+	if (Control.Num() < 2)
+	{
+		return;
+	}
 
 	const int32 Segs = FMath::Clamp(StripSegments, 2, 2048);
-
-	const float CubeSizeCm = 100.0f; // UE cube is 100cm
+	const float CubeSizeCm = 100.0f;
 	const float WidthScale = FMath::Max(0.001f, GetStripWidthForRender()) / CubeSizeCm;
 	const float ThickScale = FMath::Max(0.001f, GetStripThicknessForRender()) / CubeSizeCm;
 
-	const FVector Up = GetActorUpVector();
+	// Instance transforms are local to this actor/component. Do not use
+	// GetActorUpVector() here, because that is world-space and can offset the
+	// generated strip when the actor is rotated.
+	const FVector LocalUp = FVector::UpVector;
+	const FVector LocalRight = FVector::RightVector;
 
 	for (int32 i = 0; i < Segs; ++i)
 	{
-		const double t0 = (double)i / (double)Segs;
-		const double t1 = (double)(i + 1) / (double)Segs;
+		const double t0 = static_cast<double>(i) / static_cast<double>(Segs);
+		const double t1 = static_cast<double>(i + 1) / static_cast<double>(Segs);
 
 		const FVector P0 = Eval(t0) * Scale;
 		const FVector P1 = Eval(t1) * Scale;
-
-		const FVector Dir = (P1 - P0);
+		const FVector Dir = P1 - P0;
 		const float Len = Dir.Size();
-		if (Len < KINDA_SMALL_NUMBER) continue;
 
-		const FVector Mid = (P0 + P1) * 0.5f;
+		if (Len < KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
 		const FVector X = Dir / Len;
+		FVector Side = FVector::CrossProduct(LocalUp, X).GetSafeNormal();
+
+		if (Side.IsNearlyZero())
+		{
+			Side = FVector::CrossProduct(LocalRight, X).GetSafeNormal();
+		}
+
+		if (Side.IsNearlyZero())
+		{
+			continue;
+		}
+
+		const FVector TrueUp = FVector::CrossProduct(X, Side).GetSafeNormal();
+		const FVector Mid = (P0 + P1) * 0.5f;
 
 		FTransform Xf;
 		Xf.SetLocation(Mid);
-
-		// Keep a stable frame: X forward, use Up as reference
-		const FVector Side = FVector::CrossProduct(Up, X).GetSafeNormal();
-		const FVector TrueUp = FVector::CrossProduct(X, Side).GetSafeNormal();
 		Xf.SetRotation(FRotationMatrix::MakeFromXZ(X, TrueUp).ToQuat());
-
 		Xf.SetScale3D(FVector(Len / CubeSizeCm, WidthScale, ThickScale));
 		CubeStripISM->AddInstance(Xf);
 	}
 }
 
+
 void ABezierCurve3DActor::UpdateStripMesh()
 {
-	if (!bShowStripMesh) return;
+	if (!bShowStripMesh)
+	{
+		if (StripMeshComponent)
+		{
+			StripMeshComponent->ClearAllMeshSections();
+		}
+
+		if (CubeStripISM)
+		{
+			CubeStripISM->ClearInstances();
+		}
+
+		return;
+	}
 
 	if (bUseCubeStrip)
 	{
+		if (StripMeshComponent)
+		{
+			StripMeshComponent->ClearAllMeshSections();
+		}
+
 		UpdateCubeStrip();
 		return;
 	}
 
-	// Procedural ribbon (your original)
-	if (!StripMeshComponent || Control.Num() < 2) return;
+	if (CubeStripISM)
+	{
+		CubeStripISM->ClearInstances();
+	}
+
+	if (!StripMeshComponent || Control.Num() < 2)
+	{
+		if (StripMeshComponent)
+		{
+			StripMeshComponent->ClearAllMeshSections();
+		}
+
+		return;
+	}
 
 	TArray<FVector> Verts;
 	TArray<int32> Tris;
@@ -674,33 +731,65 @@ void ABezierCurve3DActor::UpdateStripMesh()
 
 	const int32 Segs = FMath::Clamp(StripSegments, 2, 2048);
 	const float EffectiveWidth = FMath::Max(0.001f, GetStripWidthForRender());
-	FVector Up = GetActorUpVector();
+
+	// Procedural mesh vertices are local to this actor/component. Do not use
+	// GetActorUpVector() here, because that is world-space and can offset the
+	// generated strip when the actor is rotated.
+	const FVector LocalUp = FVector::UpVector;
+	const FVector LocalRight = FVector::RightVector;
 
 	for (int32 i = 0; i <= Segs; ++i)
 	{
-		double t = (double)i / (double)Segs;
-		FVector P = Eval(t) * Scale;
+		const double t = static_cast<double>(i) / static_cast<double>(Segs);
+		const FVector P = Eval(t) * Scale;
 
-		FVector Tangent = (Eval(FMath::Min(t + 0.001, 1.0)) * Scale - P).GetSafeNormal();
-		FVector Side = FVector::CrossProduct(Tangent, Up).GetSafeNormal();
+		const double TangentStep = 0.001;
+		const double TA = FMath::Clamp(t - TangentStep, 0.0, 1.0);
+		const double TB = FMath::Clamp(t + TangentStep, 0.0, 1.0);
+
+		FVector Tangent = (Eval(TB) * Scale - Eval(TA) * Scale).GetSafeNormal();
+		if (Tangent.IsNearlyZero())
+		{
+			Tangent = FVector::ForwardVector;
+		}
+
+		FVector Side = FVector::CrossProduct(Tangent, LocalUp).GetSafeNormal();
+		if (Side.IsNearlyZero())
+		{
+			Side = FVector::CrossProduct(Tangent, LocalRight).GetSafeNormal();
+		}
+
+		if (Side.IsNearlyZero())
+		{
+			Side = FVector::RightVector;
+		}
 
 		Verts.Add(P + (Side * EffectiveWidth * 0.5f));
 		Verts.Add(P - (Side * EffectiveWidth * 0.5f));
 
-		UVs.Add(FVector2D((float)t, 0.f));
-		UVs.Add(FVector2D((float)t, 1.f));
+		UVs.Add(FVector2D(static_cast<float>(t), 0.0f));
+		UVs.Add(FVector2D(static_cast<float>(t), 1.0f));
 
 		if (i < Segs)
 		{
-			int32 B = i * 2;
-			Tris.Add(B); Tris.Add(B + 1); Tris.Add(B + 2);
-			Tris.Add(B + 2); Tris.Add(B + 1); Tris.Add(B + 3);
+			const int32 B = i * 2;
+			Tris.Add(B);
+			Tris.Add(B + 1);
+			Tris.Add(B + 2);
+
+			Tris.Add(B + 2);
+			Tris.Add(B + 1);
+			Tris.Add(B + 3);
 		}
 	}
 
 	StripMeshComponent->CreateMeshSection_LinearColor(0, Verts, Tris, TArray<FVector>(), UVs, TArray<FLinearColor>(), TArray<FProcMeshTangent>(), false);
-	if (StripMaterial) { StripMeshComponent->SetMaterial(0, StripMaterial); }
+	if (StripMaterial)
+	{
+		StripMeshComponent->SetMaterial(0, StripMaterial);
+	}
 }
+
 
 // --- UI Runtime Edit functions that were declared but missing ---
 void ABezierCurve3DActor::UI_SetEditMode(bool bInEditMode)

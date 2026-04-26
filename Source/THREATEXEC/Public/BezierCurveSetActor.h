@@ -1,12 +1,3 @@
-#pragma once
-
-/**
- * @file BezierCurveSetActor.h
- * @brief Manager actor for importing, exporting, and coordinating groups of Bézier curves.
- *
- * The set actor acts as the bridge between JSON file IO, spawned curve actors,
- * and the UI-facing helpers used by the prototype file browser and bulk-edit tools.
- */
 // BezierCurveSetActor.h
 // Imports and exports whole sets of Bézier curves, manages spawned curve actors,
 // and exposes editor / runtime helper functions for the UMG file menu and edit UI.
@@ -63,21 +54,15 @@ struct FBezierCurveSetFileListRowData
  * Actor responsible for importing, exporting, and managing sets of 2D/3D Bézier curves.
  * This is the bridge between JSON file IO, spawned curve actors, and the UMG file menu.
  */
-/**
- * @brief Actor that owns high-level import/export and batch-edit operations for multiple curves.
- */
 UCLASS()
 class THREATEXEC_API ABezierCurveSetActor : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	/** Default constructor. */
 	ABezierCurveSetActor();
 
-	/** Starts any runtime services such as optional auto-save management. */
 	virtual void BeginPlay() override;
-	/** Stops timers and releases transient references during shutdown. */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** Class used when spawning imported 2D curve actors. */
@@ -265,10 +250,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") double UI_FocusGetProofT();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetShowSamplePoints(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusToggleShowSamplePoints();
-	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowSamplePoints();
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowSamplePoints();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetShowDeCasteljauLevels(bool bInShow);
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusToggleShowDeCasteljauLevels();
-	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowDeCasteljauLevels();
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowDeCasteljauLevels();
 
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit") bool UI_FocusAddControlPointAfterSelected();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit") bool UI_FocusDeleteSelectedControlPoint();
