@@ -222,10 +222,10 @@ public:
 	float DebugThicknessScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals")
-	bool bForceVisualsOnTop = false;
+	EBezierVisualPriority VisualPriority = EBezierVisualPriority::Foreground;
 
-	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="0"))
-	int32 VisualTranslucencySortPriority = 1000;
+	UPROPERTY(EditAnywhere, Category="Bezier|Debug|Visuals", meta=(ClampMin="-128", ClampMax="128"))
+	int32 VisualPriorityBias = 0;
 
 
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|History", meta=(ClampMin="1", UIMin="1"))
