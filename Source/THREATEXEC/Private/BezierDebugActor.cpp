@@ -1,6 +1,6 @@
 // ============================================================================
 // BezierDebugActor.cpp
-// Manages global Bézier debug defaults and applies them to controllers, curve actors, and curve sets.
+// Manages global BÃ©zier debug defaults and applies them to controllers, curve actors, and curve sets.
 // ============================================================================
 
 #include "BezierDebugActor.h"
@@ -87,6 +87,39 @@ void ABezierDebugActor::ApplyDebugSettings()
 void ABezierDebugActor::ApplyDebugToCurve(AActor* CurveActor)
 {
 	ApplyToCurveActor(CurveActor);
+}
+
+void ABezierDebugActor::SyncThenApplyDebugSettings()
+{
+	SyncFromWorldState();
+	ApplyDebugSettings();
+}
+
+void ABezierDebugActor::ApplyDebugToFocusedCurve()
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	if (UBezierEditSubsystem* Subsystem = GetWorld()->GetSubsystem<UBezierEditSubsystem>())
+	{
+		ApplyToCurveActor(Subsystem->GetFocused());
+	}
+}
+
+void ABezierDebugActor::ApplyDebugToAllCurveSets()
+{
+	ApplyCurveSetDebugAll();
+}
+
+void ABezierDebugActor::ToggleCoreDebugVisuals()
+{
+	const bool bEnableVisuals = !(bShowControlPolygon || bShowSamplePoints || bShowDeCasteljauLevels);
+	bShowControlPolygon = bEnableVisuals;
+	bShowSamplePoints = bEnableVisuals;
+	bShowDeCasteljauLevels = bEnableVisuals;
+	ApplyDebugSettings();
 }
 
 void ABezierDebugActor::SyncFromWorldState()

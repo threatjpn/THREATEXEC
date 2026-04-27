@@ -1,6 +1,6 @@
 // ============================================================================
 // BezierCurveSetActor.cpp
-// Implements grouped curve-set import, export, and lifecycle management for collections of Bézier actors..
+// Implements grouped curve-set import, export, and lifecycle management for collections of BÃ©zier actors..
 // 
 // Function signatures, ordering, and implementation logic are preserved.
 // ============================================================================
@@ -862,6 +862,11 @@ bool ABezierCurveSetActor::UI_FileMenuSaveCurveSetJsonByFileName(const FString& 
 void ABezierCurveSetActor::UI_ClearSpawned()
 {
 	ClearSpawned();
+}
+
+void ABezierCurveSetActor::UI_RefreshManagedCurves()
+{
+	RefreshSpawnedFromWorld();
 }
 
 /** Registers a curve actor with this set actor and updates editor integration state where needed. */

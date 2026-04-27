@@ -141,21 +141,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit")
 	void UI_ResetGridSizeCycleIndex(int32 InIndex = 0);
 
-	/** Imports the default CurveSetFile. */
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
+	/** Imports the default CurveSetFile. Exposed as a Details-panel button via CallInEditor. */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "BezierSet|IO")
 	void UI_ImportCurveSetJson();
 
-	/** Exports the current set to CurveSetFile. */
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
+	/** Exports the current set to CurveSetFile. Exposed as a Details-panel button via CallInEditor. */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "BezierSet|IO")
 	void UI_ExportCurveSetJson();
 
 	// Final prototype helpers:
 	// - Load always reads the fixed demo file
 	// - Save always writes the next numbered exported_curve_set_N.json
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "BezierSet|IO")
 	void UI_LoadDemoCurveSetJson();
 
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|IO")
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "BezierSet|IO")
 	void UI_SaveExportedCurveSetSnapshot();
 
 	// UMG-friendly browser helpers:
@@ -192,6 +192,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|Manage")
 	void UI_ClearSpawned();
+
+	/** Rebuilds the managed Spawned list from world actors owned by this set actor. */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "BezierSet|Manage")
+	void UI_RefreshManagedCurves();
 
 	/** Registers an externally spawned curve actor into this set actor's managed list. */
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|Manage")
