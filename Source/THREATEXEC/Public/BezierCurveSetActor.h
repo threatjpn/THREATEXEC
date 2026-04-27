@@ -8,6 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/CheckBox.h"
 #include "TimerManager.h"
 #include "BezierRuntimeTypes.h"
 #include "BezierCurveSetActor.generated.h"
@@ -249,17 +250,25 @@ public:
 
 	// Focused-curve helpers routed through the edit subsystem.
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetSamplingMode(EBezierSamplingMode InMode);
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") EBezierSamplingMode UI_FocusGetSamplingMode();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") EBezierSamplingMode UI_FocusGetSamplingMode();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetSampleCount(int32 InCount);
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") int32 UI_FocusGetSampleCount();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") int32 UI_FocusGetSampleCount();
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetSampleCountFromValue(float InValue);
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") float UI_FocusGetSampleCountValue();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetProofT(double InT);
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") double UI_FocusGetProofT();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") double UI_FocusGetProofT();
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetProofTFromValue(float InValue);
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") float UI_FocusGetProofTValue();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetShowSamplePoints(bool bInShow);
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetShowSamplePointsFromCheckState(ECheckBoxState InState);
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusToggleShowSamplePoints();
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowSamplePoints();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowSamplePoints();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") ECheckBoxState UI_FocusGetShowSamplePointsCheckState();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetShowDeCasteljauLevels(bool bInShow);
+	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") void UI_FocusSetShowDeCasteljauLevelsFromCheckState(ECheckBoxState InState);
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusToggleShowDeCasteljauLevels();
-	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowDeCasteljauLevels();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") bool UI_FocusGetShowDeCasteljauLevels();
+	UFUNCTION(BlueprintPure, Category = "BezierSet|RuntimeEdit|Sampling") ECheckBoxState UI_FocusGetShowDeCasteljauLevelsCheckState();
 
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit") bool UI_FocusAddControlPointAfterSelected();
 	UFUNCTION(BlueprintCallable, Category = "BezierSet|RuntimeEdit") bool UI_FocusDeleteSelectedControlPoint();
