@@ -523,4 +523,94 @@ bool FBezier_UI_CurveSet_FileMenuOps::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBezier_UI_SelectionAndEditOps_2D3D,
+	"Bezier/UI/SelectionAndEditOps_2D3D",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+
+bool FBezier_UI_SelectionAndEditOps_2D3D::RunTest(const FString&)
+{
+	UWorld* World = GetEditorWorldChecked_UI();
+	FActorSpawnParameters P; P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ABezierCurve2DActor* A2 = World->SpawnActor<ABezierCurve2DActor>(P);
+	if (!TestNotNull(TEXT("Spawn 2D"), A2)) return false;
+
+	A2->UI_SetEditMode(true);
+	A2->Control = { FVector2D(0,0), FVector2D(1,0), FVector2D(2,0) };
+	A2->OverwriteSplineFromControl();
+	A2->UI_SelectAllControlPoints();
+	TestTrue(TEXT("2D select-all active"), A2->UI_AreAllControlPointsSelected());
+
+	TArray<FVector> All2D;
+	TestTrue(TEXT("2D get all world points"), A2->UI_GetAllControlPointsWorld(All2D));
+	TArray<FVector> Shifted2D = All2D;
+	for (FVector& P2 : Shifted2D)
+	{
+		P2 += FVector(25.0f, -10.0f, 0.0f);
+	}
+	TestTrue(TEXT("2D set all world points"), A2->UI_SetAllControlPointsWorld(Shifted2D));
+
+	TArray<FVector> AfterShift2D;
+	TestTrue(TEXT("2D verify shifted points"), A2->UI_GetAllControlPointsWorld(AfterShift2D) && AfterShift2D.Num() == Shifted2D.Num());
+	if (AfterShift2D.Num() == Shifted2D.Num())
+	{
+		for (int32 i = 0; i < AfterShift2D.Num(); ++i)
+		{
+			TestTrue(FString::Printf(TEXT("2D point %d shifted"), i), AfterShift2D[i].Equals(Shifted2D[i], 0.1f));
+		}
+	}
+
+	const int32 Num2DBeforeAdd = A2->Control.Num();
+	TestTrue(TEXT("2D add control point after selected/select-all"), A2->UI_AddControlPointAfterSelected());
+	TestTrue(TEXT("2D add increased count"), A2->Control.Num() == Num2DBeforeAdd + 1);
+
+	A2->UI_SelectControlPoint(1);
+	const int32 Num2DBeforeDup = A2->Control.Num();
+	TestTrue(TEXT("2D duplicate selected"), A2->UI_DuplicateSelectedControlPoint());
+	TestTrue(TEXT("2D duplicate increased count"), A2->Control.Num() == Num2DBeforeDup + 1);
+
+	A2->UI_SelectControlPoint(0);
+	const int32 Num2DBeforeDelete = A2->Control.Num();
+	TestTrue(TEXT("2D delete selected"), A2->UI_DeleteSelectedControlPoint());
+	TestTrue(TEXT("2D delete reduced count"), A2->Control.Num() == Num2DBeforeDelete - 1);
+
+	ABezierCurve3DActor* A3 = World->SpawnActor<ABezierCurve3DActor>(P);
+	if (!TestNotNull(TEXT("Spawn 3D"), A3)) return false;
+
+	A3->UI_SetEditMode(true);
+	A3->Control = { FVector(0,0,0), FVector(1,0,0), FVector(2,0,0) };
+	A3->OverwriteSplineFromControl();
+	A3->UI_SelectAllControlPoints();
+	TestTrue(TEXT("3D select-all active"), A3->UI_AreAllControlPointsSelected());
+
+	TArray<FVector> All3D;
+	TestTrue(TEXT("3D get all world points"), A3->UI_GetAllControlPointsWorld(All3D));
+	TArray<FVector> Shifted3D = All3D;
+	for (FVector& P3 : Shifted3D)
+	{
+		P3 += FVector(-15.0f, 20.0f, 5.0f);
+	}
+	TestTrue(TEXT("3D set all world points"), A3->UI_SetAllControlPointsWorld(Shifted3D));
+
+	const int32 Num3DBeforeAdd = A3->Control.Num();
+	TestTrue(TEXT("3D add control point after selected/select-all"), A3->UI_AddControlPointAfterSelected());
+	TestTrue(TEXT("3D add increased count"), A3->Control.Num() == Num3DBeforeAdd + 1);
+
+	A3->UI_SelectControlPoint(1);
+	const int32 Num3DBeforeDup = A3->Control.Num();
+	TestTrue(TEXT("3D duplicate selected"), A3->UI_DuplicateSelectedControlPoint());
+	TestTrue(TEXT("3D duplicate increased count"), A3->Control.Num() == Num3DBeforeDup + 1);
+
+	A3->UI_SelectControlPoint(0);
+	const int32 Num3DBeforeDelete = A3->Control.Num();
+	TestTrue(TEXT("3D delete selected"), A3->UI_DeleteSelectedControlPoint());
+	TestTrue(TEXT("3D delete reduced count"), A3->Control.Num() == Num3DBeforeDelete - 1);
+
+	A3->Destroy();
+	A2->Destroy();
+	return true;
+}
+
+
 #endif // WITH_EDITOR
