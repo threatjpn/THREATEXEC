@@ -1449,6 +1449,16 @@ int32 ABezierCurveSetActor::UI_FocusGetSampleCount()
 	return 0;
 }
 
+void ABezierCurveSetActor::UI_FocusSetSampleCountFromValue(float InValue)
+{
+	UI_FocusSetSampleCount(FMath::RoundToInt(InValue));
+}
+
+float ABezierCurveSetActor::UI_FocusGetSampleCountValue()
+{
+	return static_cast<float>(UI_FocusGetSampleCount());
+}
+
 void ABezierCurveSetActor::UI_FocusSetProofT(double InT)
 {
 	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
@@ -1466,12 +1476,27 @@ double ABezierCurveSetActor::UI_FocusGetProofT()
 	return 0.0;
 }
 
+void ABezierCurveSetActor::UI_FocusSetProofTFromValue(float InValue)
+{
+	UI_FocusSetProofT(static_cast<double>(InValue));
+}
+
+float ABezierCurveSetActor::UI_FocusGetProofTValue()
+{
+	return static_cast<float>(UI_FocusGetProofT());
+}
+
 void ABezierCurveSetActor::UI_FocusSetShowSamplePoints(bool bInShow)
 {
 	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
 		Subsystem->Focus_SetShowSamplePoints(bInShow);
 	}
+}
+
+void ABezierCurveSetActor::UI_FocusSetShowSamplePointsFromCheckState(ECheckBoxState InState)
+{
+	UI_FocusSetShowSamplePoints(InState == ECheckBoxState::Checked);
 }
 
 bool ABezierCurveSetActor::UI_FocusToggleShowSamplePoints()
@@ -1494,12 +1519,22 @@ bool ABezierCurveSetActor::UI_FocusGetShowSamplePoints()
 	return false;
 }
 
+ECheckBoxState ABezierCurveSetActor::UI_FocusGetShowSamplePointsCheckState()
+{
+	return UI_FocusGetShowSamplePoints() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
 void ABezierCurveSetActor::UI_FocusSetShowDeCasteljauLevels(bool bInShow)
 {
 	if (UBezierEditSubsystem* Subsystem = GetWorld() ? GetWorld()->GetSubsystem<UBezierEditSubsystem>() : nullptr)
 	{
 		Subsystem->Focus_SetShowDeCasteljauLevels(bInShow);
 	}
+}
+
+void ABezierCurveSetActor::UI_FocusSetShowDeCasteljauLevelsFromCheckState(ECheckBoxState InState)
+{
+	UI_FocusSetShowDeCasteljauLevels(InState == ECheckBoxState::Checked);
 }
 
 bool ABezierCurveSetActor::UI_FocusToggleShowDeCasteljauLevels()
@@ -1511,6 +1546,11 @@ bool ABezierCurveSetActor::UI_FocusToggleShowDeCasteljauLevels()
 		return bNext;
 	}
 	return false;
+}
+
+ECheckBoxState ABezierCurveSetActor::UI_FocusGetShowDeCasteljauLevelsCheckState()
+{
+	return UI_FocusGetShowDeCasteljauLevels() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 bool ABezierCurveSetActor::UI_FocusGetShowDeCasteljauLevels()
