@@ -463,6 +463,32 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 		return;
 	}
 
+	AActor* PreviouslyFocusedActor = nullptr;
+	bool bFocusedCurveHadSelectAll = false;
+	if (UWorld* W = GetWorld())
+	{
+		if (UBezierEditSubsystem* Sub = W->GetSubsystem<UBezierEditSubsystem>())
+		{
+			PreviouslyFocusedActor = Sub->GetFocused();
+			if (ABezierCurve3DActor* Focused3D = Cast<ABezierCurve3DActor>(PreviouslyFocusedActor))
+			{
+				bFocusedCurveHadSelectAll = Focused3D->UI_AreAllControlPointsSelected();
+			}
+			else if (ABezierCurve2DActor* Focused2D = Cast<ABezierCurve2DActor>(PreviouslyFocusedActor))
+			{
+				bFocusedCurveHadSelectAll = Focused2D->UI_AreAllControlPointsSelected();
+			}
+		}
+	}
+
+	const bool bHitDifferentCurve = PreviouslyFocusedActor && PreviouslyFocusedActor != HitActor;
+	if (bHitDifferentCurve)
+	{
+		ClearSelectedOnActor(PreviouslyFocusedActor);
+	}
+
+	const bool bKeepSelectAllOnFocusedCurve = bFocusedCurveHadSelectAll && (PreviouslyFocusedActor == HitActor);
+
 	const float NowSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 	const bool bHasControlPoint = HitIndex != INDEX_NONE;
 	const bool bSameClickTarget = (LastPrimaryClickActor.Get() == HitActor && LastPrimaryClickIndex == HitIndex);
@@ -474,7 +500,18 @@ void ABezierEditPlayerController::Input_PrimaryPressed()
 	LastPrimaryClickActor = HitActor;
 	LastPrimaryClickIndex = HitIndex;
 
-	if (bIsDoubleClick)
+	if (bKeepSelectAllOnFocusedCurve)
+	{
+		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(HitActor))
+		{
+			A3->UI_SelectAllControlPoints();
+		}
+		else if (ABezierCurve2DActor* A2 = Cast<ABezierCurve2DActor>(HitActor))
+		{
+			A2->UI_SelectAllControlPoints();
+		}
+	}
+	else if (bIsDoubleClick)
 	{
 		if (ABezierCurve3DActor* A3 = Cast<ABezierCurve3DActor>(HitActor))
 		{
