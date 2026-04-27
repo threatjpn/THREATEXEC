@@ -247,14 +247,30 @@ public:
 	UPROPERTY(EditAnywhere, Category="Bezier|Debug|RuntimeEdit")
 	UMaterialInterface* StripMaterial = nullptr;
 
-	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
+	UFUNCTION(BlueprintCallable, CallInEditor, Category="Bezier|Debug")
 	void ApplyDebugSettings();
 
-	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
+	UFUNCTION(BlueprintCallable, CallInEditor, Category="Bezier|Debug")
 	void SyncFromWorldState();
 
 	UFUNCTION(BlueprintCallable, Category="Bezier|Debug")
 	void ApplyDebugToCurve(AActor* CurveActor);
+
+	/** Pull latest state from world and then push current debug config back out. */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category="Bezier|Debug")
+	void SyncThenApplyDebugSettings();
+
+	/** Applies current debug settings to the currently focused curve (if any). */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category="Bezier|Debug")
+	void ApplyDebugToFocusedCurve();
+
+	/** Applies current debug settings to every curve-set actor in the world. */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category="Bezier|Debug")
+	void ApplyDebugToAllCurveSets();
+
+	/** Toggles the main runtime debug visuals and reapplies settings. */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category="Bezier|Debug")
+	void ToggleCoreDebugVisuals();
 
 protected:
 	virtual void BeginPlay() override;
