@@ -48,7 +48,6 @@ void ABezierDebugActor::BeginPlay()
 
 	if (bApplyOnBeginPlay)
 	{
-		SyncFromWorldState();
 		ApplyDebugSettings();
 	}
 }
