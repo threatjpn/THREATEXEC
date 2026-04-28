@@ -8,6 +8,7 @@
 
 #include "BezierCurve2DActor.h"
 
+#include "BezierDebugActor.h"
 #include "BezierEditSubsystem.h"
 
 #include "Components/SplineComponent.h"
@@ -24,11 +25,32 @@
 #include "Engine/EngineTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
+#include "EngineUtils.h"
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
 namespace
 {
+	static void TE_ApplyDebugToCurve2DIfPresent(ABezierCurve2DActor* CurveActor)
+	{
+		if (!CurveActor)
+		{
+			return;
+		}
+
+		UWorld* World = CurveActor->GetWorld();
+		if (!World)
+		{
+			return;
+		}
+
+		for (TActorIterator<ABezierDebugActor> It(World); It; ++It)
+		{
+			It->ApplyDebugToCurve(CurveActor);
+			return;
+		}
+	}
+
 	static ULineBatchComponent* TE_GetLineBatcher2D(const UObject* Owner)
 	{
 		if (!Owner)
@@ -205,6 +227,7 @@ void ABezierCurve2DActor::BeginPlay()
 
 	RefreshControlPointVisuals();
 	ApplyRuntimeEditVisibility();
+	TE_ApplyDebugToCurve2DIfPresent(this);
 }
 
 void ABezierCurve2DActor::EndPlay(const EEndPlayReason::Type EndPlayReason)

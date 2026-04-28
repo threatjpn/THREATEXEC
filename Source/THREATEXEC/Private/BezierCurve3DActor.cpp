@@ -8,6 +8,7 @@
 
 #include "BezierCurve3DActor.h"
 
+#include "BezierDebugActor.h"
 #include "BezierEditSubsystem.h"
 
 #include "Components/SplineComponent.h"
@@ -24,12 +25,33 @@
 #include "Engine/EngineTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
+#include "EngineUtils.h"
 #include "HAL/PlatformFilemanager.h"
 #include "THREATEXEC_FileUtils.h"
 #include "Algo/Reverse.h"
 
 namespace
 {
+	static void TE_ApplyDebugToCurve3DIfPresent(ABezierCurve3DActor* CurveActor)
+	{
+		if (!CurveActor)
+		{
+			return;
+		}
+
+		UWorld* World = CurveActor->GetWorld();
+		if (!World)
+		{
+			return;
+		}
+
+		for (TActorIterator<ABezierDebugActor> It(World); It; ++It)
+		{
+			It->ApplyDebugToCurve(CurveActor);
+			return;
+		}
+	}
+
 	static ULineBatchComponent* TE_GetLineBatcher3D(const UObject* Owner)
 	{
 		if (!Owner)
@@ -213,6 +235,7 @@ void ABezierCurve3DActor::BeginPlay()
 
 	RefreshControlPointVisuals();
 	ApplyRuntimeEditVisibility();
+	TE_ApplyDebugToCurve3DIfPresent(this);
 }
 
 void ABezierCurve3DActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
